@@ -91,6 +91,21 @@ export async function getAcademicStructure() {
 }
 
 /**
+ * Obtener cursos de un grado
+ */
+export async function getCoursesByGradeLevel(gradeLevelId: string) {
+  try {
+    const courses = await prisma.course.findMany({
+      where: { gradeLevelId, active: true },
+      orderBy: { name: "asc" },
+    });
+    return { success: true, data: courses };
+  } catch (error) {
+    return { success: false, error: "Error al obtener los cursos" };
+  }
+}
+
+/**
  * CRUD de Cursos
  */
 export async function createCourse(data: unknown) {

@@ -10,11 +10,18 @@ import { getTeachers, createTeacher } from "@/lib/actions/teacher.actions";
 import {
   getAcademicStructure,
   getScheduleBySection,
+  getCoursesByGradeLevel,
 } from "@/lib/actions/academic.actions";
 import {
   getEnrollments,
   createEnrollment,
 } from "@/lib/actions/enrollment.actions";
+import {
+  getGradesBySection,
+  saveGrades,
+  getStudentGrades,
+  getSectionGradeReport,
+} from "@/lib/actions/grade.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -126,6 +133,68 @@ export default function TestBackendPage() {
     }
   };
 
+  // --- Notas ---
+  const handleTestGetGradesBySection = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica");
+
+      const firstGrade = structureRes.data.levels[0].grades[0];
+      const sectionId = firstGrade.sections[0].id;
+
+      const coursesRes = await getCoursesByGradeLevel(firstGrade.id);
+      if (!coursesRes.success || !coursesRes.data?.length)
+        throw new Error("No hay cursos en el primer grado");
+
+      const courseId = coursesRes.data[0].id;
+      const res = await getGradesBySection(sectionId, courseId, "P1");
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestSaveBatchGrades = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica");
+
+      const firstGrade = structureRes.data.levels[0].grades[0];
+      const sectionId = firstGrade.sections[0].id;
+
+      const coursesRes = await getCoursesByGradeLevel(firstGrade.id);
+      if (!coursesRes.success || !coursesRes.data?.length)
+        throw new Error("No hay cursos");
+
+      const courseId = coursesRes.data[0].id;
+
+      const studentsRes = await getGradesBySection(sectionId, courseId, "P1");
+      if (!studentsRes.success || !studentsRes.data?.length)
+        throw new Error("No hay alumnos matriculados en esta sección");
+
+      const res = await saveGrades({
+        sectionId,
+        courseId,
+        period: "P1",
+        grades: (studentsRes.data ?? []).map((s: any) => ({
+          enrollmentId: s.enrollmentId,
+          score: Math.floor(Math.random() * 21), // Nota aleatoria 0-20
+        })),
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-8 space-y-6">
       <h1 className="text-3xl font-bold font-heading">
@@ -142,7 +211,41 @@ export default function TestBackendPage() {
           <TabsTrigger value="teachers">Docentes</TabsTrigger>
           <TabsTrigger value="academic">Estructura Académica</TabsTrigger>
           <TabsTrigger value="enrollment">Matrículas</TabsTrigger>
+          <TabsTrigger value="grades">Notas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="grades" className="space-y-4 py-4">
+          <div className="flex gap-4">
+            <Button onClick={handleTestGetGradesBySection} disabled={loading}>
+              Ver Notas (Secc/Curso/P1)
+            </Button>
+            <Button
+              onClick={handleTestSaveBatchGrades}
+              variant="secondary"
+              disabled={loading}
+            >
+              Simular Carga Batch (Notas Aleatorias)
+            </Button>
+            <Button
+              onClick={() =>
+                handleTest(() =>
+                  getSectionGradeReport(
+                    results?.data?.grades?.[0]?.sectionId ?? "",
+                    "P1",
+                  ),
+                )
+              }
+              variant="outline"
+              disabled={loading}
+            >
+              Reporte de Sección
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            * Al cargar notas, se recalculan automáticamente las notas finales y
+            el estado (semáforo) del estudiante.
+          </p>
+        </TabsContent>
 
         <TabsContent value="students" className="space-y-4 py-4">
           <div className="flex gap-4">
