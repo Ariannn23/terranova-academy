@@ -1,0 +1,331 @@
+// schema.prisma — TerraNova Academy
+// Fuente de verdad del modelo de datos
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Level {
+  INICIAL
+  PRIMARIA
+  SECUNDARIA
+}
+
+enum StudentStatus {
+  ACTIVO
+  OBSERVADO
+  EN_RIESGO
+  INHABILITADO
+  RETIRADO
+}
+
+enum AttendanceStatus {
+  PRESENTE
+  TARDANZA
+  FALTA_JUSTIFICADA
+  FALTA_INJUSTIFICADA
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  PAGADO
+  VENCIDO
+  ANULADO
+}
+
+enum PaymentType {
+  MENSUALIDAD
+  MATRICULA
+  EXAMEN
+  UNIFORME
+  OTRO
+}
+
+enum DisabilityReason {
+  EXCESO_FALTAS
+  BAJO_RENDIMIENTO
+  DISCIPLINA
+  OTRO
+}
+
+enum GradePeriod {
+  P1
+  P2
+  P3
+  P4
+  FINAL
+}
+
+enum IncidentSeverity {
+  LEVE
+  MODERADO
+  GRAVE
+}
+
+enum EventType {
+  EXAMEN
+  FERIADO
+  EVENTO
+  REUNION
+  OTRO
+}
+
+// ─── MODELOS ──────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  startDate DateTime
+  endDate   DateTime
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sections  Section[]
+  enrollments Enrollment[]
+  events    CalendarEvent[]
+}
+
+model GradeLevel {
+  id       String @id @default(cuid())
+  name     String @unique
+  level    Level
+  order    Int
+
+  sections Section[]
+  courses  Course[]
+}
+
+model Section {
+  id             String @id @default(cuid())
+  name           String
+  gradeLevelId   String
+  academicYearId String
+  teacherId      String?
+
+  gradeLevel   GradeLevel   @relation(fields: [gradeLevelId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  teacher      Teacher?     @relation(fields: [teacherId], references: [id])
+  enrollments  Enrollment[]
+  schedules    Schedule[]
+
+  @@unique([gradeLevelId, academicYearId])
+}
+
+model Student {
+  id        String        @id @default(cuid())
+  dni       String        @unique
+  firstName String
+  lastName  String
+  birthDate DateTime
+  gender    String
+  address   String?
+  photoUrl  String?
+  status    StudentStatus @default(ACTIVO)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  guardians   Guardian[]
+  enrollments Enrollment[]
+}
+
+model Guardian {
+  id        String  @id @default(cuid())
+  studentId String
+  dni       String
+  firstName String
+  lastName  String
+  relation  String
+  phone     String
+  email     String?
+  address   String?
+  isPrimary Boolean @default(false)
+
+  student Student @relation(fields: [studentId], references: [id])
+}
+
+model Teacher {
+  id        String   @id @default(cuid())
+  dni       String   @unique
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String?
+  photoUrl  String?
+  specialty String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  sections  Section[]
+  schedules Schedule[]
+}
+
+model Course {
+  id           String @id @default(cuid())
+  name         String
+  gradeLevelId String
+  hoursPerWeek Int    @default(2)
+  active       Boolean @default(true)
+
+  gradeLevel   GradeLevel    @relation(fields: [gradeLevelId], references: [id])
+  schedules    Schedule[]
+  gradeRecords GradeRecord[]
+
+  @@unique([name, gradeLevelId])
+}
+
+model Schedule {
+  id        String @id @default(cuid())
+  sectionId String
+  courseId  String
+  teacherId String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  section Section @relation(fields: [sectionId], references: [id])
+  course  Course  @relation(fields: [courseId], references: [id])
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+}
+
+model Enrollment {
+  id             String   @id @default(cuid())
+  studentId      String
+  sectionId      String
+  academicYearId String
+  enrollDate     DateTime @default(now())
+  active         Boolean  @default(true)
+  notes          String?
+
+  student      Student      @relation(fields: [studentId], references: [id])
+  section      Section      @relation(fields: [sectionId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  gradeRecords GradeRecord[]
+  attendances  Attendance[]
+  payments     Payment[]
+  incidents    Incident[]
+  disabilities DisabilityRecord[]
+
+  @@unique([studentId, academicYearId])
+}
+
+model GradeRecord {
+  id           String      @id @default(cuid())
+  enrollmentId String
+  courseId     String
+  period       GradePeriod
+  score        Float?
+  status       String?
+  updatedAt    DateTime    @updatedAt
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  course     Course     @relation(fields: [courseId], references: [id])
+
+  @@unique([enrollmentId, courseId, period])
+}
+
+model Attendance {
+  id            String           @id @default(cuid())
+  enrollmentId  String
+  date          DateTime
+  status        AttendanceStatus
+  justification String?
+  justifiedBy   String?
+  createdAt     DateTime         @default(now())
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([enrollmentId, date])
+}
+
+model PaymentConcept {
+  id          String      @id @default(cuid())
+  name        String
+  type        PaymentType
+  amount      Float
+  description String?
+  active      Boolean     @default(true)
+
+  payments Payment[]
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  enrollmentId String
+  conceptId    String
+  amount       Float
+  dueDate      DateTime
+  paidAt       DateTime?
+  status       PaymentStatus @default(PENDIENTE)
+  method       String?
+  reference    String?
+  notes        String?
+  createdAt    DateTime      @default(now())
+
+  enrollment Enrollment     @relation(fields: [enrollmentId], references: [id])
+  concept    PaymentConcept @relation(fields: [conceptId], references: [id])
+}
+
+model Incident {
+  id           String           @id @default(cuid())
+  enrollmentId String
+  date         DateTime
+  description  String
+  action       String?
+  severity     IncidentSeverity @default(LEVE)
+  createdAt    DateTime         @default(now())
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+}
+
+model DisabilityRecord {
+  id           String           @id @default(cuid())
+  enrollmentId String
+  reason       DisabilityReason
+  description  String?
+  startDate    DateTime         @default(now())
+  resolvedAt   DateTime?
+  resolvedNote String?
+  active       Boolean          @default(true)
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+}
+
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  body        String
+  targetLevel Level?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model CalendarEvent {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  date           DateTime
+  endDate        DateTime?
+  type           EventType
+  academicYearId String
+  allDay         Boolean   @default(true)
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+}
