@@ -55,6 +55,12 @@ import {
   getHolidayDates,
 } from "@/lib/actions/calendar.actions";
 
+import {
+  exportGradesToExcel,
+  exportAttendanceReport,
+  exportFinancialReport,
+} from "@/lib/actions/report.actions";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -616,15 +622,51 @@ export default function TestBackendPage() {
     }
   };
 
+  // --- Exportación y APIs (PDF y Excel) ---
+  const handleDownloadExcel = async (actionFn: () => Promise<any>) => {
+    setLoading(true);
+    try {
+      const res = await actionFn();
+      if (!res.success || !res.data)
+        throw new Error(res.error || "Falla al exportar excel");
+
+      const byteCharacters = atob(res.data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.filename || "export.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+      setResults({
+        success: true,
+        message: "Archivo Excel descargado con éxito",
+      });
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openPdf = (type: string, id: string, extraParams: string = "") => {
+    window.open(`/api/pdf?type=${type}&id=${id}${extraParams}`, "_blank");
+  };
+
   return (
     <div className="p-8 space-y-6">
       <h1 className="text-3xl font-bold font-heading">
         Test Bench: Backend Completo
       </h1>
-      <p className="text-muted-foreground">
-        Usa estos botones para verificar que las Server Actions de cada módulo
-        respondan correctamente.
-      </p>
+      <p className="text-muted-foreground">Server Actions de cada módulo.</p>
 
       <Tabs defaultValue="students" className="w-full">
         <TabsList>
@@ -637,6 +679,7 @@ export default function TestBackendPage() {
           <TabsTrigger value="payments">Pagos</TabsTrigger>
           <TabsTrigger value="disciplina">Disciplina</TabsTrigger>
           <TabsTrigger value="global">Global</TabsTrigger>
+          <TabsTrigger value="reportes">Reportes (B-09)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grades" className="space-y-4 py-4">
@@ -692,7 +735,7 @@ export default function TestBackendPage() {
               variant="secondary"
               disabled={loading}
             >
-              Crear Estudiante Dummy
+              Crear Estudiante
             </Button>
             <Button
               onClick={() => handleTest(() => searchStudents("Prueba"))}
@@ -714,7 +757,7 @@ export default function TestBackendPage() {
               variant="secondary"
               disabled={loading}
             >
-              Crear Docente Dummy
+              Crear Docente
             </Button>
           </div>
         </TabsContent>
@@ -913,6 +956,127 @@ export default function TestBackendPage() {
             >
               Extraer Fechas de Feriados
             </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="reportes" className="space-y-6 py-4">
+          <div>
+            <h3 className="text-sm font-bold mb-2">
+              1. Visualización de PDFs (Abre en nueva pestaña)
+            </h3>
+            <div className="flex gap-4 mb-4">
+              <Button
+                onClick={async () => {
+                  const enrRes = await getEnrollments({ limit: 1 });
+                  if (enrRes.success && enrRes.data?.length) {
+                    openPdf("enrollment", (enrRes.data as any)[0].id);
+                  } else alert("No hay matrículas");
+                }}
+                disabled={loading}
+              >
+                Constancia de Matrícula
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  const enrRes = await getEnrollments({ limit: 1 });
+                  if (enrRes.success && enrRes.data?.length) {
+                    openPdf("grades", (enrRes.data as any)[0].id);
+                  } else alert("No hay matrículas");
+                }}
+                disabled={loading}
+                variant="secondary"
+              >
+                Libreta de Notas
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  const s = await getAcademicStructure();
+                  if (s.success && s.data?.sections.length) {
+                    // asumiendo marzo 2026
+                    openPdf(
+                      "attendance",
+                      s.data.sections[0].id,
+                      "&month=3&year=2026",
+                    );
+                  } else alert("No hay secciones");
+                }}
+                disabled={loading}
+                variant="outline"
+              >
+                Planilla de Asistencia
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  const enr = await getEnrollments({ limit: 1 });
+                  if (enr.success && enr.data?.length) {
+                    const payRes = await getPaymentsByEnrollment(
+                      (enr.data as any)[0].id,
+                    );
+                    const payment = payRes.data?.find(
+                      (p: any) => p.status === "PAGADO",
+                    );
+                    if (payment) openPdf("receipt", payment.id);
+                    else
+                      alert(
+                        "Primero registra un cobro pagado para poder ver su recibo en PDF.",
+                      );
+                  } else alert("No hay matrículas");
+                }}
+                disabled={loading}
+              >
+                Recibo electrónico
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-bold mb-2">
+              2. Descarga de Reportes (Archivos .XLSX)
+            </h3>
+            <div className="flex gap-4">
+              <Button
+                onClick={async () => {
+                  const s = await getAcademicStructure();
+                  if (s.success && s.data?.sections.length) {
+                    handleDownloadExcel(() =>
+                      exportGradesToExcel(s.data.sections[0].id, "P1"),
+                    );
+                  } else alert("No hay secciones");
+                }}
+                variant="destructive"
+                disabled={loading}
+              >
+                Reporte de Notas (P1)
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  const s = await getAcademicStructure();
+                  if (s.success && s.data?.sections.length) {
+                    handleDownloadExcel(() =>
+                      exportAttendanceReport(s.data.sections[0].id, 3, 2026),
+                    );
+                  } else alert("No hay secciones");
+                }}
+                variant="destructive"
+                disabled={loading}
+              >
+                Consolidado Asistencia
+              </Button>
+
+              <Button
+                onClick={() =>
+                  handleDownloadExcel(() => exportFinancialReport(2026))
+                }
+                variant="secondary"
+                disabled={loading}
+              >
+                Reporte Financiero Anual
+              </Button>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

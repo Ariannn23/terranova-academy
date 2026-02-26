@@ -1,0 +1,171 @@
+"use server";
+
+import * as XLSX from "xlsx";
+import { prisma } from "@/lib/prisma";
+import { getSectionGradeReport } from "@/lib/actions/grade.actions";
+import { getSectionAttendanceReport } from "@/lib/actions/attendance.actions";
+
+// Devuelve un Buffer o string Base64 con el excel.
+// Recomendable devolver base64 para que el FrontEnd arme el Blob con facilidad.
+
+// ==========================================
+// 1. EXPORTAR NOTAS DE SECCIÓN A EXCEL
+// ==========================================
+export async function exportGradesToExcel(sectionId: string, period: string) {
+  try {
+    const gradesRes = await getSectionGradeReport(sectionId, period as any);
+    if (!gradesRes.success || !gradesRes.data)
+      throw new Error("No pudimos conseguir las notas de la sección");
+
+    const sectionInfo = await prisma.section.findUnique({
+      where: { id: sectionId },
+      include: { gradeLevel: true },
+    });
+
+    const rows = gradesRes.data.ranking.map((studentRow: any) => {
+      const flatObj: Record<string, any> = {
+        DNI: studentRow.studentDni || "",
+        Estudiante: studentRow.name || "",
+      };
+
+      // Si el JSON viene con la lista total de sus scores en este periodo
+      if (studentRow.grades && Array.isArray(studentRow.grades)) {
+        studentRow.grades.forEach((g: any) => {
+          flatObj[g.courseName] = g.score;
+        });
+      }
+
+      flatObj["Promedio General"] = studentRow.average;
+      flatObj["Cursos Jalados"] = studentRow.failingCount;
+      flatObj["Estatus"] = studentRow.status || "N/A";
+
+      return flatObj;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    const sheetName = `Notas - ${sectionInfo?.name} - ${period}`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+
+    // Acomodar columnas un poco
+    ws["!cols"] = [{ wch: 12 }, { wch: 35 }, { wch: 12 }, { wch: 12 }];
+
+    const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
+  } catch (error: any) {
+    console.error("Error in exportGradesToExcel:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ==========================================
+// 2. EXPORTAR REPORTE DE ASISTENCIA
+// ==========================================
+export async function exportAttendanceReport(
+  sectionId: string,
+  month: number,
+  year: number,
+) {
+  try {
+    const attendanceRes = await getSectionAttendanceReport({
+      sectionId,
+      month,
+      year,
+    });
+    if (!attendanceRes.success || !attendanceRes.data)
+      throw new Error("No se pudo obtener el consolidado de asistencia");
+
+    const sectionInfo = await prisma.section.findUnique({
+      where: { id: sectionId },
+      include: { gradeLevel: true },
+    });
+
+    const rows = attendanceRes.data.planilla.map((st: any) => {
+      const flatObj: Record<string, any> = {
+        DNI: st.studentDni,
+        Estudiante: st.studentName,
+        "Total Clases Abiertas": st.summary.totalSessions,
+        Asistencias: st.summary.presentCount,
+        Tardanzas: st.summary.lateCount,
+        "Faltas Injustificadas": st.summary.absentCount,
+        "Faltas Justificadas": st.summary.excusedCount,
+        "Efectividad (%)": st.summary.percentage.toFixed(2) + "%",
+      };
+      return flatObj;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    const sheetName = `Asistencia ${sectionInfo?.name} - ${month}-${year}`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+
+    ws["!cols"] = [
+      { wch: 12 },
+      { wch: 35 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 15 },
+    ];
+
+    const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
+  } catch (error: any) {
+    console.error("Error in exportAttendanceReport:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ==========================================
+// 3. EXPORTAR REPORTE FINANCIERO ANUAL
+// ==========================================
+export async function exportFinancialReport(year: number) {
+  try {
+    // Conseguir todos los conceptos de ese año
+    const payments = await prisma.payment.findMany({
+      where: {
+        dueDate: {
+          gte: new Date(year, 0, 1),
+          lte: new Date(year, 11, 31, 23, 59, 59),
+        },
+      },
+      include: { concept: true },
+    });
+
+    // Agruparlos por Estado
+    let pending = 0;
+    let paid = 0;
+    let overdue = 0;
+
+    payments.forEach((p) => {
+      if (p.status === "PAGADO") paid += p.amount;
+      else if (p.status === "VENCIDO") overdue += p.amount;
+      else if (p.status === "PENDIENTE") pending += p.amount;
+    });
+
+    const rawData = [
+      { Indicador: "Ingresos Recaudados (PAGADOS)", "Monto (S/.)": paid },
+      { Indicador: "Capital por Cobrar (PENDIENTES)", "Monto (S/.)": pending },
+      { Indicador: "Deuda Morosa (VENCIDOS)", "Monto (S/.)": overdue },
+      {
+        Indicador: "PROYECCIÓN ANUAL TOTAL",
+        "Monto (S/.)": paid + pending + overdue,
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(rawData);
+    const wb = XLSX.utils.book_new();
+    const sheetName = `Finanzas Anuales - ${year}`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+
+    ws["!cols"] = [{ wch: 40 }, { wch: 20 }];
+
+    const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
+  } catch (error: any) {
+    console.error("Error in exportFinancialReport:", error);
+    return { success: false, error: error.message };
+  }
+}
