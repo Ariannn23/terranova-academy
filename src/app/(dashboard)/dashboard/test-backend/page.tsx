@@ -39,6 +39,22 @@ import {
   generateMonthlyPayments,
   getFinancialSummary,
 } from "@/lib/actions/payment.actions";
+import { createIncident, getIncidents } from "@/lib/actions/incident.actions";
+import {
+  createDisability,
+  getActiveDisabilities,
+  resolveDisability,
+} from "@/lib/actions/disability.actions";
+import {
+  createAnnouncement,
+  getAnnouncements,
+} from "@/lib/actions/announcement.actions";
+import {
+  createCalendarEvent,
+  getEventsByMonth,
+  getHolidayDates,
+} from "@/lib/actions/calendar.actions";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -494,6 +510,112 @@ export default function TestBackendPage() {
     }
   };
 
+  // --- Disciplina E Incidencias ---
+  const handleTestCreateIncident = async () => {
+    setLoading(true);
+    try {
+      const enrollmentsRes = await getEnrollments({ limit: 1 });
+      if (!enrollmentsRes.success || !enrollmentsRes.data?.length)
+        throw new Error("No hay matrículas");
+
+      const enrollmentId = (enrollmentsRes.data as any[])[0].id;
+      const res = await createIncident({
+        enrollmentId,
+        date: new Date(),
+        description:
+          "El estudiante llegó 30 minutos tarde e interrumpió la clase.",
+        severity: "LEVE",
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestInhabilitarEstudiante = async () => {
+    setLoading(true);
+    try {
+      const enrollmentsRes = await getEnrollments({ limit: 1 });
+      if (!enrollmentsRes.success || !enrollmentsRes.data?.length)
+        throw new Error("No hay matrículas");
+
+      const enrollmentId = (enrollmentsRes.data as any[])[0].id;
+      const res = await createDisability({
+        enrollmentId,
+        reason: "DISCIPLINA",
+        description:
+          "Inhabilitado por indisciplina recurrente, pendiente reunión con padres.",
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestResolverInhabilitacion = async () => {
+    setLoading(true);
+    try {
+      const activeRes = await getActiveDisabilities();
+      if (!activeRes.success || !activeRes.data?.length)
+        throw new Error("No hay estudiantes inhabilitados actualmente");
+
+      const disabilityId = activeRes.data[0].id;
+      const res = await resolveDisability({
+        id: disabilityId,
+        resolvedNote: "Compromiso disciplinario firmado por los padres.",
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Global (Calendario y Anuncios) ---
+  const handleTestCrearFeriado = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica (año creado)");
+
+      const academicYearId = structureRes.data.id;
+      const res = await createCalendarEvent({
+        title: "Día del Trabajador",
+        date: new Date("2026-05-01T00:00:00"),
+        type: "FERIADO",
+        academicYearId,
+        allDay: true,
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestCrearAnuncio = async () => {
+    setLoading(true);
+    try {
+      const res = await createAnnouncement({
+        title: "Día del Logro",
+        body: "Estimados padres de familia, están cordialmente invitados a nuestro Día del Logro este fin de mes. La asistencia es obligatoria.",
+        targetLevel: null, // Global
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-8 space-y-6">
       <h1 className="text-3xl font-bold font-heading">
@@ -513,6 +635,8 @@ export default function TestBackendPage() {
           <TabsTrigger value="grades">Notas</TabsTrigger>
           <TabsTrigger value="attendance">Asistencia</TabsTrigger>
           <TabsTrigger value="payments">Pagos</TabsTrigger>
+          <TabsTrigger value="disciplina">Disciplina</TabsTrigger>
+          <TabsTrigger value="global">Global</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grades" className="space-y-4 py-4">
@@ -723,6 +847,73 @@ export default function TestBackendPage() {
             * 'Registrar Cobro' toma el primer concepto pendiente de la tarjeta
             de cuenta y le asigna número de factura correlativo temporal.
           </p>
+        </TabsContent>
+
+        <TabsContent value="disciplina" className="space-y-4 py-4">
+          <div className="flex gap-4">
+            <Button onClick={handleTestCreateIncident} disabled={loading}>
+              Crear Incidente Disciplinario
+            </Button>
+            <Button
+              onClick={handleTestInhabilitarEstudiante}
+              variant="destructive"
+              disabled={loading}
+            >
+              Inhabilitar Estudiante
+            </Button>
+            <Button
+              onClick={handleTestResolverInhabilitacion}
+              variant="secondary"
+              disabled={loading}
+            >
+              Resolver Inhabilitación
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            * Inhabilitar a un alumno cambia automáticamente su estado a
+            INHABILITADO limitando accesos y reportes. Resolverlo lo recalcula
+            en base a sus notas y faltas.
+          </p>
+        </TabsContent>
+
+        <TabsContent value="global" className="space-y-4 py-4">
+          <div className="flex gap-4">
+            <Button onClick={handleTestCrearAnuncio} disabled={loading}>
+              Publicar Comunicado General
+            </Button>
+            <Button
+              onClick={handleTestCrearFeriado}
+              variant="secondary"
+              disabled={loading}
+            >
+              Crear Feriado Global
+            </Button>
+            <Button
+              onClick={() => handleTest(() => getAnnouncements())}
+              variant="outline"
+              disabled={loading}
+            >
+              Listar Comunicados
+            </Button>
+            <Button
+              onClick={async () => {
+                setLoading(true);
+                const s = await getAcademicStructure();
+                if (!s.success || !s.data) {
+                  setResults({ error: "Primero crea el año académico 2026." });
+                  setLoading(false);
+                  return;
+                }
+                const res = await getHolidayDates(s.data.id);
+                setResults(res);
+                setLoading(false);
+              }}
+              variant="outline"
+              disabled={loading}
+            >
+              Extraer Fechas de Feriados
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
 
