@@ -33,6 +33,12 @@ import {
   getCriticalAttendance,
   getSectionAttendanceReport,
 } from "@/lib/actions/attendance.actions";
+import {
+  getPaymentsByEnrollment,
+  registerPayment,
+  generateMonthlyPayments,
+  getFinancialSummary,
+} from "@/lib/actions/payment.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -417,6 +423,77 @@ export default function TestBackendPage() {
     }
   };
 
+  // --- Pagos ---
+  const handleTestGenerateMonthlyPayments = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica");
+
+      const academicYearId = structureRes.data.id;
+      // Generar pagos para este mes
+      const res = await generateMonthlyPayments(academicYearId, new Date());
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestVerPagos = async () => {
+    setLoading(true);
+    try {
+      const enrollmentsRes = await getEnrollments({ limit: 1 });
+      if (!enrollmentsRes.success || !enrollmentsRes.data?.length)
+        throw new Error("No hay matrículas");
+
+      const enrollmentId = (enrollmentsRes.data as any[])[0].id;
+      const res = await getPaymentsByEnrollment(enrollmentId);
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestPagar = async () => {
+    setLoading(true);
+    try {
+      const enrollmentsRes = await getEnrollments({ limit: 1 });
+      if (!enrollmentsRes.success || !enrollmentsRes.data?.length)
+        throw new Error("No hay matrículas apuntadas");
+
+      const enrollmentId = (enrollmentsRes.data as any[])[0].id;
+
+      // Buscar si tiene pagos pendientes
+      const paymentsRes = await getPaymentsByEnrollment(enrollmentId);
+      if (!paymentsRes.success || !paymentsRes.data?.length)
+        throw new Error(
+          "No hay cobros generados para el primer estudiante. Intenta generar mensualidades primero.",
+        );
+
+      const pendingPayment = paymentsRes.data.find(
+        (p) => p.status === "PENDIENTE",
+      );
+      if (!pendingPayment)
+        throw new Error("El estudiante no tiene pagos pendientes por abonar.");
+
+      const res = await registerPayment({
+        paymentId: pendingPayment.id,
+        method: "EFECTIVO",
+        notes: "Pago de prueba abonado por taquilla principal",
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-8 space-y-6">
       <h1 className="text-3xl font-bold font-heading">
@@ -435,6 +512,7 @@ export default function TestBackendPage() {
           <TabsTrigger value="enrollment">Matrículas</TabsTrigger>
           <TabsTrigger value="grades">Notas</TabsTrigger>
           <TabsTrigger value="attendance">Asistencia</TabsTrigger>
+          <TabsTrigger value="payments">Pagos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grades" className="space-y-4 py-4">
@@ -599,6 +677,51 @@ export default function TestBackendPage() {
             * Al guardar asistencia, se recalcula automáticamente el estado
             (semáforo) del estudiante. Los días festivos se excluyen del
             cálculo.
+          </p>
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-4 py-4">
+          <div className="flex gap-4">
+            <Button
+              onClick={handleTestGenerateMonthlyPayments}
+              disabled={loading}
+            >
+              Autogenerar Mes Actual
+            </Button>
+            <Button
+              onClick={handleTestVerPagos}
+              variant="secondary"
+              disabled={loading}
+            >
+              Revisar Cuenta del Estudiante
+            </Button>
+            <Button
+              onClick={handleTestPagar}
+              variant="outline"
+              disabled={loading}
+            >
+              Registrar Cobro (PAGADO)
+            </Button>
+            <Button
+              onClick={async () => {
+                setLoading(true);
+                const td = new Date();
+                const res = await getFinancialSummary(
+                  td.getMonth() + 1,
+                  td.getFullYear(),
+                );
+                setResults(res);
+                setLoading(false);
+              }}
+              variant="outline"
+              disabled={loading}
+            >
+              Resumen Financiero del Mes
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            * 'Registrar Cobro' toma el primer concepto pendiente de la tarjeta
+            de cuenta y le asigna número de factura correlativo temporal.
           </p>
         </TabsContent>
       </Tabs>
