@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import {
-  createStudent,
   getStudents,
   searchStudents,
+  createStudent,
 } from "@/lib/actions/student.actions";
 import { getTeachers, createTeacher } from "@/lib/actions/teacher.actions";
 import {
   getAcademicStructure,
   getScheduleBySection,
   getCoursesByGradeLevel,
+  createAcademicYear,
+  deleteAcademicYear2026,
+  createCourse,
 } from "@/lib/actions/academic.actions";
 import {
   getEnrollments,
@@ -22,6 +25,14 @@ import {
   getStudentGrades,
   getSectionGradeReport,
 } from "@/lib/actions/grade.actions";
+import {
+  getAttendanceBySection,
+  getAttendanceByStudent,
+  saveAttendance,
+  getAttendanceStats,
+  getCriticalAttendance,
+  getSectionAttendanceReport,
+} from "@/lib/actions/attendance.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,35 +97,103 @@ export default function TestBackendPage() {
   // --- Estructura Académica ---
   const handleTestGetStructure = () => handleTest(() => getAcademicStructure());
 
+  const handleTestCreateAcademicYear2026 = () => {
+    const startDate = new Date("2026-03-01");
+    const endDate = new Date("2026-12-20");
+    handleTest(() => createAcademicYear(2026, startDate, endDate, true));
+  };
+
+  const handleTestDebugAcademicYear = () =>
+    handleTest(async () => {
+      const res = await getAcademicStructure();
+      if (res.success && res.data) {
+        return {
+          success: true,
+          year: res.data.year,
+          levelsCount: res.data.levels.length,
+          levels: res.data.levels.map((l) => ({
+            name: l.name,
+            gradesCount: l.grades.length,
+            grades: l.grades.map((g) => ({
+              name: g.name,
+              sectionsCount: g.sections.length,
+            })),
+          })),
+        };
+      }
+      return res;
+    });
+
+  const handleTestCleanAndCreate2026 = async () => {
+    setLoading(true);
+    try {
+      // Primero limpiar el 2026 si existe
+      const deleteRes = await deleteAcademicYear2026();
+      console.log("Delete 2026:", deleteRes);
+
+      // Luego crear uno nuevo correctamente
+      const startDate = new Date("2026-01-01");
+      const endDate = new Date("2026-12-31");
+      const createRes = await createAcademicYear(
+        2026,
+        startDate,
+        endDate,
+        true,
+      );
+      setResults(createRes);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // --- Matrículas ---
   const handleTestGetEnrollments = () =>
     handleTest(() => getEnrollments({ limit: 5 }));
   const handleTestCreateEnrollment = async () => {
     setLoading(true);
     try {
-      // Intentamos obtener datos reales para que la matrícula no falle por FKs
-      const [studentRes, structureRes] = await Promise.all([
-        getStudents({ limit: 1 }),
-        getAcademicStructure(),
-      ]);
-
-      if (
-        !studentRes.success ||
-        !studentRes.data?.students?.length ||
-        !structureRes.success ||
-        !structureRes.data
-      ) {
-        setResults({
-          success: false,
-          error: "Necesitas tener al menos un estudiante y seccion creada",
-        });
-        setLoading(false);
-        return;
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data) {
+        throw new Error("No hay estructura académica");
       }
 
-      const studentId = studentRes.data.students[0].id;
       const academicYearId = structureRes.data.id;
       const sectionId = structureRes.data.levels[0].grades[0].sections[0].id;
+
+      // Generar un estudiante falso para garantizar que no esté matriculado
+      const randomId = Math.floor(Math.random() * 99999999);
+      const randomDni = String(randomId).padStart(8, "0");
+      const guardianDni = String(randomId + 1).padStart(8, "0");
+
+      const studentRes = await createStudent({
+        firstName: "Test",
+        lastName: `Alumno ${randomId}`,
+        dni: randomDni, // 8 digitos garantizados
+        birthDate: new Date("2010-01-01"),
+        gender: "MASCULINO",
+        address: "Calle Falsa 123",
+        guardians: [
+          {
+            dni: guardianDni,
+            firstName: "Apoderado",
+            lastName: "Test",
+            relation: "PADRE",
+            phone: "999888777",
+            isPrimary: true,
+          },
+        ],
+      });
+
+      if (!studentRes.success || !studentRes.data) {
+        throw new Error(
+          "No se pudo crear el estudiante de prueba. Error: " +
+            JSON.stringify(studentRes.error, null, 2),
+        );
+      }
+
+      const studentId = studentRes.data.id;
 
       const res = await createEnrollment({
         studentId,
@@ -144,9 +223,22 @@ export default function TestBackendPage() {
       const firstGrade = structureRes.data.levels[0].grades[0];
       const sectionId = firstGrade.sections[0].id;
 
-      const coursesRes = await getCoursesByGradeLevel(firstGrade.id);
-      if (!coursesRes.success || !coursesRes.data?.length)
-        throw new Error("No hay cursos en el primer grado");
+      let coursesRes = await getCoursesByGradeLevel(firstGrade.id);
+      if (!coursesRes.success || !coursesRes.data?.length) {
+        // Crear un curso de prueba automáticamente si no hay
+        await createCourse({
+          name: "Curso de Prueba " + Math.floor(Math.random() * 100),
+          gradeLevelId: firstGrade.id,
+          hoursPerWeek: 4,
+          active: true,
+        });
+        coursesRes = await getCoursesByGradeLevel(firstGrade.id);
+      }
+      if (!coursesRes.success || !coursesRes.data?.length) {
+        throw new Error(
+          "No hay cursos en el primer grado ni se pudo crear uno",
+        );
+      }
 
       const courseId = coursesRes.data[0].id;
       const res = await getGradesBySection(sectionId, courseId, "P1");
@@ -168,9 +260,22 @@ export default function TestBackendPage() {
       const firstGrade = structureRes.data.levels[0].grades[0];
       const sectionId = firstGrade.sections[0].id;
 
-      const coursesRes = await getCoursesByGradeLevel(firstGrade.id);
-      if (!coursesRes.success || !coursesRes.data?.length)
-        throw new Error("No hay cursos");
+      let coursesRes = await getCoursesByGradeLevel(firstGrade.id);
+      if (!coursesRes.success || !coursesRes.data?.length) {
+        // Crear un curso de prueba automáticamente si no hay
+        await createCourse({
+          name: "Curso de Prueba " + Math.floor(Math.random() * 100),
+          gradeLevelId: firstGrade.id,
+          hoursPerWeek: 4,
+          active: true,
+        });
+        coursesRes = await getCoursesByGradeLevel(firstGrade.id);
+      }
+      if (!coursesRes.success || !coursesRes.data?.length) {
+        throw new Error(
+          "No hay cursos en el primer grado ni se pudo crear uno",
+        );
+      }
 
       const courseId = coursesRes.data[0].id;
 
@@ -186,6 +291,123 @@ export default function TestBackendPage() {
           enrollmentId: s.enrollmentId,
           score: Math.floor(Math.random() * 21), // Nota aleatoria 0-20
         })),
+      });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Asistencia ---
+  const handleTestGetAttendanceBySection = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica");
+
+      const sectionId = structureRes.data.levels[0].grades[0].sections[0].id;
+      // Usamos fecha de prueba dentro del año 2026
+      const testDate = new Date("2026-04-01T12:00:00");
+
+      const res = await getAttendanceBySection(sectionId, testDate);
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestSaveAttendance = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica");
+
+      const sectionId = structureRes.data.levels[0].grades[0].sections[0].id;
+
+      // Usamos una fecha que sabemos que cae dentro del año escolar creado en pruebas (ej. 1 de abril de 2026)
+      const testDate = new Date("2026-04-01T12:00:00");
+
+      const attendanceRes = await getAttendanceBySection(sectionId, testDate);
+      if (!attendanceRes.success || !attendanceRes.data?.length)
+        throw new Error("No hay alumnos en la sección");
+
+      const records = (attendanceRes.data ?? [])
+        .slice(0, 5)
+        .map((student: any) => ({
+          enrollmentId: student.enrollmentId,
+          date: testDate,
+          status: [
+            "PRESENTE",
+            "TARDANZA",
+            "FALTA_JUSTIFICADA",
+            "FALTA_INJUSTIFICADA",
+          ][Math.floor(Math.random() * 4)] as any,
+        }));
+
+      const res = await saveAttendance({ records });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestGetAttendanceStats = async () => {
+    setLoading(true);
+    try {
+      const enrollmentsRes = await getEnrollments({ limit: 1 });
+      if (!enrollmentsRes.success || !enrollmentsRes.data?.length)
+        throw new Error("No hay matrículas");
+
+      const enrollmentId = (enrollmentsRes.data as any[])[0].id;
+      const res = await getAttendanceStats(enrollmentId);
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestGetCriticalAttendance = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica");
+
+      const sectionId = structureRes.data.levels[0].grades[0].sections[0].id;
+      const res = await getCriticalAttendance({ sectionId });
+      setResults(res);
+    } catch (error) {
+      setResults({ success: false, error: String(error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestGetSectionAttendanceReport = async () => {
+    setLoading(true);
+    try {
+      const structureRes = await getAcademicStructure();
+      if (!structureRes.success || !structureRes.data)
+        throw new Error("No hay estructura académica");
+
+      const sectionId = structureRes.data.levels[0].grades[0].sections[0].id;
+      // Usamos fecha de prueba dentro del año 2026
+      const testDate = new Date("2026-04-01T12:00:00");
+
+      const res = await getSectionAttendanceReport({
+        sectionId,
+        month: testDate.getMonth() + 1,
+        year: testDate.getFullYear(),
       });
       setResults(res);
     } catch (error) {
@@ -212,6 +434,7 @@ export default function TestBackendPage() {
           <TabsTrigger value="academic">Estructura Académica</TabsTrigger>
           <TabsTrigger value="enrollment">Matrículas</TabsTrigger>
           <TabsTrigger value="grades">Notas</TabsTrigger>
+          <TabsTrigger value="attendance">Asistencia</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grades" className="space-y-4 py-4">
@@ -227,14 +450,24 @@ export default function TestBackendPage() {
               Simular Carga Batch (Notas Aleatorias)
             </Button>
             <Button
-              onClick={() =>
-                handleTest(() =>
-                  getSectionGradeReport(
-                    results?.data?.grades?.[0]?.sectionId ?? "",
-                    "P1",
-                  ),
-                )
-              }
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const structureRes = await getAcademicStructure();
+                  if (!structureRes.success || !structureRes.data)
+                    throw new Error("No hay estructura académica");
+
+                  const firstGrade = structureRes.data.levels[0].grades[0];
+                  const sectionId = firstGrade.sections[0].id;
+
+                  const res = await getSectionGradeReport(sectionId, "P1");
+                  setResults(res);
+                } catch (error) {
+                  setResults({ success: false, error: String(error) });
+                } finally {
+                  setLoading(false);
+                }
+              }}
               variant="outline"
               disabled={loading}
             >
@@ -289,6 +522,20 @@ export default function TestBackendPage() {
             <Button onClick={handleTestGetStructure} disabled={loading}>
               Ver Árbol Académico (Estructura)
             </Button>
+            <Button
+              onClick={handleTestCleanAndCreate2026}
+              disabled={loading}
+              variant="secondary"
+            >
+              Limpiar y Crear Año 2026
+            </Button>
+            <Button
+              onClick={handleTestDebugAcademicYear}
+              disabled={loading}
+              variant="outline"
+            >
+              Debug: Estado del Año Activo
+            </Button>
           </div>
         </TabsContent>
 
@@ -308,6 +555,50 @@ export default function TestBackendPage() {
           <p className="text-xs text-muted-foreground italic">
             * Al crear una matrícula, se generarán automáticamente los pagos
             mensuales si existen conceptos activos.
+          </p>
+        </TabsContent>
+
+        <TabsContent value="attendance" className="space-y-4 py-4">
+          <div className="flex gap-4">
+            <Button
+              onClick={handleTestGetAttendanceBySection}
+              disabled={loading}
+            >
+              Ver Asistencia (Hoy/Sección)
+            </Button>
+            <Button
+              onClick={handleTestSaveAttendance}
+              variant="secondary"
+              disabled={loading}
+            >
+              Simular Carga Batch (Asistencias)
+            </Button>
+            <Button
+              onClick={handleTestGetAttendanceStats}
+              variant="outline"
+              disabled={loading}
+            >
+              Estadísticas Alumno
+            </Button>
+            <Button
+              onClick={handleTestGetCriticalAttendance}
+              variant="outline"
+              disabled={loading}
+            >
+              Asistencia Crítica
+            </Button>
+            <Button
+              onClick={handleTestGetSectionAttendanceReport}
+              variant="outline"
+              disabled={loading}
+            >
+              Reporte Mensual
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            * Al guardar asistencia, se recalcula automáticamente el estado
+            (semáforo) del estudiante. Los días festivos se excluyen del
+            cálculo.
           </p>
         </TabsContent>
       </Tabs>

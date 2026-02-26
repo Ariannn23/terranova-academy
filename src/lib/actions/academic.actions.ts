@@ -288,3 +288,152 @@ export async function getScheduleByTeacher(teacherId: string) {
     return { success: false, error: "Error al obtener el horario del docente" };
   }
 }
+/**
+ * Crear un año académico (para testing o nuevos años)
+ * Si setActive=true, copia automáticamente las secciones del año anterior
+ */
+export async function createAcademicYear(year: number, startDate: Date, endDate: Date, setActive: boolean = false) {
+  try {
+    if (year < 2000 || year > 2100) {
+      return { success: false, error: "Año inválido" };
+    }
+
+    // IMPORTANTE: Obtener el año anterior FUERA de la transacción para evitar issues de caché
+    const previousActiveYear = setActive
+      ? await prisma.academicYear.findFirst({
+          where: { active: true },
+          include: { sections: true },
+        })
+      : null;
+
+    // Usar transacción para garantizar consistencia
+    const academicYear = await prisma.$transaction(async (tx) => {
+      // Desactivar otros años académicos si es necesario
+      if (setActive) {
+        await tx.academicYear.updateMany({
+          where: { active: true },
+          data: { active: false },
+        });
+      }
+
+      // Crear o actualizar el año académico
+      const newAcademicYear = await tx.academicYear.upsert({
+        where: { year },
+        update: {
+          startDate,
+          endDate,
+          active: setActive,
+        },
+        create: {
+          year,
+          startDate,
+          endDate,
+          active: setActive,
+        },
+      });
+
+      // Si setActive y hay un año anterior con secciones, copiarlas
+      if (setActive && previousActiveYear && previousActiveYear.sections.length > 0) {
+        // Copiar secciones del año anterior al nuevo año
+        for (const section of previousActiveYear.sections) {
+          await tx.section.upsert({
+            where: {
+              gradeLevelId_academicYearId: {
+                gradeLevelId: section.gradeLevelId,
+                academicYearId: newAcademicYear.id,
+              },
+            },
+            update: { name: section.name, teacherId: section.teacherId },
+            create: {
+              name: section.name,
+              gradeLevelId: section.gradeLevelId,
+              academicYearId: newAcademicYear.id,
+              teacherId: section.teacherId,
+            },
+          });
+        }
+      }
+
+      return newAcademicYear;
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true, data: academicYear };
+  } catch (error) {
+    console.error("Error en createAcademicYear:", error);
+    return { success: false, error: "Error al crear el año académico" };
+  }
+}
+
+/**
+ * Debug: Ver exactamente qué año está activo y sus fechas
+ */
+export async function debugActiveYear() {
+  try {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { active: true },
+    });
+
+    if (!activeYear) {
+      return { success: true, data: null, message: "No hay año activo" };
+    }
+
+    return {
+      success: true,
+      data: {
+        year: activeYear.year,
+        active: activeYear.active,
+        startDate: activeYear.startDate.toISOString(),
+        endDate: activeYear.endDate.toISOString(),
+        startDateObj: { date: activeYear.startDate.toLocaleDateString(), time: activeYear.startDate.toLocaleTimeString() },
+        endDateObj: { date: activeYear.endDate.toLocaleDateString(), time: activeYear.endDate.toLocaleTimeString() },
+        today: new Date().toLocaleDateString(),
+        todayObj: new Date(),
+        isWithinRange: new Date() >= activeYear.startDate && new Date() <= activeYear.endDate,
+      },
+    };
+  } catch (error) {
+    console.error("Error en debugActiveYear:", error);
+    return { success: false, error: "Error al obtener año activo" };
+  }
+}
+export async function deleteAcademicYear2026() {
+  try {
+    // Primero eliminar todas las secciones del 2026
+    const year2026 = await prisma.academicYear.findUnique({
+      where: { year: 2026 },
+      include: { sections: true },
+    });
+
+    if (!year2026) {
+      return { success: true, message: "Año 2026 no existe" };
+    }
+
+    // Usar transacción para garantizar consistencia
+    await prisma.$transaction(async (tx) => {
+      // Eliminar secciones
+      if (year2026.sections.length > 0) {
+        await tx.section.deleteMany({
+          where: { academicYearId: year2026.id },
+        });
+      }
+
+      // Eliminar el año
+      await tx.academicYear.delete({
+        where: { id: year2026.id },
+      });
+
+      // Reactivar el 2025 como año activo
+      await tx.academicYear.updateMany({
+        where: { year: 2025 },
+        data: { active: true },
+      });
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true, message: "Año 2026 eliminado y año 2025 reactivado" };
+  } catch (error) {
+    console.error("Error en deleteAcademicYear2026:", error);
+    return { success: false, error: "Error al eliminar el año 2026" };
+  }
+}

@@ -70,42 +70,53 @@ export async function saveGrades(data: unknown) {
   const { courseId, period, grades } = parsed.data;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Guardar cada nota
-      for (const item of grades) {
-        await tx.gradeRecord.upsert({
-          where: {
-            enrollmentId_courseId_period: {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        // 1. Guardar cada nota
+        for (const item of grades) {
+          await tx.gradeRecord.upsert({
+            where: {
+              enrollmentId_courseId_period: {
+                enrollmentId: item.enrollmentId,
+                courseId,
+                period,
+              },
+            },
+            update: { score: item.score },
+            create: {
               enrollmentId: item.enrollmentId,
               courseId,
               period,
+              score: item.score,
             },
-          },
-          update: { score: item.score },
-          create: {
-            enrollmentId: item.enrollmentId,
-            courseId,
-            period,
-            score: item.score,
-          },
-        });
+          });
 
-        // 2. Si el periodo no es 'FINAL', disparamos el cálculo de la nota final del curso
-        if (period !== GradePeriod.FINAL) {
-          await internalCalculateFinalGrade(tx, item.enrollmentId, courseId);
+          // 2. Si el periodo no es 'FINAL', disparamos el cálculo de la nota final del curso
+          if (period !== GradePeriod.FINAL) {
+            await internalCalculateFinalGrade(tx, item.enrollmentId, courseId);
+          }
+
+          // 3. Sincronizar estado del alumno (Semáforo)
+          await syncStudentStatus(tx, item.enrollmentId);
         }
-
-        // 3. Sincronizar estado del alumno (Semáforo)
-        await syncStudentStatus(tx, item.enrollmentId);
-      }
-      return { count: grades.length };
-    });
+        return { count: grades.length };
+      },
+      {
+        maxWait: 15000,
+        timeout: 15000,
+      },
+    );
 
     revalidatePath("/dashboard/notas");
     return { success: true, data: result };
   } catch (error) {
     console.error("Error in saveGrades:", error);
-    return { success: false, error: "Error al guardar las notas" };
+    return {
+      success: false,
+      error:
+        "Error al guardar las notas: " +
+        String((error as any)?.message || error),
+    };
   }
 }
 
