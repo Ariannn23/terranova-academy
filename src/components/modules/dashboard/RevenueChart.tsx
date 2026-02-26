@@ -32,7 +32,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              margin={{ top: 10, right: 10, left: -20, bottom: 40 }}
             >
               <CartesianGrid
                 strokeDasharray="3 3"

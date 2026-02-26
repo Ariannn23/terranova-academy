@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Users,
@@ -11,7 +12,6 @@ import {
   AlertTriangle,
   CalendarDays,
   FileText,
-  ShieldCheck,
   Menu,
   X,
 } from "lucide-react";
@@ -64,8 +64,14 @@ export default function Sidebar() {
         {/* Brand / Logo */}
         <div className="flex items-center justify-center p-6 border-b border-slate-800">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 bg-emerald-700 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-700/20">
-              <ShieldCheck className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-center p-1 bg-white rounded-lg shadow-lg shadow-emerald-700/20">
+              <Image
+                src="/terranova-icono.png"
+                alt="TerraNova Logo"
+                width={32}
+                height={32}
+                className="object-contain"
+              />
             </div>
             <span className="text-xl font-bold tracking-tight text-white">
               TerraNova <span className="text-emerald-500">Academy</span>

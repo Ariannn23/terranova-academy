@@ -27,17 +27,24 @@ export default async function DashboardPage() {
     ]);
 
   // 2. Extraer los datos brutos del response.
-  const financials = financialRes.success
-    ? financialRes.data
-    : { totalCollected: 0, totalPending: 0, totalOverdue: 0 };
-  const studentsAtRisk = riskRes.success ? (riskRes.data as number) : 0;
-  const attendance = attendanceRes.success
-    ? attendanceRes.data
-    : { absencesLastWeek: 0, averageToday: 0 };
-  const priorityAlertsData = alertsRes.success
-    ? alertsRes.data
-    : { incidents: [], disabledStudents: [] };
-  const upcomingPayments = upcomingRes.success ? upcomingRes.data : [];
+  const financials =
+    financialRes.success && financialRes.data
+      ? financialRes.data
+      : { totalCollected: 0, totalPending: 0, totalOverdue: 0 };
+  const studentsAtRisk =
+    riskRes.success && riskRes.data !== undefined
+      ? (riskRes.data as number)
+      : 0;
+  const attendance =
+    attendanceRes.success && attendanceRes.data
+      ? attendanceRes.data
+      : { absencesLastWeek: 0, averageToday: 0 };
+  const priorityAlertsData =
+    alertsRes.success && alertsRes.data
+      ? alertsRes.data
+      : { incidents: [], disabledStudents: [] };
+  const upcomingPayments =
+    upcomingRes.success && upcomingRes.data ? upcomingRes.data : [];
 
   // Transformar de crudo a estructura de la UI de forma limpia:
 
@@ -48,7 +55,7 @@ export default async function DashboardPage() {
       id: `inc-${inc.id}`,
       type: "INCIDENT",
       title: "Incidente Severo Reportado",
-      subtitle: `${inc.student.name} ${inc.student.lastName}`,
+      subtitle: `${inc.enrollment?.student?.firstName || ""} ${inc.enrollment?.student?.lastName || ""}`,
       date: inc.date,
       urgency: "HIGH",
     });
@@ -58,7 +65,7 @@ export default async function DashboardPage() {
       id: `stu-${stu.id}`,
       type: "DISABLED",
       title: "Alumno Inhabilitado",
-      subtitle: `${stu.name} ${stu.lastName}`,
+      subtitle: `${stu.firstName} ${stu.lastName}`,
       date: stu.updatedAt,
       urgency: "HIGH",
     });
@@ -150,7 +157,7 @@ export default async function DashboardPage() {
             <RevenueChart data={mockRevenueData} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[300px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[320px] h-auto">
             <AttendanceChart data={mockAttendanceData} />
             <QuickAccess />
           </div>

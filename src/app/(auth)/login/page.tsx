@@ -17,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, ShieldCheck, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react";
 
 // Esquema de validación del formulario
 const LoginSchema = z.object({
@@ -55,8 +55,14 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center md:text-left space-y-2">
             <div className="flex justify-center md:justify-start items-center space-x-3 mb-6">
-              <div className="h-12 w-12 bg-emerald-700 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-700/20">
-                <ShieldCheck className="h-7 w-7 text-white" />
+              <div className="flex items-center justify-center bg-white p-2 rounded-xl shadow-lg shadow-emerald-700/20">
+                <Image
+                  src="/terranova-icono.png"
+                  alt="TerraNova Logo"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 TerraNova <span className="text-emerald-700">Academy</span>

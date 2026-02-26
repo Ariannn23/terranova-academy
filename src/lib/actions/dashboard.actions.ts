@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { PaymentStatus, StudentStatus } from "@prisma/client";
 
 // 1. Resumen Financiero: Calcula ingresos vs pendientes del año actual
@@ -93,7 +93,7 @@ export async function getCriticalAttendance() {
 
     const absencesCount = await prisma.attendance.count({
       where: {
-        status: "FALTA",
+        status: "FALTA_INJUSTIFICADA",
         date: { gte: oneWeekAgo },
       },
     });
@@ -153,7 +153,11 @@ export async function getUpcomingPayments() {
         },
       },
       include: {
-        student: { select: { name: true, lastName: true } },
+        enrollment: {
+          include: {
+            student: { select: { firstName: true, lastName: true } },
+          },
+        },
       },
       orderBy: { dueDate: "asc" },
       take: 5,
@@ -175,10 +179,16 @@ export async function getPriorityAlerts() {
     // Usar incidentes severos como alertas
     const incidents = await prisma.incident.findMany({
       where: {
-        severity: "ALTA",
+        severity: "GRAVE",
         date: { gte: recentDate },
       },
-      include: { student: { select: { name: true, lastName: true } } },
+      include: {
+        enrollment: {
+          include: {
+            student: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
       orderBy: { date: "desc" },
       take: 3,
     });
