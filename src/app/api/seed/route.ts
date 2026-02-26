@@ -13,7 +13,7 @@ export async function GET() {
     const passwordHash = await bcrypt.hash("Admin1234!", 12);
     const admin = await prisma.user.upsert({
       where: { email: "director@terranova.edu.pe" },
-      update: {},
+      update: { passwordHash },
       create: {
         email: "director@terranova.edu.pe",
         passwordHash,
@@ -85,7 +85,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: "🎉 Seed completado",
+      message: " Seed completado",
       counts,
       results,
       login: {

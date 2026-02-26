@@ -12,15 +12,15 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("🌱 Iniciando seed de TerraNova Academy...");
+  console.log(" Iniciando seed de TerraNova Academy...");
 
   // ─── 1. Usuario Admin ────────────────────────────────────────────────────────
-  console.log("👤 Creando usuario administrador...");
+  console.log(" Creando usuario administrador...");
   const passwordHash = await bcrypt.hash("Admin1234!", 12);
 
   const admin = await prisma.user.upsert({
     where: { email: "director@terranova.edu.pe" },
-    update: {},
+    update: { passwordHash },
     create: {
       email: "director@terranova.edu.pe",
       passwordHash,
@@ -28,10 +28,10 @@ async function main() {
       role: "ADMIN",
     },
   });
-  console.log(`   ✅ Admin creado: ${admin.email}`);
+  console.log(`    Admin creado: ${admin.email}`);
 
   // ─── 2. Año Lectivo 2025 ─────────────────────────────────────────────────────
-  console.log("📅 Creando año lectivo 2025...");
+  console.log(" Creando año lectivo 2025...");
   const academicYear = await prisma.academicYear.upsert({
     where: { year: 2025 },
     update: {},
@@ -43,11 +43,11 @@ async function main() {
     },
   });
   console.log(
-    `   ✅ Año lectivo: ${academicYear.year} (activo: ${academicYear.active})`,
+    `    Año lectivo: ${academicYear.year} (activo: ${academicYear.active})`,
   );
 
   // ─── 3. Niveles y Grados (14 secciones) ─────────────────────────────────────
-  console.log("🏫 Creando niveles y grados...");
+  console.log(" Creando niveles y grados...");
 
   const gradeLevels = [
     // Nivel Inicial (3 grados)
@@ -100,19 +100,19 @@ async function main() {
   const totalSections = await prisma.section.count();
   const totalUsers = await prisma.user.count();
 
-  console.log("\n📊 Resumen del seed:");
-  console.log(`   👤 Usuarios:  ${totalUsers}`);
-  console.log(`   📚 Grados:    ${totalGrades}`);
-  console.log(`   🏫 Secciones: ${totalSections}`);
-  console.log("\n🎉 Seed completado exitosamente!");
-  console.log("\n🔑 Credenciales de acceso:");
+  console.log("\n Resumen del seed:");
+  console.log(`    Usuarios:  ${totalUsers}`);
+  console.log(`    Grados:    ${totalGrades}`);
+  console.log(`    Secciones: ${totalSections}`);
+  console.log("\n Seed completado exitosamente!");
+  console.log("\n Credenciales de acceso:");
   console.log("   Email:    director@terranova.edu.pe");
   console.log("   Password: Admin1234!");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error en seed:", e);
+    console.error(" Error en seed:", e);
     process.exit(1);
   })
   .finally(async () => {
