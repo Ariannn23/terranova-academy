@@ -670,15 +670,15 @@ export default function TestBackendPage() {
 
       <Tabs defaultValue="students" className="w-full">
         <TabsList>
-          <TabsTrigger value="students">Estudiantes</TabsTrigger>
-          <TabsTrigger value="teachers">Docentes</TabsTrigger>
-          <TabsTrigger value="academic">Estructura Académica</TabsTrigger>
-          <TabsTrigger value="enrollment">Matrículas</TabsTrigger>
-          <TabsTrigger value="grades">Notas</TabsTrigger>
-          <TabsTrigger value="attendance">Asistencia</TabsTrigger>
-          <TabsTrigger value="payments">Pagos</TabsTrigger>
-          <TabsTrigger value="disciplina">Disciplina</TabsTrigger>
-          <TabsTrigger value="global">Global</TabsTrigger>
+          <TabsTrigger value="students">Estudiantes(B-00)</TabsTrigger>
+          <TabsTrigger value="teachers">Docentes(B-01)</TabsTrigger>
+          <TabsTrigger value="academic">Estructura Académica(B-02)</TabsTrigger>
+          <TabsTrigger value="enrollment">Matrículas(B-03)</TabsTrigger>
+          <TabsTrigger value="grades">Notas(B-04)</TabsTrigger>
+          <TabsTrigger value="attendance">Asistencia(B-05)</TabsTrigger>
+          <TabsTrigger value="payments">Pagos(B-06)</TabsTrigger>
+          <TabsTrigger value="disciplina">Disciplina(B-07)</TabsTrigger>
+          <TabsTrigger value="global">Global(B-08)</TabsTrigger>
           <TabsTrigger value="reportes">Reportes (B-09)</TabsTrigger>
         </TabsList>
 

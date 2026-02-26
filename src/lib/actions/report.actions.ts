@@ -24,7 +24,7 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
 
     const rows = gradesRes.data.ranking.map((studentRow: any) => {
       const flatObj: Record<string, any> = {
-        DNI: studentRow.studentDni || "",
+        DNI: studentRow.studentId || "", // mapping changed from student.dni
         Estudiante: studentRow.name || "",
       };
 
@@ -36,7 +36,7 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
       }
 
       flatObj["Promedio General"] = studentRow.average;
-      flatObj["Cursos Jalados"] = studentRow.failingCount;
+      flatObj["Cursos Jalados"] = studentRow.failingCount; // was failingCount
       flatObj["Estatus"] = studentRow.status || "N/A";
 
       return flatObj;
@@ -84,12 +84,14 @@ export async function exportAttendanceReport(
       const flatObj: Record<string, any> = {
         DNI: st.studentDni,
         Estudiante: st.studentName,
-        "Total Clases Abiertas": st.summary.totalSessions,
-        Asistencias: st.summary.presentCount,
-        Tardanzas: st.summary.lateCount,
-        "Faltas Injustificadas": st.summary.absentCount,
-        "Faltas Justificadas": st.summary.excusedCount,
-        "Efectividad (%)": st.summary.percentage.toFixed(2) + "%",
+        "Total Clases Abiertas": st.summary.total,
+        Asistencias: st.summary.presente,
+        Tardanzas: st.summary.tardanza,
+        "Faltas Injustificadas": st.summary.injustificada,
+        "Faltas Justificadas": st.summary.justificada,
+        "Efectividad (%)":
+          ((st.summary.presente / (st.summary.total || 1)) * 100).toFixed(2) +
+          "%",
       };
       return flatObj;
     });
