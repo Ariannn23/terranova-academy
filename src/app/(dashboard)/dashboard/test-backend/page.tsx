@@ -993,11 +993,13 @@ export default function TestBackendPage() {
               <Button
                 onClick={async () => {
                   const s = await getAcademicStructure();
-                  if (s.success && s.data?.sections.length) {
+                  const firstSection =
+                    s.data?.levels?.[0]?.grades?.[0]?.sections?.[0];
+                  if (s.success && firstSection) {
                     // asumiendo marzo 2026
                     openPdf(
                       "attendance",
-                      s.data.sections[0].id,
+                      firstSection.id,
                       "&month=3&year=2026",
                     );
                   } else alert("No hay secciones");
@@ -1040,9 +1042,11 @@ export default function TestBackendPage() {
               <Button
                 onClick={async () => {
                   const s = await getAcademicStructure();
-                  if (s.success && s.data?.sections.length) {
+                  const firstSection =
+                    s.data?.levels?.[0]?.grades?.[0]?.sections?.[0];
+                  if (s.success && firstSection) {
                     handleDownloadExcel(() =>
-                      exportGradesToExcel(s.data.sections[0].id, "P1"),
+                      exportGradesToExcel(firstSection.id, "P1"),
                     );
                   } else alert("No hay secciones");
                 }}
@@ -1055,9 +1059,11 @@ export default function TestBackendPage() {
               <Button
                 onClick={async () => {
                   const s = await getAcademicStructure();
-                  if (s.success && s.data?.sections.length) {
+                  const firstSection =
+                    s.data?.levels?.[0]?.grades?.[0]?.sections?.[0];
+                  if (s.success && firstSection) {
                     handleDownloadExcel(() =>
-                      exportAttendanceReport(s.data.sections[0].id, 3, 2026),
+                      exportAttendanceReport(firstSection.id, 3, 2026),
                     );
                   } else alert("No hay secciones");
                 }}
