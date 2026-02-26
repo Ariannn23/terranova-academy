@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useDashboard } from "./DashboardProvider";
 
 const modules = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
@@ -33,6 +34,15 @@ const modules = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { setIsNavigating } = useDashboard();
+
+  const handleNavigation = (href: string) => {
+    // Solo activamos loader si la ruta es realmente diferente a la actual
+    if (pathname !== href) {
+      setIsNavigating(true);
+    }
+    setIsOpen(false);
+  };
 
   // Todo esto aplica el responsive design con Tailwind
   return (
@@ -90,7 +100,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setIsOpen(false)}
+                onClick={() => handleNavigation(item.href)}
                 className={`flex items-center space-x-3 px-3 py-3 rounded-md transition-colors ${
                   isActive
                     ? "bg-slate-800 text-emerald-400 font-medium"
