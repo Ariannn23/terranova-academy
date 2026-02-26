@@ -105,7 +105,7 @@ export async function createIncident(data: unknown) {
       },
     });
 
-    revalidatePath(`/dashboard/students/${incident.enrollment.student.dni}`);
+    revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
     return { success: true, data: incident };
   } catch (error) {
     console.error("Error in createIncident:", error);
@@ -128,7 +128,7 @@ export async function updateIncident(id: string, data: unknown) {
       },
     });
 
-    revalidatePath(`/dashboard/students/${incident.enrollment.student.dni}`);
+    revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Error in updateIncident:", error);
@@ -147,7 +147,7 @@ export async function deleteIncident(id: string) {
       },
     });
 
-    revalidatePath(`/dashboard/students/${incident.enrollment.student.dni}`);
+    revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
     return { success: true };
   } catch (error) {
     console.error("Error in deleteIncident:", error);

@@ -55,12 +55,12 @@ async function main() {
     { name: "2do Año Inicial", level: Level.INICIAL, order: 2 },
     { name: "3er Año Inicial", level: Level.INICIAL, order: 3 },
     // Nivel Primaria (6 grados)
-    { name: "1er Grado", level: Level.PRIMARIA, order: 4 },
-    { name: "2do Grado", level: Level.PRIMARIA, order: 5 },
-    { name: "3er Grado", level: Level.PRIMARIA, order: 6 },
-    { name: "4to Grado", level: Level.PRIMARIA, order: 7 },
-    { name: "5to Grado", level: Level.PRIMARIA, order: 8 },
-    { name: "6to Grado", level: Level.PRIMARIA, order: 9 },
+    { name: "1er Grado Primaria", level: Level.PRIMARIA, order: 4 },
+    { name: "2do Grado Primaria", level: Level.PRIMARIA, order: 5 },
+    { name: "3er Grado Primaria", level: Level.PRIMARIA, order: 6 },
+    { name: "4to Grado Primaria", level: Level.PRIMARIA, order: 7 },
+    { name: "5to Grado Primaria", level: Level.PRIMARIA, order: 8 },
+    { name: "6to Grado Primaria", level: Level.PRIMARIA, order: 9 },
     // Nivel Secundaria (5 grados)
     { name: "1ro Secundaria", level: Level.SECUNDARIA, order: 10 },
     { name: "2do Secundaria", level: Level.SECUNDARIA, order: 11 },

@@ -106,7 +106,7 @@ export async function createDisability(data: unknown) {
       return disability;
     });
 
-    revalidatePath(`/dashboard/students/${result.enrollment.student.dni}`);
+    revalidatePath(`/dashboard/estudiantes/${result.enrollment.student.dni}`);
     return { success: true, data: result };
   } catch (error: any) {
     console.error("Error in createDisability:", error);
@@ -195,7 +195,7 @@ export async function resolveDisability(data: unknown) {
       return disability;
     });
 
-    revalidatePath(`/dashboard/students/${result.enrollment.student.dni}`);
+    revalidatePath(`/dashboard/estudiantes/${result.enrollment.student.dni}`);
     return { success: true, data: result };
   } catch (error: any) {
     console.error("Error in resolveDisability:", error);

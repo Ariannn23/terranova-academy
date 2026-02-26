@@ -20,8 +20,8 @@ import { Button } from "@/components/ui/button";
 
 const modules = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Matrículas", href: "/dashboard/enrollments", icon: FileText },
-  { name: "Estudiantes", href: "/dashboard/students", icon: Users },
+  { name: "Matrículas", href: "/dashboard/matriculas", icon: FileText },
+  { name: "Estudiantes", href: "/dashboard/estudiantes", icon: Users },
   { name: "Calificaciones", href: "/dashboard/grades", icon: GraduationCap },
   { name: "Asistencia", href: "/dashboard/attendance", icon: CalendarCheck },
   { name: "Finanzas", href: "/dashboard/payments", icon: CreditCard },

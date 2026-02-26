@@ -25,6 +25,7 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   searchPlaceholder?: string;
   searchKey?: keyof T;
+  onRowClick?: (item: T) => void;
 }
 
 export function DataTable<T>({
@@ -32,6 +33,7 @@ export function DataTable<T>({
   columns,
   searchPlaceholder = "Buscar...",
   searchKey,
+  onRowClick,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,7 +91,11 @@ export function DataTable<T>({
           <TableBody>
             {currentData.length > 0 ? (
               currentData.map((item, rowIndex) => (
-                <TableRow key={rowIndex} className="hover:bg-slate-50/50">
+                <TableRow
+                  key={rowIndex}
+                  className={`hover:bg-slate-50/50 ${onRowClick ? "cursor-pointer" : ""}`}
+                  onClick={() => onRowClick && onRowClick(item)}
+                >
                   {columns.map((col, colIndex) => (
                     <TableCell key={colIndex} className="py-3">
                       {col.cell

@@ -14,7 +14,7 @@ export function QuickAccess() {
     {
       title: "Nueva Matrícula",
       icon: UserPlus,
-      href: "/dashboard/enrollments",
+      href: "/dashboard/matriculas/nueva",
       color: "text-emerald-600 bg-emerald-50",
     },
     {

@@ -16,15 +16,12 @@ import { AttendanceChart } from "@/components/modules/dashboard/AttendanceChart"
 import { GraduationCap, Users, CalendarCheck, CreditCard } from "lucide-react";
 
 export default async function DashboardPage() {
-  // 1. Data Fetching en paralelo (< 10 segundos)
-  const [financialRes, riskRes, attendanceRes, alertsRes, upcomingRes] =
-    await Promise.all([
-      getFinancialSummary(),
-      getStudentsAtRisk(),
-      getCriticalAttendance(),
-      getPriorityAlerts(),
-      getUpcomingPayments(),
-    ]);
+  // 1. Data Fetching secuencial para evitar saturar el pool de conexiones de la BD
+  const financialRes = await getFinancialSummary();
+  const riskRes = await getStudentsAtRisk();
+  const attendanceRes = await getCriticalAttendance();
+  const alertsRes = await getPriorityAlerts();
+  const upcomingRes = await getUpcomingPayments();
 
   // 2. Extraer los datos brutos del response.
   const financials =
