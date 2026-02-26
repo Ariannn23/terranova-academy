@@ -931,7 +931,7 @@ export default function TestBackendPage() {
       </Card>
 
       <div className="bg-amber-100 border-l-4 border-amber-500 p-4 text-amber-700">
-        <p className="font-bold">⚠️ Conexión:</p>
+        <p className="font-bold"> Conexión:</p>
         <p>
           Si las peticiones fallan por timeout, asegúrate de estar en una red
           sin bloqueos de puertos (Hotspot móvil recomendado).

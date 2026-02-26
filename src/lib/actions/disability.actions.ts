@@ -100,6 +100,9 @@ export async function createDisability(data: unknown) {
         data: { status: StudentStatus.INHABILITADO },
       });
 
+      // Reflejar el nuevo estatus en la respuesta que devolvemos
+      disability.enrollment.student.status = StudentStatus.INHABILITADO;
+
       return disability;
     });
 
@@ -185,6 +188,9 @@ export async function resolveDisability(data: unknown) {
         where: { id: disability.enrollment.studentId },
         data: { status: newStatus },
       });
+
+      // Reflejar el nuevo estatus en la respuesta que devolvemos
+      disability.enrollment.student.status = newStatus;
 
       return disability;
     });
