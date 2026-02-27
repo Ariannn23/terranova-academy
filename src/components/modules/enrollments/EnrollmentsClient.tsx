@@ -36,7 +36,8 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       levelFilter === "ALL" ||
       enrollment.section.gradeLevel.level === levelFilter;
     const matchesYear =
-      yearFilter === "ALL" || enrollment.academicYear.year === yearFilter;
+      yearFilter === "ALL" ||
+      enrollment.academicYear.year.toString() === yearFilter;
 
     return matchesSearch && matchesLevel && matchesYear;
   });
