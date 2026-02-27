@@ -131,7 +131,6 @@ export function CourseForm({
             <div className="space-y-2">
               <Label htmlFor="gradeLevelId">Grado y Nivel</Label>
               <Select
-                disabled={!!initialData} // Usually you don't change the level of a course once created, but we could allow it
                 value={gradeLevelValue}
                 onValueChange={(val) => setValue("gradeLevelId", val)}
               >
