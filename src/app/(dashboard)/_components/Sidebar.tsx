@@ -14,6 +14,8 @@ import {
   FileText,
   Menu,
   X,
+  Briefcase,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,8 @@ const modules = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
   { name: "Matrículas", href: "/dashboard/matriculas", icon: FileText },
   { name: "Estudiantes", href: "/dashboard/estudiantes", icon: Users },
+  { name: "Docentes", href: "/dashboard/docentes", icon: Briefcase },
+  { name: "Cursos", href: "/dashboard/cursos", icon: BookOpen },
   { name: "Calificaciones", href: "/dashboard/grades", icon: GraduationCap },
   { name: "Asistencia", href: "/dashboard/attendance", icon: CalendarCheck },
   { name: "Finanzas", href: "/dashboard/payments", icon: CreditCard },
