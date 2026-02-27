@@ -1,5 +1,3 @@
-"use client";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,16 +8,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ReactNode } from "react";
 
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  description: string;
+  description: ReactNode;
   onConfirm: () => void;
   confirmText?: string;
   cancelText?: string;
-  destructive?: boolean;
+  variant?: "default" | "destructive";
 }
 
 export function ConfirmDialog({
@@ -28,23 +27,21 @@ export function ConfirmDialog({
   title,
   description,
   onConfirm,
-  confirmText = "Confirmar",
+  confirmText = "Continuar",
   cancelText = "Cancelar",
-  destructive = false,
+  variant = "default",
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-xl">{title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-slate-500">
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-slate-600">
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="mt-4">
-          <AlertDialogCancel className="font-medium text-slate-700">
-            {cancelText}
-          </AlertDialogCancel>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{cancelText}</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -52,8 +49,8 @@ export function ConfirmDialog({
               onOpenChange(false);
             }}
             className={
-              destructive
-                ? "bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+              variant === "destructive"
+                ? "bg-red-600 hover:bg-red-700 text-white"
                 : "bg-emerald-700 hover:bg-emerald-800 text-white"
             }
           >

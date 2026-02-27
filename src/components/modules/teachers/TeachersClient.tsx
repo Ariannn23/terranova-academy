@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { Badge } from "@/components/ui/badge";
+import { updateTeacher } from "@/lib/actions/teachers.actions";
+import { toast } from "sonner";
 
 export function TeachersClient({ initialData }: { initialData: any[] }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,20 +72,23 @@ export function TeachersClient({ initialData }: { initialData: any[] }) {
             className="overflow-hidden hover:shadow-md transition-shadow relative group"
           >
             {!teacher.active && (
-              <div className="absolute top-3 right-3 z-10">
+              <div className="absolute top-3 left-3 z-[5] pointer-events-none">
                 <Badge variant="destructive">Inactivo</Badge>
               </div>
             )}
 
             <CardHeader className="pb-4 pt-6 flex flex-col items-center border-b border-slate-100 bg-slate-50 relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-slate-400 hover:text-emerald-600"
-                onClick={() => handleEdit(teacher)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
+              <div className="absolute top-2 right-2 flex gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                  title="Editar Docente"
+                  onClick={() => handleEdit(teacher)}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </div>
 
               <StudentAvatar
                 name={`${teacher.firstName} ${teacher.lastName}`}

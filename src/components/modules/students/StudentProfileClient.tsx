@@ -44,6 +44,11 @@ export function StudentProfileClient({ student }: { student: any }) {
                 {student.firstName} {student.lastName}
               </h1>
               <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                {student.code && (
+                  <span className="flex items-center gap-1">
+                    <strong>Cód:</strong> {student.code}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <strong>DNI:</strong> {student.dni}
                 </span>

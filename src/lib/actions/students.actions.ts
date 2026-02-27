@@ -194,3 +194,19 @@ export async function updateStudent(id: string, data: any) {
     };
   }
 }
+
+export async function toggleStudentStatus(id: string, newStatus: string) {
+  try {
+    const updatedStudent = await prisma.student.update({
+      where: { id },
+      data: { status: newStatus as any },
+    });
+    return { success: true, data: updatedStudent };
+  } catch (error) {
+    console.error("Error toggling student status:", error);
+    return {
+      success: false,
+      error: "Error interno del servidor al cambiar el estado del estudiante.",
+    };
+  }
+}

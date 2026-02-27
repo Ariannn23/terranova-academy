@@ -130,6 +130,7 @@ model Section {
 
 model Student {
   id        String        @id @default(cuid())
+  code      String?       @unique
   dni       String        @unique
   firstName String
   lastName  String

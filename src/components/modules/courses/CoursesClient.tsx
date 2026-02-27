@@ -4,10 +4,13 @@ import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Edit2, Archive } from "lucide-react";
+import { Plus, Search, Edit2, Archive, ArchiveRestore } from "lucide-react";
 import { CourseForm } from "./CourseForm";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
+import { updateCourse } from "@/lib/actions/courses.actions";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 export function CoursesClient({
   initialData,
@@ -19,6 +22,7 @@ export function CoursesClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [courseToToggle, setCourseToToggle] = useState<any>(null);
 
   const filteredCourses = initialData.filter((c) =>
     `${c.name} ${c.gradeLevel.name} ${c.gradeLevel.level}`
@@ -34,6 +38,30 @@ export function CoursesClient({
   const handleCreate = () => {
     setSelectedCourse(null);
     setIsFormOpen(true);
+  };
+
+  const handleToggleClick = (course: any) => {
+    setCourseToToggle(course);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!courseToToggle) return;
+    const newStatus = !courseToToggle.active;
+    const loadingToast = toast.loading(
+      newStatus ? "Activando curso..." : "Desactivando curso...",
+    );
+
+    const result = await updateCourse(courseToToggle.id, { active: newStatus });
+
+    toast.dismiss(loadingToast);
+    if (result.success) {
+      toast.success(
+        `Curso ${newStatus ? "activado" : "inhabilitado"} correctamente`,
+      );
+    } else {
+      toast.error(result.error || "Error al cambiar estado del curso");
+    }
+    setCourseToToggle(null);
   };
 
   const columns = [
@@ -58,30 +86,32 @@ export function CoursesClient({
       header: "Horas/Semana",
       accessorKey: "hoursPerWeek",
       cell: (row: any) => (
-        <div className="text-center w-full">{row.hoursPerWeek} hrs</div>
+        <div className="flex justify-center w-full">{row.hoursPerWeek} hrs</div>
       ),
     },
     {
       header: "Estado",
       accessorKey: "active",
       cell: (row: any) => (
-        <Badge
-          variant={row.active ? "default" : "destructive"}
-          className={
-            row.active
-              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-              : ""
-          }
-        >
-          {row.active ? "Activo" : "Inactivo"}
-        </Badge>
+        <div className="flex justify-center">
+          <Badge
+            variant={row.active ? "default" : "destructive"}
+            className={
+              row.active
+                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                : ""
+            }
+          >
+            {row.active ? "Activo" : "Inactivo"}
+          </Badge>
+        </div>
       ),
     },
     {
       header: "Bloques Asignados",
       accessorKey: "schedules",
       cell: (row: any) => (
-        <div className="text-center w-full font-medium text-slate-600">
+        <div className="flex justify-center w-full font-medium text-slate-600">
           {row._count?.schedules || 0}
         </div>
       ),
@@ -90,11 +120,29 @@ export function CoursesClient({
       header: "Acciones",
       accessorKey: "actions",
       cell: (row: any) => (
-        <div className="flex justify-end gap-2 pr-4">
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleToggleClick(row)}
+            title={row.active ? "Inhabilitar Curso" : "Reactivar Curso"}
+            className={
+              row.active
+                ? "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                : "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+            }
+          >
+            {row.active ? (
+              <Archive className="h-4 w-4" />
+            ) : (
+              <ArchiveRestore className="h-4 w-4" />
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => handleEdit(row)}
+            title="Editar Curso"
             className="text-slate-500 hover:text-emerald-700 hover:bg-emerald-50"
           >
             <Edit2 className="h-4 w-4" />
@@ -140,6 +188,20 @@ export function CoursesClient({
         onOpenChange={setIsFormOpen}
         initialData={selectedCourse}
         gradeLevels={gradeLevels}
+      />
+
+      <ConfirmDialog
+        open={!!courseToToggle}
+        onOpenChange={(open) => !open && setCourseToToggle(null)}
+        title={courseToToggle?.active ? "Inhabilitar Curso" : "Reactivar Curso"}
+        description={
+          courseToToggle?.active
+            ? `¿Estás seguro de inhabilitar el curso "${courseToToggle.name}"? El curso ya no podrá ser asignado en nuevos horarios.`
+            : `¿Estás seguro de reactivar el curso "${courseToToggle?.name}"?`
+        }
+        onConfirm={handleConfirmToggle}
+        confirmText={courseToToggle?.active ? "Inhabilitar" : "Reactivar"}
+        variant={courseToToggle?.active ? "destructive" : "default"}
       />
     </div>
   );

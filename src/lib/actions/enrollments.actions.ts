@@ -82,6 +82,41 @@ export async function createEnrollment(
       };
     }
 
+    // Process student code generation if missing
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+    });
+    if (student && !student.code) {
+      const yearRecord = await prisma.academicYear.findUnique({
+        where: { id: academicYearId },
+      });
+      const sectionRecord = await prisma.section.findUnique({
+        where: { id: sectionId },
+        include: { gradeLevel: true },
+      });
+
+      if (yearRecord && sectionRecord) {
+        const year = yearRecord.year;
+        const level = sectionRecord.gradeLevel.level; // INICIAL, PRIMARIA, SECUNDARIA
+        const levelCode =
+          level === "INICIAL" ? "I" : level === "PRIMARIA" ? "P" : "S";
+        const prefix = `${year}${levelCode}`;
+
+        // Get count of students with this prefix to calculate the incremental ID
+        const existingCount = await prisma.student.count({
+          where: { code: { startsWith: prefix } },
+        });
+
+        const newId = (existingCount + 1).toString().padStart(4, "0");
+        const generatedCode = `${prefix}${newId}`;
+
+        await prisma.student.update({
+          where: { id: studentId },
+          data: { code: generatedCode },
+        });
+      }
+    }
+
     const enrollment = await prisma.enrollment.create({
       data: {
         studentId,
@@ -125,6 +160,56 @@ export async function getEnrollments() {
     return {
       success: false,
       error: "Error interno del servidor al obtener matrículas.",
+    };
+  }
+}
+
+export async function toggleEnrollmentStatus(id: string, newStatus: boolean) {
+  try {
+    const updatedEnrollment = await prisma.enrollment.update({
+      where: { id },
+      data: { active: newStatus },
+    });
+    return { success: true, data: updatedEnrollment };
+  } catch (error) {
+    console.error("Error toggling enrollment status:", error);
+    return {
+      success: false,
+      error: "Error interno del servidor al cambiar el estado de la matrícula.",
+    };
+  }
+}
+
+export async function getEnrollmentById(id: string) {
+  try {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id },
+      include: {
+        student: true,
+        section: {
+          include: { gradeLevel: true },
+        },
+        academicYear: true,
+        payments: {
+          include: { concept: true },
+          orderBy: { dueDate: "asc" },
+        },
+        gradeRecords: {
+          include: { course: true },
+        },
+      },
+    });
+
+    if (!enrollment) {
+      return { success: false, error: "Matrícula no encontrada" };
+    }
+
+    return { success: true, data: enrollment };
+  } catch (error) {
+    console.error("Error obteniendo detalle de matrícula:", error);
+    return {
+      success: false,
+      error: "Error interno del servidor al obtener la matrícula.",
     };
   }
 }

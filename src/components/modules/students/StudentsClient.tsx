@@ -14,15 +14,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Archive, ArchiveRestore, Eye } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toggleStudentStatus } from "@/lib/actions/students.actions";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 export function StudentsClient({ initialData }: { initialData: any[] }) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [studentToToggle, setStudentToToggle] = useState<any>(null);
 
   const filteredData = initialData.filter((student) => {
     const matchesSearch =
@@ -42,12 +46,39 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
     return matchesSearch && matchesStatus && matchesLevel;
   });
 
+  const handleToggleClick = (student: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStudentToToggle(student);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!studentToToggle) return;
+    const isInactive = studentToToggle.status === "INHABILITADO";
+    const newStatus = isInactive ? "ACTIVO" : "INHABILITADO";
+    const loadingToast = toast.loading(
+      isInactive ? "Activando estudiante..." : "Inhabilitando estudiante...",
+    );
+
+    const result = await toggleStudentStatus(studentToToggle.id, newStatus);
+
+    toast.dismiss(loadingToast);
+    if (result.success) {
+      toast.success(
+        `Estudiante ${isInactive ? "activado" : "inhabilitado"} correctamente`,
+      );
+      router.refresh();
+    } else {
+      toast.error(result.error || "Error al cambiar estado del estudiante");
+    }
+    setStudentToToggle(null);
+  };
+
   const columns = [
     {
       header: "Estudiante",
       accessorKey: "firstName",
       cell: (row: any) => (
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 min-w-[200px]">
           <StudentAvatar
             name={`${row.firstName} ${row.lastName}`}
             imageUrl={row.photoUrl}
@@ -57,7 +88,12 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
             <p className="font-medium text-slate-900">
               {row.firstName} {row.lastName}
             </p>
-            <p className="text-xs text-slate-500">DNI: {row.dni}</p>
+            <div className="flex gap-2 text-xs text-slate-500 mt-0.5">
+              {row.code && (
+                <span className="font-medium text-emerald-700">{row.code}</span>
+              )}
+              <span>DNI: {row.dni}</span>
+            </div>
           </div>
         </div>
       ),
@@ -70,7 +106,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
         if (!enrollment)
           return <span className="text-slate-400">Sin Matrícula</span>;
         return (
-          <div>
+          <div className="flex justify-center flex-col items-center">
             <p className="font-medium text-slate-700">
               {enrollment.section.gradeLevel.name}
             </p>
@@ -84,7 +120,52 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Estado",
       accessorKey: "status",
-      cell: (row: any) => <StatusBadge status={row.status} />,
+      cell: (row: any) => (
+        <div className="flex justify-center">
+          <StatusBadge status={row.status} />
+        </div>
+      ),
+    },
+    {
+      header: "Acciones",
+      accessorKey: "actions",
+      cell: (row: any) => {
+        const isInactive = row.status === "INHABILITADO";
+        return (
+          <div className="flex justify-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              title="Ver Perfil o Editar"
+              className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+            >
+              <Link href={`/dashboard/estudiantes/${row.id}`}>
+                <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => handleToggleClick(row, e)}
+              title={
+                isInactive ? "Reactivar Estudiante" : "Inhabilitar Estudiante"
+              }
+              className={
+                isInactive
+                  ? "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                  : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+              }
+            >
+              {isInactive ? (
+                <ArchiveRestore className="h-4 w-4" />
+              ) : (
+                <Archive className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -135,10 +216,30 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
         </Select>
       </div>
 
-      <DataTable
-        data={filteredData}
-        columns={columns}
-        onRowClick={(row) => router.push(`/dashboard/estudiantes/${row.id}`)}
+      <DataTable data={filteredData} columns={columns} />
+
+      <ConfirmDialog
+        open={!!studentToToggle}
+        onOpenChange={(open) => !open && setStudentToToggle(null)}
+        title={
+          studentToToggle?.status === "INHABILITADO"
+            ? "Reactivar Estudiante"
+            : "Inhabilitar Estudiante"
+        }
+        description={
+          studentToToggle?.status === "INHABILITADO"
+            ? `¿Estás seguro de reactivar a ${studentToToggle?.firstName} ${studentToToggle?.lastName}? El estudiante volverá a aparecer como activo en el sistema.`
+            : `¿Estás seguro de inhabilitar a ${studentToToggle?.firstName} ${studentToToggle?.lastName}? El estudiante ya no podrá estar activo en nuevas matrículas o procesos.`
+        }
+        onConfirm={handleConfirmToggle}
+        confirmText={
+          studentToToggle?.status === "INHABILITADO"
+            ? "Reactivar"
+            : "Inhabilitar"
+        }
+        variant={
+          studentToToggle?.status === "INHABILITADO" ? "default" : "destructive"
+        }
       />
     </div>
   );
