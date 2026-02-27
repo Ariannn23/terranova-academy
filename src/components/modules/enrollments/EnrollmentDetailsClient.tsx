@@ -6,11 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, CreditCard, BookOpen, Clock } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  CreditCard,
+  BookOpen,
+  Clock,
+  GraduationCap,
+  CalendarCheck,
+} from "lucide-react";
 import { DataTable } from "@/components/shared/DataTable";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 
 export function EnrollmentDetailsClient({ enrollment }: { enrollment: any }) {
   const { student, section, academicYear, payments } = enrollment;
@@ -87,16 +94,26 @@ export function EnrollmentDetailsClient({ enrollment }: { enrollment: any }) {
         title="Detalle de Matrícula"
         description="Información académica y estado de cuenta del estudiante."
         action={
-          <Badge
-            variant={enrollment.active ? "default" : "destructive"}
-            className={
-              enrollment.active
-                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-sm py-1 px-4"
-                : "text-sm py-1 px-4"
-            }
-          >
-            {enrollment.active ? "Matrícula Activa" : "Matrícula Anulada"}
-          </Badge>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/matriculas">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Regresar
+              </Link>
+            </Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
+              <Link href={`/dashboard/notas/${enrollment.id}`}>
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Ver Libreta de Notas
+              </Link>
+            </Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" asChild>
+              <Link href={`/dashboard/asistencia/${enrollment.id}`}>
+                <CalendarCheck className="h-4 w-4 mr-2" />
+                Ver Asistencias
+              </Link>
+            </Button>
+          </div>
         }
       />
 
