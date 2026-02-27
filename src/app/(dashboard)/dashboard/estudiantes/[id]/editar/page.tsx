@@ -13,11 +13,9 @@ export default async function EditStudentPage({
     notFound();
   }
 
-  // En una iteración futura pasaremos el initialData al StudentForm
-  // para que rellene los campos del estudiante y apoderado.
   return (
     <div className="p-6 max-w-4xl mx-auto animate-in fade-in duration-500">
-      <StudentForm />
+      <StudentForm initialData={result.data} />
     </div>
   );
 }

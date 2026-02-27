@@ -132,3 +132,65 @@ export async function createStudent(data: any) {
     };
   }
 }
+
+export async function updateStudent(id: string, data: any) {
+  try {
+    const { student, guardian } = data;
+
+    // Check if DNI already exists for ANOTHER student
+    const existing = await prisma.student.findUnique({
+      where: { dni: student.dni },
+    });
+    if (existing && existing.id !== id) {
+      return {
+        success: false,
+        error: "Ya existe otro estudiante registrado con ese DNI.",
+      };
+    }
+
+    // Since we only have one primary guardian for now from the form, update it.
+    // If not exists, find first guardian.
+    const existingStudent = await prisma.student.findUnique({
+      where: { id },
+      include: { guardians: true },
+    });
+
+    const guardianId = existingStudent?.guardians[0]?.id;
+
+    const updatedStudent = await prisma.student.update({
+      where: { id },
+      data: {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        dni: student.dni,
+        birthDate: new Date(student.birthDate),
+        gender: student.gender,
+        address: student.address,
+        photoUrl: student.photoUrl,
+        guardians: {
+          update: guardianId
+            ? {
+                where: { id: guardianId },
+                data: {
+                  firstName: guardian.firstName,
+                  lastName: guardian.lastName,
+                  dni: guardian.dni,
+                  relation: guardian.relation,
+                  phone: guardian.phone,
+                  email: guardian.email,
+                },
+              }
+            : undefined,
+        },
+      },
+    });
+
+    return { success: true, data: updatedStudent };
+  } catch (error) {
+    console.error("Error updating student:", error);
+    return {
+      success: false,
+      error: "Error interno del servidor al actualizar el registro.",
+    };
+  }
+}

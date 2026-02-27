@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -68,14 +68,13 @@ export function TeacherForm({
     },
   });
 
-  // Load data when modal opens
-  useState(() => {
+  useEffect(() => {
     if (initialData) {
       reset(initialData);
     } else {
       reset({ active: true });
     }
-  });
+  }, [initialData, reset]);
 
   const onSubmit = async (data: TeacherFormValues) => {
     setLoading(true);

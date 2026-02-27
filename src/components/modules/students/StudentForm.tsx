@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Loader2, Camera } from "lucide-react";
 
-import { createStudent } from "@/lib/actions/students.actions";
+import { createStudent, updateStudent } from "@/lib/actions/students.actions";
 
 const studentSchema = z.object({
   student: z.object({
@@ -49,7 +49,7 @@ const studentSchema = z.object({
 
 type StudentFormValues = z.infer<typeof studentSchema>;
 
-export function StudentForm() {
+export function StudentForm({ initialData }: { initialData?: any }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [errorProp, setErrorProp] = useState("");
@@ -77,10 +77,43 @@ export function StudentForm() {
     },
   });
 
+  useEffect(() => {
+    if (initialData) {
+      const g = initialData.guardians && initialData.guardians[0];
+      const birthDateString = initialData.birthDate
+        ? new Date(initialData.birthDate).toISOString().split("T")[0]
+        : "";
+
+      form.reset({
+        student: {
+          firstName: initialData.firstName || "",
+          lastName: initialData.lastName || "",
+          dni: initialData.dni || "",
+          birthDate: birthDateString,
+          gender: initialData.gender || "M",
+          address: initialData.address || "",
+          photoUrl: initialData.photoUrl || "",
+        },
+        guardian: {
+          firstName: g?.firstName || "",
+          lastName: g?.lastName || "",
+          dni: g?.dni || "",
+          relation: g?.relation || "",
+          phone: g?.phone || "",
+          email: g?.email || "",
+        },
+      });
+    }
+  }, [initialData, form]);
+
   const onSubmit = (data: StudentFormValues) => {
     setErrorProp("");
     startTransition(() => {
-      createStudent(data).then((res) => {
+      const action = initialData
+        ? updateStudent(initialData.id, data)
+        : createStudent(data);
+
+      action.then((res) => {
         if (res.success) {
           router.push("/dashboard/estudiantes");
           router.refresh();
@@ -94,8 +127,12 @@ export function StudentForm() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Crear Nuevo Estudiante"
-        description="Registra un alumno y su respectivo apoderado."
+        title={initialData ? "Editar Estudiante" : "Crear Nuevo Estudiante"}
+        description={
+          initialData
+            ? "Modifica los datos del alumno y de su apoderado principal."
+            : "Registra un alumno y su respectivo apoderado."
+        }
       />
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -303,7 +340,7 @@ export function StudentForm() {
             disabled={isPending}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Guardar Estudiante
+            {initialData ? "Actualizar Estudiante" : "Guardar Estudiante"}
           </Button>
         </div>
       </form>
