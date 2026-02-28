@@ -1,7 +1,7 @@
-import { getStudentById } from "@/lib/actions/students.actions";
+import { getStudentById } from "@/lib/actions/student.actions";
 import { notFound } from "next/navigation";
 import { StudentProfileClient } from "@/components/modules/students/StudentProfileClient";
-
+export const dynamic = "force-dynamic";
 export default async function StudentProfilePage({
   params,
 }: {

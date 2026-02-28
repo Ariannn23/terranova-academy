@@ -109,7 +109,10 @@ export async function getIncidentsByEnrollment(enrollmentId: string) {
 
 export async function createIncident(data: unknown) {
   const parsed = IncidentSchema.safeParse(data);
-  if (!parsed.success) return { success: false, error: parsed.error.flatten() };
+  if (!parsed.success) {
+    const messages = parsed.error.errors.map((e) => e.message).join(", ");
+    return { success: false, error: messages };
+  }
 
   try {
     // Verificar temporalmente que la matrícula existe

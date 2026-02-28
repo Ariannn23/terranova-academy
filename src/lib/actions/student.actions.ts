@@ -1,103 +1,61 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { StudentStatus, Level, Prisma } from "@prisma/client";
-import { z } from "zod";
-import {
-  CreateStudentSchema,
-  StudentSchema,
-} from "@/lib/validations/student.schema";
+import { Prisma } from "@prisma/client";
 
-/**
- * Obtiene la lista paginada de estudiantes con filtros.
- */
-export async function getStudents(params: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  level?: Level;
-  gradeLevelId?: string;
-  status?: StudentStatus;
-}) {
-  const { page = 1, limit = 10, search, level, gradeLevelId, status } = params;
-  const skip = (page - 1) * limit;
-
+export async function getStudents(
+  query?: string,
+  level?: string,
+  status?: string,
+) {
   try {
     const where: Prisma.StudentWhereInput = {};
 
-    // Búsqueda por nombre, apellido o DNI
-    if (search) {
+    if (query) {
       where.OR = [
-        { firstName: { contains: search, mode: "insensitive" } },
-        { lastName: { contains: search, mode: "insensitive" } },
-        { dni: { contains: search, mode: "insensitive" } },
+        { firstName: { contains: query, mode: "insensitive" } },
+        { lastName: { contains: query, mode: "insensitive" } },
+        { dni: { contains: query } },
       ];
     }
 
-    // Filtro por estado
     if (status) {
-      where.status = status;
+      where.status = status as any;
     }
 
-    // Filtros por nivel o grado (requieren verificar matrícula activa)
-    if (level || gradeLevelId) {
+    if (level) {
       where.enrollments = {
         some: {
           active: true,
-          academicYear: { active: true },
           section: {
-            ...(gradeLevelId ? { gradeLevelId } : {}),
-            ...(level ? { gradeLevel: { level } } : {}),
+            gradeLevel: {
+              level: level as any,
+            },
           },
         },
       };
     }
 
-    const [students, total] = await Promise.all([
-      prisma.student.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          enrollments: {
-            where: {
-              active: true,
-              academicYear: { active: true },
-            },
-            include: {
-              section: {
-                include: { gradeLevel: true },
-              },
-            },
-            take: 1,
+    const students = await prisma.student.findMany({
+      where,
+      include: {
+        enrollments: {
+          where: { active: true },
+          include: {
+            section: { include: { gradeLevel: true } },
           },
         },
-        orderBy: { lastName: "asc" },
-      }),
-      prisma.student.count({ where }),
-    ]);
-
-    return {
-      success: true,
-      data: {
-        students,
-        total,
-        pages: Math.ceil(total / limit),
-        currentPage: page,
       },
-    };
+      orderBy: { lastName: "asc" },
+    });
+
+    return { success: true, data: students };
   } catch (error) {
-    return {
-      success: false,
-      error: "Error al obtener la lista de estudiantes",
-    };
+    console.error("Error listando estudiantes:", error);
+    return { success: false, error: "Error al cargar la base de estudiantes" };
   }
 }
 
-/**
- * Obtiene los datos completos de un estudiante por su ID.
- */
 export async function getStudentById(id: string) {
   try {
     const student = await prisma.student.findUnique({
@@ -105,184 +63,174 @@ export async function getStudentById(id: string) {
       include: {
         guardians: true,
         enrollments: {
+          where: { active: true },
           include: {
-            academicYear: true,
-            section: {
-              include: { gradeLevel: true },
+            section: { include: { gradeLevel: true } },
+            gradeRecords: {
+              include: { course: true },
+              orderBy: [{ course: { name: "asc" } }, { period: "asc" }],
+            },
+            attendances: {
+              orderBy: { date: "desc" },
+              take: 60,
+            },
+            payments: {
+              include: { concept: true },
+              orderBy: { dueDate: "desc" },
+            },
+            incidents: {
+              orderBy: { date: "desc" },
+            },
+            disabilities: {
+              orderBy: { startDate: "desc" },
             },
           },
-          orderBy: { academicYear: { year: "desc" } },
         },
       },
     });
 
     if (!student) {
-      return { success: false, error: "Estudiante no encontrado" };
+      return { success: false, error: "Estudiante no encontrado." };
     }
+
+    // LOG TEMPORAL DE DIAGNÓSTICO
+    console.log("=== getStudentById LOG ===");
+    console.log("INCIDENTS:", student.enrollments?.[0]?.incidents?.length);
+    console.log("PAYMENTS:", student.enrollments?.[0]?.payments?.length);
+    console.log(
+      "GRADE RECORDS:",
+      student.enrollments?.[0]?.gradeRecords?.length,
+    );
+    console.log("ATTENDANCES:", student.enrollments?.[0]?.attendances?.length);
 
     return { success: true, data: student };
   } catch (error) {
+    console.error("Error obteniendo estudiante:", error);
     return {
       success: false,
-      error: "Error al obtener los detalles del estudiante",
+      error: "No se pudo cargar el perfil del estudiante.",
     };
   }
 }
 
-/**
- * Búsqueda rápida de estudiantes por nombre o DNI.
- */
-export async function searchStudents(query: string) {
-  if (!query || query.length < 2) return { success: true, data: [] };
-
+export async function createStudent(data: any) {
   try {
-    const students = await prisma.student.findMany({
-      where: {
-        OR: [
-          { firstName: { contains: query, mode: "insensitive" } },
-          { lastName: { contains: query, mode: "insensitive" } },
-          { dni: { contains: query, mode: "insensitive" } },
-        ],
+    const { student, guardian } = data;
+
+    const existing = await prisma.student.findUnique({
+      where: { dni: student.dni },
+    });
+    if (existing) {
+      return {
+        success: false,
+        error: "Ya existe un estudiante registrado con el DNI ingresado.",
+      };
+    }
+
+    const newStudent = await prisma.student.create({
+      data: {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        dni: student.dni,
+        birthDate: new Date(student.birthDate),
+        gender: student.gender,
+        address: student.address,
+        photoUrl: student.photoUrl,
+        guardians: {
+          create: {
+            firstName: guardian.firstName,
+            lastName: guardian.lastName,
+            dni: guardian.dni,
+            relation: guardian.relation,
+            phone: guardian.phone,
+            email: guardian.email,
+            isPrimary: true,
+          },
+        },
       },
-      take: 10,
-      orderBy: { lastName: "asc" },
     });
 
-    return { success: true, data: students };
+    return { success: true, data: newStudent };
   } catch (error) {
-    return { success: false, error: "Error en la búsqueda de estudiantes" };
+    console.error("Error creating student:", error);
+    return {
+      success: false,
+      error: "Error interno del servidor al crear el registro.",
+    };
   }
 }
 
-/**
- * Registra un nuevo estudiante con sus apoderados.
- */
-export async function createStudent(data: unknown) {
-  const parsed = CreateStudentSchema.safeParse(data);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.flatten().fieldErrors };
-  }
-
-  const { guardians, ...studentData } = parsed.data;
-
+export async function updateStudent(id: string, data: any) {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Crear el estudiante
-      const student = await tx.student.create({
-        data: studentData,
-      });
+    const { student, guardian } = data;
 
-      // 2. Crear los apoderados vinculados
-      // Nota: Usamos createMany para eficiencia si hay varios, o un bucle si preferimos
-      for (const guardian of guardians) {
-        await tx.guardian.create({
-          data: {
-            ...guardian,
-            studentId: student.id,
-          },
-        });
-      }
-
-      return student;
+    const existing = await prisma.student.findUnique({
+      where: { dni: student.dni },
     });
-
-    revalidatePath("/dashboard/estudiantes");
-    return { success: true, data: result };
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2002") {
-        return { success: false, error: "Ya existe un estudiante con ese DNI" };
-      }
+    if (existing && existing.id !== id) {
+      return {
+        success: false,
+        error: "Ya existe otro estudiante registrado con ese DNI.",
+      };
     }
-    return { success: false, error: "Error al registrar el estudiante" };
-  }
-}
 
-/**
- * Actualiza los datos personales de un estudiante.
- */
-export async function updateStudent(id: string, data: unknown) {
-  const parsed = StudentSchema.partial().safeParse(data);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.flatten().fieldErrors };
-  }
-
-  try {
-    const student = await prisma.student.update({
+    const existingStudent = await prisma.student.findUnique({
       where: { id },
-      data: parsed.data,
+      include: { guardians: true },
     });
 
-    revalidatePath("/dashboard/estudiantes");
-    revalidatePath(`/dashboard/estudiantes/${id}`);
+    const guardianId = existingStudent?.guardians[0]?.id;
 
-    return { success: true, data: student };
+    const updatedStudent = await prisma.student.update({
+      where: { id },
+      data: {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        dni: student.dni,
+        birthDate: new Date(student.birthDate),
+        gender: student.gender,
+        address: student.address,
+        photoUrl: student.photoUrl,
+        guardians: {
+          update: guardianId
+            ? {
+                where: { id: guardianId },
+                data: {
+                  firstName: guardian.firstName,
+                  lastName: guardian.lastName,
+                  dni: guardian.dni,
+                  relation: guardian.relation,
+                  phone: guardian.phone,
+                  email: guardian.email,
+                },
+              }
+            : undefined,
+        },
+      },
+    });
+
+    return { success: true, data: updatedStudent };
   } catch (error) {
-    console.error("Error in updateStudent:", error);
+    console.error("Error updating student:", error);
     return {
       success: false,
-      error: "Error al actualizar los datos del estudiante",
+      error: "Error interno del servidor al actualizar el registro.",
     };
   }
 }
 
-/**
- * Cambia el estado de un estudiante con un motivo obligatorio.
- */
-export async function changeStudentStatus(
-  id: string,
-  status: StudentStatus,
-  reason: string,
-) {
-  if (!reason || reason.trim().length === 0) {
-    return {
-      success: false,
-      error: "El motivo del cambio de estado es obligatorio",
-    };
-  }
-
+export async function toggleStudentStatus(id: string, newStatus: string) {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const student = await tx.student.update({
-        where: { id },
-        data: { status },
-      });
-
-      // Si el estado es INHABILITADO, registramos en DisabilityRecord si hay matrícula activa
-      if (status === "INHABILITADO") {
-        const activeEnrollment = await tx.enrollment.findFirst({
-          where: {
-            studentId: id,
-            active: true,
-            academicYear: { active: true },
-          },
-        });
-
-        if (activeEnrollment) {
-          await tx.disabilityRecord.create({
-            data: {
-              enrollmentId: activeEnrollment.id,
-              reason: "OTRO",
-              description: reason,
-              active: true,
-            },
-          });
-        }
-      }
-
-      return student;
+    const updatedStudent = await prisma.student.update({
+      where: { id },
+      data: { status: newStatus as any },
     });
-
-    revalidatePath("/dashboard/estudiantes");
-    revalidatePath(`/dashboard/estudiantes/${id}/estado`);
-    revalidatePath(`/dashboard/estudiantes/${id}`);
-
-    return { success: true, data: result };
+    return { success: true, data: updatedStudent };
   } catch (error) {
-    console.error("Error in changeStudentStatus:", error);
+    console.error("Error toggling student status:", error);
     return {
       success: false,
-      error: "Error al cambiar el estado del estudiante",
+      error: "Error interno del servidor al cambiar el estado del estudiante.",
     };
   }
 }

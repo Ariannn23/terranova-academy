@@ -111,7 +111,7 @@ export function RegisterIncidentClient() {
         toast.success("Incidencia registrada correctamente.", {
           id: "register-inc",
         });
-        router.push("/dashboard/incidents");
+        router.push("/dashboard/incidencias");
       } else {
         toast.error(res.error, { id: "register-inc" });
       }
@@ -129,7 +129,7 @@ export function RegisterIncidentClient() {
         description="Selecciona un alumno activo y documenta la incidencia ocurrida (Leve, Moderada o Grave)."
         action={
           <Button variant="outline" asChild>
-            <Link href="/dashboard/incidents">
+            <Link href="/dashboard/incidencias">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Cancelar
             </Link>
@@ -235,7 +235,7 @@ export function RegisterIncidentClient() {
               !activeEnrollment ? "opacity-50 pointer-events-none" : ""
             }
           >
-            <CardHeader borderBottom>
+            <CardHeader className="border-b">
               <CardTitle className="text-lg flex items-center gap-2 text-orange-700">
                 <AlertTriangle className="w-5 h-5 text-orange-500" />
                 2. Detalles de la Incidencia
@@ -358,7 +358,7 @@ export function RegisterIncidentClient() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => router.push("/dashboard/incidents")}
+                      onClick={() => router.push("/dashboard/incidencias")}
                       disabled={isSubmitting}
                     >
                       Cancelar
