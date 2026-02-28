@@ -18,6 +18,7 @@ import {
   BookOpen,
   Clock,
   ShieldAlert,
+  Megaphone,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,12 +35,13 @@ const modules = [
   { name: "Asistencia", href: "/dashboard/asistencia", icon: CalendarCheck },
   { name: "Finanzas", href: "/dashboard/pagos", icon: CreditCard },
   { name: "Calendario", href: "/dashboard/calendar", icon: CalendarDays },
+  { name: "Comunicados", href: "/dashboard/comunicados", icon: Megaphone },
   {
     name: "Inhabilitaciones",
     href: "/dashboard/inhabilitaciones",
     icon: ShieldAlert,
   },
-  { name: "Incidencias", href: "/dashboard/incidents", icon: AlertTriangle },
+  { name: "Incidencias", href: "/dashboard/incidencias", icon: AlertTriangle },
   { name: "Reportes", href: "/dashboard/reports", icon: FileText },
 ];
 

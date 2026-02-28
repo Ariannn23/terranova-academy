@@ -138,9 +138,7 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
               toast.loading("Cargando perfil del alumno...", {
                 id: "view-profile",
               });
-              router.push(
-                `/dashboard/estudiantes/${row.enrollment.student.dni}`,
-              );
+              router.push(`/dashboard/incidencias/${row.id}`);
             }}
             title="Ir al Perfil 360"
             className="text-slate-400 hover:text-blue-600 hover:bg-blue-50"
@@ -159,7 +157,7 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
         description="Registro detallado de incidencias conductuales y disciplinarias de toda la escuela."
         action={
           <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
-            <Link href="/dashboard/incidents/nuevo">
+            <Link href="/dashboard/incidencias/nuevo">
               <Plus className="w-4 h-4 mr-2" />
               Registrar Incidencia
             </Link>

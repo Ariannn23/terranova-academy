@@ -9,6 +9,34 @@ import { EventType } from "@prisma/client";
 // ACCIONES PARA EL CALENDARIO ACADÉMICO
 // ==========================================
 
+export async function getCalendarEvents(filters?: {
+  type?: EventType | "ALL";
+}) {
+  try {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { active: true },
+    });
+
+    if (!activeYear)
+      return { success: false, error: "No hay año académico activo" };
+
+    const whereClause: any = { academicYearId: activeYear.id };
+    if (filters?.type && filters.type !== "ALL") {
+      whereClause.type = filters.type;
+    }
+
+    const events = await prisma.calendarEvent.findMany({
+      where: whereClause,
+      orderBy: { date: "asc" },
+    });
+
+    return { success: true, data: events };
+  } catch (error) {
+    console.error("Error fetching calendar events:", error);
+    return { success: false, error: "Error interno al cargar el calendario." };
+  }
+}
+
 export async function getEventsByMonth(
   month: number,
   year: number,

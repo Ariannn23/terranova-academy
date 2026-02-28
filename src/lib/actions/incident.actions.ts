@@ -9,6 +9,32 @@ import { IncidentSeverity } from "@prisma/client";
 // ACCIONES DE INCIDENCIAS (Comportamiento)
 // ==========================================
 
+export async function getIncidentById(id: string) {
+  try {
+    const incident = await prisma.incident.findUnique({
+      where: { id },
+      include: {
+        enrollment: {
+          include: {
+            student: true,
+            section: {
+              include: { gradeLevel: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!incident) return { success: false, error: "Incidencia no encontrada" };
+
+    return { success: true, data: incident };
+  } catch (error) {
+    return {
+      success: false,
+      error: "Error al obtener el detalle de la incidencia",
+    };
+  }
+}
 export async function getIncidents(filters?: {
   sectionId?: string;
   studentDni?: string;

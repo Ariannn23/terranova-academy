@@ -1,5 +1,5 @@
-import NotFoundUI from "../not-found";
+import NotFound from "../not-found";
 
-export default function CatchAllDashboardRoutes() {
-  return <NotFoundUI />;
-}
+export default function CatchAllPage() {
+  return <NotFound />;
+}   

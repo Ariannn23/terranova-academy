@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -227,7 +227,7 @@ export function RegisterDisabilityClient() {
               !activeEnrollment ? "opacity-50 pointer-events-none" : ""
             }
           >
-            <CardHeader borderBottom>
+            <CardHeader className="border-b">
               <CardTitle className="text-lg flex items-center gap-2 text-red-700">
                 <AlertTriangle className="w-5 h-5 text-red-500" />
                 2. Detalles de Sanción / Inhabilitación
