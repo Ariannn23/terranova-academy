@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createEnrollment } from "@/lib/actions/enrollments.actions";
 
 export function EnrollmentWizard({ initialData }: { initialData: any }) {
@@ -48,19 +49,28 @@ export function EnrollmentWizard({ initialData }: { initialData: any }) {
   const onSubmit = () => {
     if (!selectedStudent || !selectedSection || !currentYear) return;
     setErrorProp("");
+
+    const toastId = toast.loading(
+      "Registrando matrícula y generando cuotas...",
+    );
+
     startTransition(() => {
-      createEnrollment(
-        selectedStudent.id,
-        selectedSection.id,
-        currentYear.id,
-      ).then((res) => {
-        if (res.success) {
-          router.push("/dashboard/matriculas");
-          router.refresh();
-        } else {
-          setErrorProp(res.error || "Error inesperado");
-        }
-      });
+      createEnrollment(selectedStudent.id, selectedSection.id, currentYear.id)
+        .then((res) => {
+          if (res.success) {
+            toast.success("Alumno matriculado con éxito", { id: toastId });
+            router.push("/dashboard/matriculas");
+            router.refresh();
+          } else {
+            toast.error(res.error || "Ocurrió un error al matricular", {
+              id: toastId,
+            });
+            setErrorProp(res.error || "Error inesperado");
+          }
+        })
+        .catch(() => {
+          toast.error("Error de conexión o servidor", { id: toastId });
+        });
     });
   };
 

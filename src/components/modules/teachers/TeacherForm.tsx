@@ -20,11 +20,15 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 const teacherSchema = z.object({
-  dni: z.string().min(8, "El DNI debe tener al menos 8 caracteres"),
+  dni: z.string().length(8, "El DNI debe tener 8 dígitos exactos"),
   firstName: z.string().min(2, "El nombre es muy corto"),
   lastName: z.string().min(2, "Los apellidos son muy cortos"),
   email: z.string().email("Correo electrónico inválido"),
-  phone: z.string().optional().nullable(),
+  phone: z
+    .string()
+    .length(9, "El teléfono debe tener 9 dígitos")
+    .optional()
+    .or(z.literal("")),
   specialty: z.string().optional().nullable(),
   photoUrl: z.string().url("URL de foto inválida").optional().nullable(),
   active: z.boolean().default(true),
@@ -78,21 +82,34 @@ export function TeacherForm({
 
   const onSubmit = async (data: TeacherFormValues) => {
     setLoading(true);
-    const result = initialData
-      ? await updateTeacher(initialData.id, data)
-      : await createTeacher(data);
 
-    if (result.success) {
-      toast.success(
-        initialData ? "Docente actualizado" : "Docente registrado con éxito",
-      );
-      onSuccess?.();
-      onOpenChange(false);
-      reset();
-    } else {
-      toast.error(result.error);
+    const toastId = toast.loading(
+      initialData ? "Actualizando docente..." : "Registrando docente...",
+    );
+
+    try {
+      const result = initialData
+        ? await updateTeacher(initialData.id, data)
+        : await createTeacher(data);
+
+      if (result.success) {
+        toast.success(
+          initialData
+            ? "Docente actualizado con éxito"
+            : "Docente registrado con éxito",
+          { id: toastId },
+        );
+        onSuccess?.();
+        onOpenChange(false);
+        reset();
+      } else {
+        toast.error(result.error || "Error al guardar", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("Error de conexión o servidor", { id: toastId });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const isActive = watch("active");
@@ -109,7 +126,11 @@ export function TeacherForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
+        <form
+          noValidate
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6 mt-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">Nombres</Label>

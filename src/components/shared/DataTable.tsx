@@ -24,7 +24,7 @@ interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
   searchPlaceholder?: string;
-  searchKey?: keyof T;
+  searchKey?: keyof T | string | string[];
   onRowClick?: (item: T) => void;
 }
 
@@ -42,11 +42,18 @@ export function DataTable<T>({
   // Filtrado
   const filteredData = data.filter((item) => {
     if (!search || !searchKey) return true;
-    const value = item[searchKey];
-    if (typeof value === "string") {
-      return value.toLowerCase().includes(search.toLowerCase());
-    }
-    return true;
+
+    const keys = Array.isArray(searchKey) ? searchKey : [searchKey];
+
+    return keys.some((key) => {
+      const value = String(key)
+        .split(".")
+        .reduce((obj: any, k) => obj?.[k], item);
+      if (typeof value === "string") {
+        return value.toLowerCase().includes(search.toLowerCase());
+      }
+      return false;
+    });
   });
 
   // Paginación

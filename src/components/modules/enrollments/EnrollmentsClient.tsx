@@ -157,13 +157,16 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
           <Button
             variant="ghost"
             size="sm"
-            asChild
+            onClick={() => {
+              toast.loading("Cargando detalle de matrícula...", {
+                id: "view-enrollment",
+              });
+              router.push(`/dashboard/matriculas/${row.id}`);
+            }}
             title="Ver Detalle de Matrícula"
             className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
           >
-            <Link href={`/dashboard/matriculas/${row.id}`}>
-              <Eye className="h-4 w-4" />
-            </Link>
+            <Eye className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"

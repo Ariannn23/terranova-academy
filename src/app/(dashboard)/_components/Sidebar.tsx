@@ -16,6 +16,7 @@ import {
   X,
   Briefcase,
   BookOpen,
+  Clock,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,9 +28,10 @@ const modules = [
   { name: "Estudiantes", href: "/dashboard/estudiantes", icon: Users },
   { name: "Docentes", href: "/dashboard/docentes", icon: Briefcase },
   { name: "Cursos", href: "/dashboard/cursos", icon: BookOpen },
+  { name: "Horarios", href: "/dashboard/horarios", icon: Clock },
   { name: "Calificaciones", href: "/dashboard/notas", icon: GraduationCap },
   { name: "Asistencia", href: "/dashboard/asistencia", icon: CalendarCheck },
-  { name: "Finanzas", href: "/dashboard/payments", icon: CreditCard },
+  { name: "Finanzas", href: "/dashboard/pagos", icon: CreditCard },
   { name: "Calendario", href: "/dashboard/calendar", icon: CalendarDays },
   { name: "Incidencias", href: "/dashboard/incidents", icon: AlertTriangle },
   { name: "Reportes", href: "/dashboard/reports", icon: FileText },
@@ -71,7 +73,7 @@ export default function Sidebar() {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 overflow-y-auto flex flex-col ${
+        className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 overflow-y-auto sidebar-scroll flex flex-col ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

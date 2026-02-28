@@ -82,21 +82,36 @@ export function CourseForm({
 
   const onSubmit = async (data: CourseFormValues) => {
     setLoading(true);
-    const result = initialData
-      ? await updateCourse(initialData.id, data)
-      : await createCourse(data);
 
-    if (result.success) {
-      toast.success(
-        initialData ? "Curso actualizado" : "Curso registrado con éxito",
-      );
-      onSuccess?.();
-      onOpenChange(false);
-      reset();
-    } else {
-      toast.error(result.error);
+    const toastId = toast.loading(
+      initialData ? "Actualizando curso..." : "Registrando curso...",
+    );
+
+    try {
+      const result = initialData
+        ? await updateCourse(initialData.id, data)
+        : await createCourse(data);
+
+      if (result.success) {
+        toast.success(
+          initialData
+            ? "Curso actualizado con éxito"
+            : "Curso registrado con éxito",
+          { id: toastId },
+        );
+        onSuccess?.();
+        onOpenChange(false);
+        reset();
+      } else {
+        toast.error(result.error || "Error al guardar el curso", {
+          id: toastId,
+        });
+      }
+    } catch (error) {
+      toast.error("Error de conexión o servidor", { id: toastId });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const isActive = watch("active");
@@ -114,7 +129,11 @@ export function CourseForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
+        <form
+          noValidate
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6 mt-4"
+        >
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del Curso</Label>

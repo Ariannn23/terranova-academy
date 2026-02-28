@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScheduleCell } from "./ScheduleCell";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 export const DAYS_OF_WEEK = [
   { id: 1, label: "Lunes" },
@@ -34,15 +38,27 @@ export function ScheduleGrid({
   courses: any[];
   teachers: any[];
 }) {
+  useEffect(() => {
+    toast.dismiss();
+  }, []);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={`Horario Escolar - ${section.gradeLevel.name} "${section.name}"`}
         description={`Asigna los cursos y plana docente para la sección ${section.name} del nivel ${section.gradeLevel.level}.`}
         breadcrumbs={[
-          { label: "Horarios", href: "/dashboard" },
+          { label: "Horarios", href: "/dashboard/horarios" },
           { label: `Editar #${section.id.split("-")[0]}` },
         ]}
+        action={
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/horarios">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Regresar
+            </Link>
+          </Button>
+        }
       />
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden overflow-x-auto">

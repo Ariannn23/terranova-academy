@@ -158,3 +158,35 @@ export async function deleteScheduleBlock(id: string, sectionId: string) {
     return { success: false, error: "Error eliminando el bloque de horario" };
   }
 }
+
+export async function getActiveSectionsForSchedules() {
+  try {
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { active: true },
+    });
+
+    if (!activeYear) {
+      return { success: false, error: "No hay año académico activo." };
+    }
+
+    const sections = await prisma.section.findMany({
+      where: { academicYearId: activeYear.id },
+      include: {
+        gradeLevel: true,
+        teacher: true,
+        _count: {
+          select: { schedules: true },
+        },
+      },
+      orderBy: [{ gradeLevel: { order: "asc" } }, { name: "asc" }],
+    });
+
+    return { success: true, data: sections };
+  } catch (error) {
+    console.error("Error fetching sections for schedules:", error);
+    return {
+      success: false,
+      error: "Error interno al cargar la lista de secciones.",
+    };
+  }
+}

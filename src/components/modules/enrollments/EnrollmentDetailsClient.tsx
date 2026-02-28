@@ -18,8 +18,14 @@ import {
 import { DataTable } from "@/components/shared/DataTable";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 export function EnrollmentDetailsClient({ enrollment }: { enrollment: any }) {
+  useEffect(() => {
+    toast.dismiss();
+  }, []);
+
   const { student, section, academicYear, payments } = enrollment;
 
   const paymentColumns = [

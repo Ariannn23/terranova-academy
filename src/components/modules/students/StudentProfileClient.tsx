@@ -7,8 +7,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Edit } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 export function StudentProfileClient({ student }: { student: any }) {
+  useEffect(() => {
+    toast.dismiss();
+  }, []);
+
   const currentEnrollment = student.enrollments?.[0];
   const gradeLevel = currentEnrollment?.section?.gradeLevel;
 

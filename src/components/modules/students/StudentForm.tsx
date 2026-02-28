@@ -24,6 +24,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Loader2, Camera } from "lucide-react";
+import { toast } from "sonner";
 
 import { createStudent, updateStudent } from "@/lib/actions/students.actions";
 
@@ -42,7 +43,7 @@ const studentSchema = z.object({
     lastName: z.string().min(2, "Mínimo 2 caracteres"),
     dni: z.string().length(8, "DNI debe tener 8 dígitos"),
     relation: z.string().min(2, "Requerido (Ej. Padre, Madre)"),
-    phone: z.string().min(6, "Teléfono inválido"),
+    phone: z.string().length(9, "Teléfono debe tener 9 dígitos"),
     email: z.string().optional(),
   }),
 });
@@ -108,19 +109,37 @@ export function StudentForm({ initialData }: { initialData?: any }) {
 
   const onSubmit = (data: StudentFormValues) => {
     setErrorProp("");
+
+    const toastId = toast.loading(
+      initialData ? "Actualizando estudiante..." : "Registrando estudiante...",
+    );
+
     startTransition(() => {
       const action = initialData
         ? updateStudent(initialData.id, data)
         : createStudent(data);
 
-      action.then((res) => {
-        if (res.success) {
-          router.push("/dashboard/estudiantes");
-          router.refresh();
-        } else {
-          setErrorProp(res.error || "Ocurrió un error inesperado.");
-        }
-      });
+      action
+        .then((res) => {
+          if (res.success) {
+            toast.success(
+              initialData
+                ? "Estudiante actualizado exitosamente"
+                : "Estudiante registrado exitosamente",
+              { id: toastId },
+            );
+            router.push("/dashboard/estudiantes");
+            router.refresh();
+          } else {
+            toast.error(res.error || "Ocurrió un error al guardar", {
+              id: toastId,
+            });
+            setErrorProp(res.error || "Ocurrió un error inesperado.");
+          }
+        })
+        .catch(() => {
+          toast.error("Error de conexión o servidor", { id: toastId });
+        });
     });
   };
 
@@ -135,7 +154,11 @@ export function StudentForm({ initialData }: { initialData?: any }) {
         }
       />
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        noValidate
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-8"
+      >
         {/* Bloque: Alumno */}
         <Card>
           <CardHeader>

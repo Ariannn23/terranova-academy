@@ -136,13 +136,16 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
             <Button
               variant="ghost"
               size="sm"
-              asChild
+              onClick={() => {
+                toast.loading("Cargando perfil del estudiante...", {
+                  id: "view-student",
+                });
+                router.push(`/dashboard/estudiantes/${row.id}`);
+              }}
               title="Ver Perfil o Editar"
               className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
             >
-              <Link href={`/dashboard/estudiantes/${row.id}`}>
-                <Eye className="h-4 w-4" />
-              </Link>
+              <Eye className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
