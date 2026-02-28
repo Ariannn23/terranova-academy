@@ -17,6 +17,7 @@ import {
   Briefcase,
   BookOpen,
   Clock,
+  ShieldAlert,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,11 @@ const modules = [
   { name: "Asistencia", href: "/dashboard/asistencia", icon: CalendarCheck },
   { name: "Finanzas", href: "/dashboard/pagos", icon: CreditCard },
   { name: "Calendario", href: "/dashboard/calendar", icon: CalendarDays },
+  {
+    name: "Inhabilitaciones",
+    href: "/dashboard/inhabilitaciones",
+    icon: ShieldAlert,
+  },
   { name: "Incidencias", href: "/dashboard/incidents", icon: AlertTriangle },
   { name: "Reportes", href: "/dashboard/reports", icon: FileText },
 ];

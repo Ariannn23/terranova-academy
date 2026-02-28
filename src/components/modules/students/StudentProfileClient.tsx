@@ -5,10 +5,18 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit } from "lucide-react";
+import {
+  ArrowLeft,
+  Edit,
+  AlertTriangle,
+  ShieldAlert,
+  Calendar,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export function StudentProfileClient({ student }: { student: any }) {
   useEffect(() => {
@@ -175,9 +183,112 @@ export function StudentProfileClient({ student }: { student: any }) {
         </TabsContent>
         <TabsContent
           value="incidencias"
-          className="p-4 bg-white rounded-lg border border-slate-200 mt-2 shadow-sm min-h-[300px] flex items-center justify-center text-slate-400"
+          className="bg-white rounded-lg border border-slate-200 mt-2 shadow-sm min-h-[300px]"
         >
-          Módulo de Incidencias en construcción
+          <div className="p-4 border-b border-slate-100 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-orange-500" />
+            <h3 className="text-lg font-semibold text-slate-800">
+              Historial Disciplinario
+            </h3>
+          </div>
+          <div className="p-4 space-y-6">
+            {/* Inhabilitaciones Section */}
+            <div>
+              <h4 className="font-semibold text-slate-700 text-sm mb-3 flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-red-500" />{" "}
+                Inhabilitaciones
+              </h4>
+              {currentEnrollment?.disabilities?.length > 0 ? (
+                <div className="space-y-3">
+                  {currentEnrollment.disabilities.map((disab: any) => (
+                    <div
+                      key={disab.id}
+                      className={`p-4 rounded-lg border text-sm ${disab.active ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-bold flex items-center gap-2">
+                          {disab.reason.replace("_", " ")}
+                          {disab.active ? (
+                            <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full">
+                              VIGENTE
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                              RESUELTA
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-slate-500 text-xs flex items-center">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {format(new Date(disab.startDate), "dd MMM yyyy", {
+                            locale: es,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-slate-600 mb-2">{disab.description}</p>
+                      {!disab.active && disab.resolvedNote && (
+                        <div className="bg-white p-2 text-xs border border-emerald-100 rounded text-emerald-700 mt-2">
+                          <strong>Resolución:</strong> {disab.resolvedNote}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm italic">
+                  No registra inhabilitaciones en el año actual.
+                </p>
+              )}
+            </div>
+
+            {/* Incidencias Section */}
+            <div className="pt-4 border-t border-slate-100">
+              <h4 className="font-semibold text-slate-700 text-sm mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-500" />{" "}
+                Incidencias Comunes
+              </h4>
+              {currentEnrollment?.incidents?.length > 0 ? (
+                <div className="space-y-3">
+                  {currentEnrollment.incidents.map((inc: any) => (
+                    <div
+                      key={inc.id}
+                      className="p-4 rounded-lg border border-slate-200 bg-white text-sm"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded text-xs ${
+                            inc.severity === "GRAVE"
+                              ? "bg-red-100 text-red-700"
+                              : inc.severity === "MODERADO"
+                                ? "bg-orange-100 text-orange-700"
+                                : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {inc.severity}
+                        </span>
+                        <span className="text-slate-500 text-xs flex items-center">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {format(new Date(inc.date), "dd MMM yyyy", {
+                            locale: es,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-slate-600">{inc.description}</p>
+                      {inc.action && (
+                        <div className="mt-2 text-xs text-slate-500">
+                          <strong>Acción tomada:</strong> {inc.action}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm italic">
+                  No registra incidencias disciplinarias.
+                </p>
+              )}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
