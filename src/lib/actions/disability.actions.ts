@@ -94,10 +94,15 @@ export async function createDisability(data: unknown) {
         },
       });
 
-      // 3. Imponer la regla de oro: MARCAR ALUMNO COMO INHABILITADO
+      // 3. Imponer la regla de oro: MARCAR ALUMNO COMO INHABILITADO y MATRICULA COMO INACTIVA
       await tx.student.update({
         where: { id: disability.enrollment.studentId },
         data: { status: StudentStatus.INHABILITADO },
+      });
+
+      await tx.enrollment.update({
+        where: { id: disability.enrollmentId },
+        data: { active: false },
       });
 
       // Reflejar el nuevo estatus en la respuesta que devolvemos
@@ -124,8 +129,60 @@ export async function resolveDisability(data: unknown) {
   const { id, resolvedNote } = parsed.data;
 
   try {
+    // 1. Obtener la inhabilitación para saber el enrollmentId
+    const currentDisability = await prisma.disabilityRecord.findUnique({
+      where: { id },
+      include: { enrollment: true },
+    });
+
+    if (!currentDisability) {
+      throw new Error("Inhabilitación no encontrada");
+    }
+
+    // 2. Obtener datos externos ANTES de la transacción
+    const [gradesRes, attendanceRes] = await Promise.all([
+      getStudentGrades(currentDisability.enrollmentId),
+      getAttendanceStats(currentDisability.enrollmentId),
+    ]);
+
+    // 3. Calcular estatus
+    const failingCoursesCount = gradesRes.success
+      ? (gradesRes.data || []).filter(
+          (g: any) => g.period === "FINAL" && (g.score || 0) < 11,
+        ).length
+      : 0;
+
+    const attendancePercentage = attendanceRes.success
+      ? (attendanceRes.data?.percentage ?? 100)
+      : 100;
+
+    const totalCoursesCount = gradesRes.success
+      ? new Set((gradesRes.data || []).map((g: any) => g.courseId)).size || 1
+      : 1;
+
+    const finalGrades = gradesRes.success
+      ? (gradesRes.data || []).filter(
+          (g: any) => g.period === "FINAL" && typeof g.score === "number",
+        )
+      : [];
+
+    const averageScore =
+      finalGrades.length > 0
+        ? finalGrades.reduce(
+            (acc: number, curr: any) => acc + (curr.score || 0),
+            0,
+          ) / finalGrades.length
+        : 20;
+
+    const newStatus = calculateStudentStatus(
+      attendancePercentage,
+      failingCoursesCount,
+      totalCoursesCount,
+      averageScore,
+    );
+
+    // 4. Ejecutar la transacción limpia
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Marcar como resuelto
       const disability = await tx.disabilityRecord.update({
         where: { id },
         data: {
@@ -140,58 +197,19 @@ export async function resolveDisability(data: unknown) {
         },
       });
 
-      // 2. Re-calcular el estado del estudiante de manera inteligente
-      // No lo devolvemos a ACTIVO a ciegas, vemos cómo están sus notas y asistencias reales actuales.
-
-      const [gradesRes, attendanceRes] = await Promise.all([
-        getStudentGrades(disability.enrollmentId),
-        getAttendanceStats(disability.enrollmentId),
-      ]);
-
-      const failingCoursesCount = gradesRes.success
-        ? gradesRes.data?.filter(
-            (g: any) => g.period === "FINAL" && (g.score || 0) < 11,
-          ).length || 0
-        : 0;
-
-      const attendancePercentage = attendanceRes.success
-        ? attendanceRes.data?.percentage || 100
-        : 100;
-
-      const totalCoursesCount = gradesRes.success
-        ? new Set(gradesRes.data?.map((g: any) => g.courseId)).size || 1
-        : 1;
-
-      const finalGrades = gradesRes.success
-        ? gradesRes.data?.filter(
-            (g: any) => g.period === "FINAL" && typeof g.score === "number",
-          ) || []
-        : [];
-
-      const averageScore =
-        finalGrades.length > 0
-          ? finalGrades.reduce(
-              (acc: number, curr: any) => acc + (curr.score || 0),
-              0,
-            ) / finalGrades.length
-          : 20;
-
-      const newStatus = calculateStudentStatus(
-        attendancePercentage,
-        failingCoursesCount,
-        totalCoursesCount,
-        averageScore,
-      );
-
-      // Usar transacción para actualizar estatus final real
       await tx.student.update({
         where: { id: disability.enrollment.studentId },
         data: { status: newStatus },
       });
 
-      // Reflejar el nuevo estatus en la respuesta que devolvemos
-      disability.enrollment.student.status = newStatus;
+      // Reactivar la matrícula ya que la inhabilitación se levantó
+      await tx.enrollment.update({
+        where: { id: disability.enrollmentId },
+        data: { active: true },
+      });
 
+      disability.enrollment.student.status = newStatus;
+      disability.enrollment.active = true;
       return disability;
     });
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, PHOTOS_BUCKET } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -15,7 +15,7 @@ export async function uploadStudentPhoto(
   if (!file)
     return { success: false, error: "No se proporcionó ningún archivo" };
 
-  const bucket = "photos";
+  const bucket = PHOTOS_BUCKET;
   const fileExt = file.name.split(".").pop();
   const fileName = `${studentId}-${Date.now()}.${fileExt}`;
   const filePath = `students/${fileName}`;
@@ -53,15 +53,58 @@ export async function uploadStudentPhoto(
 }
 
 /**
+ * Sube la foto de un docente a Supabase Storage y actualiza su registro.
+ */
+export async function uploadTeacherPhoto(
+  teacherId: string,
+  formData: FormData,
+) {
+  const file = formData.get("file") as File;
+  if (!file)
+    return { success: false, error: "No se proporcionó ningún archivo" };
+
+  const bucket = PHOTOS_BUCKET;
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${teacherId}-${Date.now()}.${fileExt}`;
+  const filePath = `teachers/${fileName}`;
+
+  try {
+    const { data, error } = await supabaseAdmin.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) throw error;
+
+    const {
+      data: { publicUrl },
+    } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
+
+    await prisma.teacher.update({
+      where: { id: teacherId },
+      data: { photoUrl: publicUrl },
+    });
+
+    revalidatePath("/dashboard/docentes");
+    revalidatePath(`/dashboard/docentes/${teacherId}`);
+
+    return { success: true, data: publicUrl };
+  } catch (error) {
+    console.error("Error in uploadTeacherPhoto:", error);
+    return { success: false, error: "Error al subir la foto" };
+  }
+}
+
+/**
  * Elimina una foto de Supabase Storage.
  */
-export async function deleteStudentPhoto(url: string) {
+export async function deletePhoto(url: string) {
   if (!url) return { success: true };
 
   try {
-    // Extraer el path relativo del URL público
-    // Ejemplo: https://.../storage/v1/object/public/photos/students/id-timestamp.jpg
-    const parts = url.split("/photos/");
+    const parts = url.split(`/${PHOTOS_BUCKET}/`);
     const filePath = parts.pop();
 
     if (!filePath) {
@@ -69,14 +112,14 @@ export async function deleteStudentPhoto(url: string) {
     }
 
     const { error } = await supabaseAdmin.storage
-      .from("photos")
+      .from(PHOTOS_BUCKET)
       .remove([filePath]);
 
     if (error) throw error;
 
     return { success: true };
   } catch (error) {
-    console.error("Error in deleteStudentPhoto:", error);
+    console.error("Error in deletePhoto:", error);
     return { success: false, error: "Error al eliminar la foto" };
   }
 }

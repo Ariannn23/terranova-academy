@@ -42,13 +42,30 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
       return flatObj;
     });
 
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const ws = XLSX.utils.json_to_sheet([]);
+    const titleRow = [
+      [
+        `REPORTE DE NOTAS - ${sectionInfo?.gradeLevel.name} ${sectionInfo?.name} - PERIODO ${period}`,
+      ],
+    ];
+    XLSX.utils.sheet_add_aoa(ws, titleRow, { origin: "A1" });
+    XLSX.utils.sheet_add_json(ws, rows, { origin: "A3" });
+
     const wb = XLSX.utils.book_new();
     const sheetName = `Notas - ${sectionInfo?.name} - ${period}`;
     XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
 
     // Acomodar columnas un poco
-    ws["!cols"] = [{ wch: 12 }, { wch: 35 }, { wch: 12 }, { wch: 12 }];
+    ws["!cols"] = [
+      { wch: 12 },
+      { wch: 35 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+    ];
 
     const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
@@ -96,7 +113,15 @@ export async function exportAttendanceReport(
       return flatObj;
     });
 
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const ws = XLSX.utils.json_to_sheet([]);
+    const titleRow = [
+      [
+        `REPORTE DE ASISTENCIA - ${sectionInfo?.gradeLevel.name} ${sectionInfo?.name} - MES ${month}/${year}`,
+      ],
+    ];
+    XLSX.utils.sheet_add_aoa(ws, titleRow, { origin: "A1" });
+    XLSX.utils.sheet_add_json(ws, rows, { origin: "A3" });
+
     const wb = XLSX.utils.book_new();
     const sheetName = `Asistencia ${sectionInfo?.name} - ${month}-${year}`;
     XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
@@ -104,11 +129,11 @@ export async function exportAttendanceReport(
     ws["!cols"] = [
       { wch: 12 },
       { wch: 35 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
       { wch: 20 },
-      { wch: 20 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 22 },
+      { wch: 22 },
       { wch: 15 },
     ];
 
@@ -157,7 +182,11 @@ export async function exportFinancialReport(year: number) {
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(rawData);
+    const ws = XLSX.utils.json_to_sheet([]);
+    const titleRow = [[`REPORTE FINANCIERO ANUAL - ${year}`]];
+    XLSX.utils.sheet_add_aoa(ws, titleRow, { origin: "A1" });
+    XLSX.utils.sheet_add_json(ws, rawData, { origin: "A3" });
+
     const wb = XLSX.utils.book_new();
     const sheetName = `Finanzas Anuales - ${year}`;
     XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));

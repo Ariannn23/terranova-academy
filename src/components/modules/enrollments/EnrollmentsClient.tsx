@@ -13,12 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, Archive, ArchiveRestore, Eye, Edit2 } from "lucide-react";
+import { Plus, Eye } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { toggleEnrollmentStatus } from "@/lib/actions/enrollments.actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -27,7 +25,6 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [yearFilter, setYearFilter] = useState("ALL");
-  const [enrollmentToToggle, setEnrollmentToToggle] = useState<any>(null);
 
   const filteredData = initialData.filter((enrollment) => {
     const matchesSearch =
@@ -48,34 +45,6 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
 
     return matchesSearch && matchesLevel && matchesYear;
   });
-
-  const handleToggleClick = (enrollment: any) => {
-    setEnrollmentToToggle(enrollment);
-  };
-
-  const handleConfirmToggle = async () => {
-    if (!enrollmentToToggle) return;
-    const newStatus = !enrollmentToToggle.active;
-    const loadingToast = toast.loading(
-      newStatus ? "Activando matrícula..." : "Inhabilitando matrícula...",
-    );
-
-    const result = await toggleEnrollmentStatus(
-      enrollmentToToggle.id,
-      newStatus,
-    );
-
-    toast.dismiss(loadingToast);
-    if (result.success) {
-      toast.success(
-        `Matrícula ${newStatus ? "activada" : "inhabilitada"} correctamente`,
-      );
-      router.refresh();
-    } else {
-      toast.error(result.error || "Error al cambiar estado de la matrícula");
-    }
-    setEnrollmentToToggle(null);
-  };
 
   const columns = [
     {
@@ -168,23 +137,6 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
           >
             <Eye className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleToggleClick(row)}
-            title={row.active ? "Anular Matrícula" : "Reactivar Matrícula"}
-            className={
-              row.active
-                ? "text-slate-400 hover:text-red-600 hover:bg-red-50"
-                : "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-            }
-          >
-            {row.active ? (
-              <Archive className="h-4 w-4" />
-            ) : (
-              <ArchiveRestore className="h-4 w-4" />
-            )}
-          </Button>
         </div>
       ),
     },
@@ -235,24 +187,6 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       </div>
 
       <DataTable data={filteredData} columns={columns} />
-
-      <ConfirmDialog
-        open={!!enrollmentToToggle}
-        onOpenChange={(open) => !open && setEnrollmentToToggle(null)}
-        title={
-          enrollmentToToggle?.active
-            ? "Anular Matrícula"
-            : "Reactivar Matrícula"
-        }
-        description={
-          enrollmentToToggle?.active
-            ? `¿Estás seguro de anular la matrícula del alumno ${enrollmentToToggle?.student?.firstName}?`
-            : `¿Estás seguro de reactivar la matrícula del alumno ${enrollmentToToggle?.student?.firstName}?`
-        }
-        onConfirm={handleConfirmToggle}
-        confirmText={enrollmentToToggle?.active ? "Anular" : "Reactivar"}
-        variant={enrollmentToToggle?.active ? "destructive" : "default"}
-      />
     </div>
   );
 }

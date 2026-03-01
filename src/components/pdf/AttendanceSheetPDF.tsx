@@ -3,56 +3,68 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 
 const styles = StyleSheet.create({
-  page: { padding: 30, fontFamily: "Helvetica", paddingBottom: 60 },
-  header: { marginBottom: 15, textAlign: "center" },
-  schoolName: { fontSize: 18, fontWeight: "bold", marginBottom: 4 },
-  title: { fontSize: 14, marginBottom: 5 },
+  page: {
+    padding: 30,
+    fontFamily: "Helvetica",
+    paddingBottom: 60,
+    color: "#334155",
+  },
+  header: {
+    marginBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    borderBottomWidth: 2,
+    borderBottomColor: "#059669",
+    paddingBottom: 10,
+  },
+  schoolName: { fontSize: 20, fontWeight: "bold", color: "#0f172a" },
+  title: {
+    fontSize: 10,
+    color: "#059669",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
   infoBox: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: 20,
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    borderRadius: 4,
   },
-  label: { fontSize: 10, fontWeight: "bold" },
-  value: { fontSize: 10 },
-  table: {
-    display: "flex",
-    width: "100%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
+  label: {
+    fontSize: 9,
+    color: "#64748b",
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
-  tableRow: { flexDirection: "row" },
+  value: { fontSize: 10, color: "#0f172a", fontWeight: "bold" },
+  table: { width: "100%" },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
+    borderBottomWidth: 1,
+    borderBottomColor: "#cbd5e1",
+    paddingBottom: 6,
+    marginBottom: 4,
   },
-  tableColName: {
-    width: "40%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: "#e2e8f0",
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
   },
-  tableColDay: {
-    width: "2%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: "#e2e8f0",
-  },
-  tableCellName: { padding: 4, fontSize: 8 },
-  tableCellDay: { padding: 4, fontSize: 8, textAlign: "center" },
-  tableHeaderCellName: { padding: 4, fontSize: 8, fontWeight: "bold" },
-  tableHeaderCellDay: {
-    padding: 4,
+  tableColName: { width: "40%", paddingVertical: 4 },
+  tableColDay: { width: "2%", textAlign: "center", paddingVertical: 4 },
+  tableHeaderCellName: {
     fontSize: 8,
     fontWeight: "bold",
-    textAlign: "center",
+    color: "#475569",
+    textTransform: "uppercase",
   },
+  tableHeaderCellDay: { fontSize: 8, fontWeight: "bold", color: "#475569" },
+  tableCellName: { fontSize: 8, color: "#1e293b" },
+  tableCellDay: { fontSize: 8 },
 });
 
 // Sheet expectations: A landscape or tightly packed portrait.
@@ -74,8 +86,10 @@ export const AttendanceSheetPDF = ({
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.schoolName}>TerraNova Academy</Text>
-          <Text style={styles.title}>PLANILLA DE ASISTENCIA MENSUAL</Text>
+          <View>
+            <Text style={styles.schoolName}>TerraNova Academy</Text>
+            <Text style={styles.title}>Planilla de Asistencia Mensual</Text>
+          </View>
         </View>
 
         <View style={styles.infoBox}>

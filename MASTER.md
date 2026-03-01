@@ -105,8 +105,6 @@ Storage (fotos):     Supabase Storage
 
 ## 3. Reglas de Desarrollo
 
-> Estas reglas son  **no negociables** . Cualquier IA o desarrollador debe seguirlas estrictamente.
-
 ### 3.1 Reglas Generales
 
 * **TypeScript estricto** en todo el proyecto. Sin `any` implícito.
@@ -711,23 +709,23 @@ Solo puede haber **un** `AcademicYear` con `active: true` a la vez. Al activar u
 
 ### Resumen de módulos
 
-| #  | Módulo              | Rutas | Prefijo                         |
-| -- | -------------------- | ----- | ------------------------------- |
-| 01 | 🔐 Autenticación    | 3     | `/login`                      |
-| 02 | 📊 Dashboard         | 1     | `/dashboard`                  |
-| 03 | 📋 Matrículas       | 6     | `/dashboard/matriculas`       |
-| 04 | 👨‍🎓 Estudiantes   | 7     | `/dashboard/estudiantes`      |
-| 05 | 👩‍🏫 Docentes      | 5     | `/dashboard/docentes`         |
-| 06 | 📅 Cursos y Horarios | 6     | `/dashboard/cursos`           |
-| 07 | 📝 Notas             | 5     | `/dashboard/notas`            |
-| 08 | ✅ Asistencia        | 5     | `/dashboard/asistencia`       |
-| 09 | 💰 Cobros y Pagos    | 7     | `/dashboard/pagos`            |
-| 10 | 🚫 Inhabilitaciones  | 3     | `/dashboard/inhabilitaciones` |
-| 11 | ⚠️ Incidencias     | 4     | `/dashboard/incidencias`      |
-| 12 | 📄 Reportes PDF      | 5     | `/dashboard/reportes`         |
-| 13 | 📢 Comunicados       | 3     | `/dashboard/comunicados`      |
-| 14 | 🗓️ Calendario      | 2     | `/dashboard/calendario`       |
-| 15 | ⚙️ Configuración  | 4     | `/dashboard/configuracion`    |
+| #  | Módulo           | Rutas | Prefijo                         |
+| -- | ----------------- | ----- | ------------------------------- |
+| 01 | Autenticación    | 3     | `/login`                      |
+| 02 | Dashboard         | 1     | `/dashboard`                  |
+| 03 | Matrículas       | 6     | `/dashboard/matriculas`       |
+| 04 | Estudiantes       | 7     | `/dashboard/estudiantes`      |
+| 05 | Docentes          | 5     | `/dashboard/docentes`         |
+| 06 | Cursos y Horarios | 6     | `/dashboard/cursos`           |
+| 07 | Notas             | 5     | `/dashboard/notas`            |
+| 08 | Asistencia        | 5     | `/dashboard/asistencia`       |
+| 09 | Cobros y Pagos    | 7     | `/dashboard/pagos`            |
+| 10 | Inhabilitaciones  | 3     | `/dashboard/inhabilitaciones` |
+| 11 | Incidencias       | 4     | `/dashboard/incidencias`      |
+| 12 | Reportes PDF      | 5     | `/dashboard/reportes`         |
+| 13 | Comunicados       | 3     | `/dashboard/comunicados`      |
+| 14 | Calendario        | 2     | `/dashboard/calendario`       |
+| 15 |  Configuración  | 4     | `/dashboard/configuracion`    |
 
 ### Detalle por módulo
 

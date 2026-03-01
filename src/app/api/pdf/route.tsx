@@ -5,6 +5,9 @@ import { PaymentReceiptPDF } from "@/components/pdf/PaymentReceiptPDF";
 import { EnrollmentCertificatePDF } from "@/components/pdf/EnrollmentCertificatePDF";
 import { GradeReportPDF } from "@/components/pdf/GradeReportPDF";
 import { AttendanceSheetPDF } from "@/components/pdf/AttendanceSheetPDF";
+import { StudentInfoPDF } from "@/components/pdf/StudentInfoPDF";
+import { StudentAttendancePDF } from "@/components/pdf/StudentAttendancePDF";
+import { CommunicationPDF } from "@/components/pdf/CommunicationPDF";
 import { getStudentGrades } from "@/lib/actions/grade.actions";
 
 export async function GET(request: NextRequest) {
@@ -166,6 +169,74 @@ export async function GET(request: NextRequest) {
             academicYear={enrollment.academicYear}
             grades={pivotedGrades}
           />,
+        );
+        break;
+      }
+
+      case "student": {
+        const student = await prisma.student.findUnique({
+          where: { id },
+          include: {
+            guardians: true,
+            enrollments: {
+              where: { active: true },
+              include: {
+                section: { include: { gradeLevel: true } },
+                academicYear: true,
+              },
+            },
+          },
+        });
+        if (!student)
+          return NextResponse.json(
+            { error: "Estudiante no encontrado" },
+            { status: 404 },
+          );
+
+        pdfStream = await renderToStream(<StudentInfoPDF student={student} />);
+        break;
+      }
+
+      case "student-attendance": {
+        const enrollment = await prisma.enrollment.findUnique({
+          where: { id },
+          include: {
+            student: true,
+            academicYear: true,
+            section: { include: { gradeLevel: true } },
+            attendances: {
+              orderBy: { date: "desc" },
+            },
+          },
+        });
+        if (!enrollment)
+          return NextResponse.json(
+            { error: "Matrícula no encontrada" },
+            { status: 404 },
+          );
+
+        pdfStream = await renderToStream(
+          <StudentAttendancePDF
+            student={enrollment.student}
+            enrollment={enrollment}
+            attendances={enrollment.attendances}
+          />,
+        );
+        break;
+      }
+
+      case "communication": {
+        const announcement = await prisma.announcement.findUnique({
+          where: { id },
+        });
+        if (!announcement)
+          return NextResponse.json(
+            { error: "Comunicado no encontrado" },
+            { status: 404 },
+          );
+
+        pdfStream = await renderToStream(
+          <CommunicationPDF announcement={announcement} />,
         );
         break;
       }

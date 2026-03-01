@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,10 +23,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { createStudent, updateStudent } from "@/lib/actions/students.actions";
+import { uploadStudentPhoto } from "@/lib/actions/upload.actions";
 
 const studentSchema = z.object({
   student: z.object({
@@ -55,6 +56,11 @@ export function StudentForm({ initialData }: { initialData?: any }) {
   const [isPending, startTransition] = useTransition();
   const [errorProp, setErrorProp] = useState("");
 
+  // Photo upload states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentSchema),
     defaultValues: {
@@ -79,11 +85,14 @@ export function StudentForm({ initialData }: { initialData?: any }) {
   });
 
   useEffect(() => {
+    toast.dismiss();
     if (initialData) {
       const g = initialData.guardians && initialData.guardians[0];
       const birthDateString = initialData.birthDate
         ? new Date(initialData.birthDate).toISOString().split("T")[0]
         : "";
+
+      setPreviewUrl(initialData.photoUrl || null);
 
       form.reset({
         student: {
@@ -107,6 +116,22 @@ export function StudentForm({ initialData }: { initialData?: any }) {
     }
   }, [initialData, form]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const removePhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    form.setValue("student.photoUrl", "");
+  };
+
   const onSubmit = (data: StudentFormValues) => {
     setErrorProp("");
 
@@ -114,32 +139,54 @@ export function StudentForm({ initialData }: { initialData?: any }) {
       initialData ? "Actualizando estudiante..." : "Registrando estudiante...",
     );
 
-    startTransition(() => {
-      const action = initialData
-        ? updateStudent(initialData.id, data)
-        : createStudent(data);
+    startTransition(async () => {
+      try {
+        const action = initialData
+          ? await updateStudent(initialData.id, data)
+          : await createStudent(data);
 
-      action
-        .then((res) => {
-          if (res.success) {
+        if (action.success && action.data) {
+          const studentId = action.data.id;
+
+          // Si hay una foto seleccionada, subirla
+          if (selectedFile) {
+            toast.loading("Subiendo fotografía...", { id: toastId });
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+
+            const uploadRes = await uploadStudentPhoto(studentId, formData);
+            if (!uploadRes.success) {
+              toast.error("Datos guardados, pero hubo un error con la foto", {
+                id: toastId,
+              });
+            } else {
+              toast.success(
+                initialData
+                  ? "Estudiante y foto actualizados exitosamente"
+                  : "Estudiante registrado con éxito",
+                { id: toastId },
+              );
+            }
+          } else {
             toast.success(
               initialData
                 ? "Estudiante actualizado exitosamente"
                 : "Estudiante registrado exitosamente",
               { id: toastId },
             );
-            router.push("/dashboard/estudiantes");
-            router.refresh();
-          } else {
-            toast.error(res.error || "Ocurrió un error al guardar", {
-              id: toastId,
-            });
-            setErrorProp(res.error || "Ocurrió un error inesperado.");
           }
-        })
-        .catch(() => {
-          toast.error("Error de conexión o servidor", { id: toastId });
-        });
+
+          router.push("/dashboard/estudiantes");
+          router.refresh();
+        } else {
+          toast.error(action.error || "Ocurrió un error al guardar", {
+            id: toastId,
+          });
+          setErrorProp(action.error || "Ocurrió un error inesperado.");
+        }
+      } catch (error) {
+        toast.error("Error de conexión o servidor", { id: toastId });
+      }
     });
   };
 
@@ -168,19 +215,73 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Upload de foto simulado */}
-            <div className="col-span-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 mb-4 transition-colors hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer">
-              <div className="h-20 w-20 rounded-full bg-slate-200 flex items-center justify-center mb-3">
-                <Camera className="h-8 w-8 text-slate-400" />
+            {/* Upload de foto real */}
+            <div className="col-span-full relative group border-2 border-dashed border-slate-200 rounded-lg bg-slate-50 mb-4 transition-colors hover:bg-emerald-50 hover:border-emerald-200 overflow-hidden">
+              <input
+                type="file"
+                ref={fileInputRef}
+                id="student-photo-upload"
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileChange}
+                title="Subir fotografía del estudiante"
+              />
+              <div
+                className="flex flex-col items-center justify-center p-6 cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                aria-label="Adjuntar fotografía del estudiante"
+              >
+                {previewUrl ? (
+                  <div className="relative w-32 h-32 mb-2">
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-full h-full rounded-full object-cover border-4 border-white shadow-sm"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-24 w-24 rounded-full bg-slate-200 flex items-center justify-center mb-3">
+                    <Camera className="h-10 w-10 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  </div>
+                )}
+
+                <div className="text-center">
+                  <p className="text-sm text-slate-500 font-medium">
+                    {previewUrl
+                      ? "Clic para cambiar fotografía"
+                      : "Adjuntar fotografía del estudiante"}
+                  </p>
+                  <p className="text-xs text-slate-400">JPG, PNG (Max. 5MB)</p>
+                </div>
               </div>
-              <p className="text-sm text-slate-500 font-medium">
-                Click para subir foto (Demo)
-              </p>
+
+              {previewUrl && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removePhoto(e);
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors z-20"
+                  aria-label="Eliminar fotografía"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label>Nombres</Label>
+              <Label htmlFor="firstName">Nombres</Label>
               <Input
+                id="firstName"
                 {...form.register("student.firstName")}
                 placeholder="Ej. Juan"
               />
@@ -192,8 +293,9 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Apellidos</Label>
+              <Label htmlFor="lastName">Apellidos</Label>
               <Input
+                id="lastName"
                 {...form.register("student.lastName")}
                 placeholder="Ej. Pérez"
               />
@@ -205,8 +307,9 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             </div>
 
             <div className="space-y-2">
-              <Label>DNI</Label>
+              <Label htmlFor="dni">DNI</Label>
               <Input
+                id="dni"
                 {...form.register("student.dni")}
                 placeholder="8 dígitos"
                 maxLength={8}
@@ -219,8 +322,12 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Fecha de Nacimiento</Label>
-              <Input type="date" {...form.register("student.birthDate")} />
+              <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+              <Input
+                id="birthDate"
+                type="date"
+                {...form.register("student.birthDate")}
+              />
               {form.formState.errors.student?.birthDate && (
                 <p className="text-sm text-red-500">
                   {form.formState.errors.student.birthDate.message}

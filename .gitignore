@@ -35,3 +35,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env
+
+# personal tracking
+PROMTS.md
+task.md
+ts_errors.txt
+*.js
+!next.config.mjs
+!postcss.config.mjs
+!tailwind.config.ts

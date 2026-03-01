@@ -264,6 +264,9 @@ export function RegisterDisabilityClient() {
                             <SelectItem value="EXCESO_FALTAS">
                               Exceso de Inasistencias Injustificadas
                             </SelectItem>
+                            <SelectItem value="TRASLADO">
+                              Cambio de colegio / Traslado
+                            </SelectItem>
                             <SelectItem value="OTRO">Otro Motivo</SelectItem>
                           </SelectContent>
                         </Select>

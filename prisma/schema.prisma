@@ -52,6 +52,7 @@ enum DisabilityReason {
   EXCESO_FALTAS
   BAJO_RENDIMIENTO
   DISCIPLINA
+  TRASLADO
   OTRO
 }
 

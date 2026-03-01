@@ -10,6 +10,7 @@ export const DisabilityReasonEnum = z.enum([
   "EXCESO_FALTAS",
   "BAJO_RENDIMIENTO",
   "DISCIPLINA",
+  "TRASLADO",
   "OTRO",
 ]);
 

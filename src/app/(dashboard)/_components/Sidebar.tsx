@@ -19,6 +19,7 @@ import {
   Clock,
   ShieldAlert,
   Megaphone,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,8 @@ const modules = [
     icon: ShieldAlert,
   },
   { name: "Incidencias", href: "/dashboard/incidencias", icon: AlertTriangle },
-  { name: "Reportes", href: "/dashboard/reports", icon: FileText },
+  { name: "Reportes", href: "/dashboard/reportes", icon: FileText },
+  { name: "Configuración", href: "/dashboard/configuracion", icon: Settings },
 ];
 
 export default function Sidebar() {

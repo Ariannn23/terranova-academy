@@ -5,85 +5,86 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: "Helvetica", paddingBottom: 60 },
+  page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
   header: {
     marginBottom: 30,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-end",
+    borderBottomWidth: 2,
+    borderBottomColor: "#059669",
+    paddingBottom: 15,
   },
-  schoolName: { fontSize: 24, fontWeight: "bold", marginBottom: 4 },
-  title: { fontSize: 16, color: "#64748b" },
+  schoolName: { fontSize: 24, fontWeight: "bold", color: "#0f172a" },
+  title: {
+    fontSize: 10,
+    color: "#059669",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
   receiptNo: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#dc2626",
+    color: "#0f172a",
     textAlign: "right",
   },
-  dateText: {
-    fontSize: 10,
-    color: "#94a3b8",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  box: {
+  dateText: { fontSize: 9, color: "#64748b", textAlign: "right", marginTop: 4 },
+  infoBox: {
+    marginBottom: 30,
     padding: 15,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 4,
-    marginBottom: 20,
     backgroundColor: "#f8fafc",
+    borderRadius: 4,
   },
   row: { flexDirection: "row", marginBottom: 8 },
-  label: { fontSize: 10, fontWeight: "bold", width: 100 },
-  value: { fontSize: 10 },
-  table: {
-    display: "flex",
-    width: "100%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    marginTop: 20,
+  label: {
+    fontSize: 9,
+    color: "#64748b",
+    width: 100,
+    textTransform: "uppercase",
   },
-  tableRow: { flexDirection: "row" },
+  value: { fontSize: 10, color: "#0f172a", fontWeight: "bold" },
+  table: { width: "100%", marginTop: 10 },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
+    borderBottomWidth: 1,
+    borderBottomColor: "#cbd5e1",
+    paddingBottom: 8,
+    marginBottom: 8,
   },
-  tableColDesc: {
-    width: "70%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: "#e2e8f0",
-    padding: 8,
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
   },
-  tableColAmount: {
-    width: "30%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: "#e2e8f0",
-    padding: 8,
+  tableColDesc: { width: "70%" },
+  tableColAmount: { width: "30%", textAlign: "right" },
+  tableHeaderCell: {
+    fontSize: 9,
+    fontWeight: "bold",
+    color: "#475569",
+    textTransform: "uppercase",
   },
-  tableText: { fontSize: 10 },
-  tableTextHeader: { fontSize: 10, fontWeight: "bold" },
-  tableAmount: { fontSize: 10, textAlign: "right", fontWeight: "bold" },
+  tableCell: { fontSize: 10, color: "#1e293b" },
   totalRow: {
     flexDirection: "row",
-    borderTopWidth: 2,
-    borderTopColor: "#cbd5e1",
-    paddingTop: 8,
-    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#0f172a",
+    paddingTop: 12,
+    marginTop: 12,
     justifyContent: "flex-end",
   },
-  totalLabel: { fontSize: 14, fontWeight: "bold", marginRight: 20 },
+  totalLabel: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#0f172a",
+    marginRight: 20,
+  },
   totalValue: {
     fontSize: 14,
     fontWeight: "bold",
+    color: "#059669",
     textAlign: "right",
     width: 100,
   },
@@ -91,7 +92,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 40,
     textAlign: "center",
-    fontStyle: "italic",
     color: "#64748b",
   },
 });
@@ -102,40 +102,42 @@ export const PaymentReceiptPDF = ({ payment }: { payment: any }) => (
       <View style={styles.header}>
         <View>
           <Text style={styles.schoolName}>TerraNova Academy</Text>
-          <Text style={styles.title}>RECIBO DE PAGO</Text>
+          <Text style={styles.title}>Recibo Electrónico</Text>
         </View>
         <View>
-          <Text style={styles.receiptNo}>N° {payment.reference}</Text>
+          <Text style={styles.receiptNo}>
+            N° {payment.reference || payment.id.slice(-6).toUpperCase()}
+          </Text>
           <Text style={styles.dateText}>
             Fecha:{" "}
             {payment.paidAt
-              ? format(new Date(payment.paidAt), "dd/MM/yyyy")
+              ? format(new Date(payment.paidAt), "dd/MM/yyyy HH:mm")
               : "N/A"}
           </Text>
         </View>
       </View>
 
-      <View style={styles.box}>
+      <View style={styles.infoBox}>
         <View style={styles.row}>
           <Text style={styles.label}>Estudiante:</Text>
           <Text style={styles.value}>
-            {payment.enrollment.student.firstName}{" "}
-            {payment.enrollment.student.lastName}
+            {payment.enrollment?.student?.firstName}{" "}
+            {payment.enrollment?.student?.lastName}
           </Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>DNI / Código:</Text>
-          <Text style={styles.value}>{payment.enrollment.student.dni}</Text>
+          <Text style={styles.label}>DNI:</Text>
+          <Text style={styles.value}>{payment.enrollment?.student?.dni}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Grado/Sección:</Text>
           <Text style={styles.value}>
-            {payment.enrollment.section.gradeLevel.name} -{" "}
-            {payment.enrollment.section.name}
+            {payment.enrollment?.section?.gradeLevel?.name} -{" "}
+            {payment.enrollment?.section?.name}
           </Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>Método de Pago:</Text>
+          <Text style={styles.label}>Método Pago:</Text>
           <Text style={styles.value}>
             {payment.method || "No especificado"}
           </Text>
@@ -145,31 +147,30 @@ export const PaymentReceiptPDF = ({ payment }: { payment: any }) => (
       <View style={styles.table}>
         <View style={styles.tableHeader}>
           <View style={styles.tableColDesc}>
-            <Text style={styles.tableTextHeader}>Descripción del Concepto</Text>
+            <Text style={styles.tableHeaderCell}>Descripción</Text>
           </View>
           <View style={styles.tableColAmount}>
-            <Text style={[styles.tableTextHeader, { textAlign: "right" }]}>
-              Importe (S/.)
-            </Text>
+            <Text style={styles.tableHeaderCell}>Importe (S/)</Text>
           </View>
         </View>
         <View style={styles.tableRow}>
           <View style={styles.tableColDesc}>
-            <Text style={styles.tableText}>{payment.concept.name}</Text>
+            <Text style={styles.tableCell}>{payment.concept?.name}</Text>
           </View>
           <View style={styles.tableColAmount}>
-            <Text style={styles.tableAmount}>{payment.amount.toFixed(2)}</Text>
+            <Text style={styles.tableCell}>{payment.amount?.toFixed(2)}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>TOTAL CANCELADO:</Text>
-        <Text style={styles.totalValue}>S/. {payment.amount.toFixed(2)}</Text>
+        <Text style={styles.totalLabel}>TOTAL CANCELADO</Text>
+        <Text style={styles.totalValue}>S/ {payment.amount?.toFixed(2)}</Text>
       </View>
 
       <Text style={styles.footerNote}>
-        ¡Gracias por confiar en la educación de su menor hijo(a)!
+        Este documento es un comprobante de pago válido para nuestro control
+        interno.
       </Text>
 
       <PDFFooter />

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, Archive, ArchiveRestore, Eye } from "lucide-react";
+import { Plus, Eye } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toggleStudentStatus } from "@/lib/actions/students.actions";
@@ -26,7 +26,6 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [studentToToggle, setStudentToToggle] = useState<any>(null);
 
   const filteredData = initialData.filter((student) => {
     const matchesSearch =
@@ -45,33 +44,6 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
 
     return matchesSearch && matchesStatus && matchesLevel;
   });
-
-  const handleToggleClick = (student: any, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setStudentToToggle(student);
-  };
-
-  const handleConfirmToggle = async () => {
-    if (!studentToToggle) return;
-    const isInactive = studentToToggle.status === "INHABILITADO";
-    const newStatus = isInactive ? "ACTIVO" : "INHABILITADO";
-    const loadingToast = toast.loading(
-      isInactive ? "Activando estudiante..." : "Inhabilitando estudiante...",
-    );
-
-    const result = await toggleStudentStatus(studentToToggle.id, newStatus);
-
-    toast.dismiss(loadingToast);
-    if (result.success) {
-      toast.success(
-        `Estudiante ${isInactive ? "activado" : "inhabilitado"} correctamente`,
-      );
-      router.refresh();
-    } else {
-      toast.error(result.error || "Error al cambiar estado del estudiante");
-    }
-    setStudentToToggle(null);
-  };
 
   const columns = [
     {
@@ -104,7 +76,11 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       cell: (row: any) => {
         const enrollment = row.enrollments?.[0];
         if (!enrollment)
-          return <span className="text-slate-400">Sin Matrícula</span>;
+          return (
+            <div className="text-center w-full text-slate-400">
+              Sin Matrícula
+            </div>
+          );
         return (
           <div className="flex justify-center flex-col items-center">
             <p className="font-medium text-slate-700">
@@ -121,7 +97,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       header: "Estado",
       accessorKey: "status",
       cell: (row: any) => (
-        <div className="flex justify-center">
+        <div className="flex justify-center w-full">
           <StatusBadge status={row.status} />
         </div>
       ),
@@ -130,7 +106,6 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       header: "Acciones",
       accessorKey: "actions",
       cell: (row: any) => {
-        const isInactive = row.status === "INHABILITADO";
         return (
           <div className="flex justify-center gap-2">
             <Button
@@ -146,25 +121,6 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
               className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
             >
               <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => handleToggleClick(row, e)}
-              title={
-                isInactive ? "Reactivar Estudiante" : "Inhabilitar Estudiante"
-              }
-              className={
-                isInactive
-                  ? "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-                  : "text-slate-400 hover:text-red-600 hover:bg-red-50"
-              }
-            >
-              {isInactive ? (
-                <ArchiveRestore className="h-4 w-4" />
-              ) : (
-                <Archive className="h-4 w-4" />
-              )}
             </Button>
           </div>
         );
@@ -220,30 +176,6 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       </div>
 
       <DataTable data={filteredData} columns={columns} />
-
-      <ConfirmDialog
-        open={!!studentToToggle}
-        onOpenChange={(open) => !open && setStudentToToggle(null)}
-        title={
-          studentToToggle?.status === "INHABILITADO"
-            ? "Reactivar Estudiante"
-            : "Inhabilitar Estudiante"
-        }
-        description={
-          studentToToggle?.status === "INHABILITADO"
-            ? `¿Estás seguro de reactivar a ${studentToToggle?.firstName} ${studentToToggle?.lastName}? El estudiante volverá a aparecer como activo en el sistema.`
-            : `¿Estás seguro de inhabilitar a ${studentToToggle?.firstName} ${studentToToggle?.lastName}? El estudiante ya no podrá estar activo en nuevas matrículas o procesos.`
-        }
-        onConfirm={handleConfirmToggle}
-        confirmText={
-          studentToToggle?.status === "INHABILITADO"
-            ? "Reactivar"
-            : "Inhabilitar"
-        }
-        variant={
-          studentToToggle?.status === "INHABILITADO" ? "default" : "destructive"
-        }
-      />
     </div>
   );
 }

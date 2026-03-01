@@ -11,65 +11,61 @@ import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontFamily: "Helvetica" },
-  header: { marginBottom: 20, textAlign: "center" },
-  schoolName: { fontSize: 20, fontWeight: "bold", marginBottom: 4 },
-  title: { fontSize: 16, marginBottom: 15 },
+  page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
+  header: {
+    marginBottom: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    borderBottomWidth: 2,
+    borderBottomColor: "#059669",
+    paddingBottom: 15,
+  },
+  schoolName: { fontSize: 24, fontWeight: "bold", color: "#0f172a" },
+  title: {
+    fontSize: 10,
+    color: "#059669",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
   infoBox: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    padding: 10,
-    marginBottom: 20,
+    marginBottom: 30,
+    padding: 15,
+    backgroundColor: "#f8fafc",
     borderRadius: 4,
   },
-  row: { flexDirection: "row", marginBottom: 5 },
-  label: { fontSize: 10, fontWeight: "bold", width: 80 },
-  value: { fontSize: 10 },
-  table: {
-    display: "flex",
-    width: "auto",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
+  row: { flexDirection: "row", marginBottom: 8 },
+  label: {
+    fontSize: 9,
+    color: "#64748b",
+    width: 90,
+    textTransform: "uppercase",
   },
-  tableRow: { margin: "auto", flexDirection: "row" },
+  value: { fontSize: 10, color: "#0f172a", fontWeight: "bold" },
+  table: { width: "100%" },
   tableHeader: {
-    margin: "auto",
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
+    borderBottomWidth: 1,
+    borderBottomColor: "#cbd5e1",
+    paddingBottom: 8,
+    marginBottom: 8,
   },
-  tableColCourse: {
-    width: "40%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: "#e2e8f0",
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
   },
-  tableColGrade: {
-    width: "15%",
-    borderStyle: "solid",
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderColor: "#e2e8f0",
-  },
-  tableCell: { margin: "auto", marginTop: 5, marginBottom: 5, fontSize: 10 },
+  tableColCourse: { width: "40%" },
+  tableColGrade: { width: "12%", textAlign: "center" },
   tableHeaderCell: {
-    margin: "auto",
-    marginTop: 5,
-    marginBottom: 5,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "bold",
+    color: "#475569",
+    textTransform: "uppercase",
   },
-  summaryText: {
-    fontSize: 12,
-    marginTop: 15,
-    textAlign: "right",
-    fontWeight: "bold",
-  },
+  tableCell: { fontSize: 10, color: "#1e293b" },
 });
 
 export const GradeReportPDF = ({
@@ -81,13 +77,20 @@ export const GradeReportPDF = ({
   student: any;
   section: any;
   academicYear: any;
-  grades: any[]; // Aggregated grades per course
+  grades: any[];
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
-        <Text style={styles.schoolName}>TerraNova Academy</Text>
-        <Text style={styles.title}>INFORME DE PROGRESO ACADÉMICO</Text>
+        <View>
+          <Text style={styles.schoolName}>TerraNova Academy</Text>
+          <Text style={styles.title}>Informe de Progreso</Text>
+        </View>
+        <View style={{ alignItems: "flex-end" }}>
+          <Text style={{ fontSize: 9, color: "#64748b" }}>
+            Emitido: {format(new Date(), "dd/MM/yyyy")}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.infoBox}>
@@ -120,44 +123,63 @@ export const GradeReportPDF = ({
             <Text style={styles.tableHeaderCell}>Curso</Text>
           </View>
           <View style={styles.tableColGrade}>
-            <Text style={styles.tableHeaderCell}>B1</Text>
+            <Text style={styles.tableHeaderCell}>P1</Text>
           </View>
           <View style={styles.tableColGrade}>
-            <Text style={styles.tableHeaderCell}>B2</Text>
+            <Text style={styles.tableHeaderCell}>P2</Text>
           </View>
           <View style={styles.tableColGrade}>
-            <Text style={styles.tableHeaderCell}>B3</Text>
+            <Text style={styles.tableHeaderCell}>P3</Text>
           </View>
           <View style={styles.tableColGrade}>
-            <Text style={styles.tableHeaderCell}>B4</Text>
+            <Text style={styles.tableHeaderCell}>P4</Text>
           </View>
           <View style={styles.tableColGrade}>
-            <Text style={styles.tableHeaderCell}>PF</Text>
+            <Text style={styles.tableHeaderCell}>S. Final</Text>
           </View>
         </View>
 
-        {grades.map((g, i) => (
-          <View style={styles.tableRow} key={i}>
-            <View style={styles.tableColCourse}>
-              <Text style={styles.tableCell}>{g.courseName}</Text>
+        {grades.map((g, i) => {
+          const finalScore = Number(g.final);
+          const isFailing = finalScore > 0 && finalScore < 11;
+
+          return (
+            <View style={styles.tableRow} key={i}>
+              <View style={styles.tableColCourse}>
+                <Text style={styles.tableCell}>{g.courseName}</Text>
+              </View>
+              <View style={styles.tableColGrade}>
+                <Text style={styles.tableCell}>{g.p1 || "-"}</Text>
+              </View>
+              <View style={styles.tableColGrade}>
+                <Text style={styles.tableCell}>{g.p2 || "-"}</Text>
+              </View>
+              <View style={styles.tableColGrade}>
+                <Text style={styles.tableCell}>{g.p3 || "-"}</Text>
+              </View>
+              <View style={styles.tableColGrade}>
+                <Text style={styles.tableCell}>{g.p4 || "-"}</Text>
+              </View>
+              <View style={styles.tableColGrade}>
+                <Text
+                  style={[
+                    styles.tableCell,
+                    {
+                      fontWeight: "bold",
+                      color: isFailing
+                        ? "#dc2626"
+                        : finalScore >= 11
+                          ? "#059669"
+                          : "#1e293b",
+                    },
+                  ]}
+                >
+                  {g.final || "-"}
+                </Text>
+              </View>
             </View>
-            <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{g.b1 || "-"}</Text>
-            </View>
-            <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{g.b2 || "-"}</Text>
-            </View>
-            <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{g.b3 || "-"}</Text>
-            </View>
-            <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{g.b4 || "-"}</Text>
-            </View>
-            <View style={styles.tableColGrade}>
-              <Text style={styles.tableCell}>{g.final || "-"}</Text>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       <PDFFooter />

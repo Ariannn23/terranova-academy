@@ -27,37 +27,37 @@ export function QuickAccess() {
     {
       title: "Nueva Matrícula",
       icon: UserPlus,
-      href: "/dashboard/matriculas/nueva",
+      href: "/dashboard/matriculas/registrar",
       color: "text-emerald-600 bg-emerald-50",
     },
     {
       title: "Registrar Pago",
       icon: Receipt,
-      href: "/dashboard/payments",
+      href: "/dashboard/pagos",
       color: "text-blue-600 bg-blue-50",
     },
     {
       title: "Tomar Asistencia",
       icon: CalendarCheck,
-      href: "/dashboard/attendance",
+      href: "/dashboard/asistencia",
       color: "text-amber-600 bg-amber-50",
     },
     {
       title: "Reportar Incidente",
       icon: ShieldAlert,
-      href: "/dashboard/incidents",
+      href: "/dashboard/incidencias/nuevo",
       color: "text-red-600 bg-red-50",
     },
     {
       title: "Ver Informes",
       icon: FileSearch,
-      href: "/dashboard/reports",
+      href: "/dashboard/reportes",
       color: "text-indigo-600 bg-indigo-50",
     },
     {
       title: "Configuración",
       icon: Settings,
-      href: "/dashboard/settings",
+      href: "/dashboard/configuracion",
       color: "text-slate-600 bg-slate-100",
     },
   ];

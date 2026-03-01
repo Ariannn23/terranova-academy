@@ -153,12 +153,17 @@ export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
                 {ann.body}
               </div>
 
-              <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2 print:hidden">
+              <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-slate-500 hover:text-slate-700"
-                  onClick={() => window.print()}
+                  className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  onClick={() =>
+                    window.open(
+                      `/api/pdf?type=communication&id=${ann.id}`,
+                      "_blank",
+                    )
+                  }
                 >
                   <Printer className="w-4 h-4 mr-2" />
                   Imprimir
@@ -176,7 +181,7 @@ export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
             </div>
           ))
         ) : (
-          <div className="col-span-full p-12 text-center text-slate-500 bg-slate-50 rounded-xl border border-slate-200 print:hidden">
+          <div className="col-span-full p-12 text-center text-slate-500 bg-slate-50 rounded-xl border border-slate-200">
             <Megaphone className="w-12 h-12 mx-auto text-slate-300 mb-4" />
             <h3 className="text-lg font-medium text-slate-700 mb-1">
               No hay comunicados
@@ -191,29 +196,6 @@ export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
       <AnnouncementModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-      />
-
-      {/* Estilos de Impresión */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print\\:break-inside-avoid {
-            visibility: visible;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .print\\:break-inside-avoid * {
-            visibility: visible;
-          }
-        }
-      `,
-        }}
       />
     </div>
   );

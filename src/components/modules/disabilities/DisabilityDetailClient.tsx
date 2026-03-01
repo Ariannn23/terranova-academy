@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +36,10 @@ export function DisabilityDetailClient({ record }: { record: any }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    toast.dismiss("view-disability");
+  }, []);
+
   const form = useForm<z.infer<typeof ResolveDisabilitySchema>>({
     resolver: zodResolver(ResolveDisabilitySchema),
     defaultValues: {
@@ -54,7 +58,8 @@ export function DisabilityDetailClient({ record }: { record: any }) {
         toast.success("Inhabilitación levantada correctamente.", {
           id: "resolve-disab",
         });
-        router.refresh(); // Refresh para que cargue los nuevos datos (active: false)
+        router.push("/dashboard/inhabilitaciones");
+        router.refresh(); // Refrescar el layout para asegurar recarga de datos
       } else {
         toast.error(res.error, { id: "resolve-disab" });
       }
