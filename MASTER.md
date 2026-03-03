@@ -17,7 +17,7 @@
 7. [Módulos y Rutas](https://claude.ai/chat/c98e1f95-55ed-44b7-bce1-a94c0e02d8f4#7-m%C3%B3dulos-y-rutas)
 8. [API Routes y Server Actions](https://claude.ai/chat/c98e1f95-55ed-44b7-bce1-a94c0e02d8f4#8-api-routes-y-server-actions)
 9. [Autenticación y Seguridad](https://claude.ai/chat/c98e1f95-55ed-44b7-bce1-a94c0e02d8f4#9-autenticaci%C3%B3n-y-seguridad)
-10. [Plan de Sprints](https://claude.ai/chat/c98e1f95-55ed-44b7-bce1-a94c0e02d8f4#10-plan-de-sprints)
+
 
 ---
 
