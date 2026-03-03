@@ -1,8 +1,8 @@
-import { getEnrollments } from "@/lib/actions/enrollments.actions";
+import { getEnrollments } from "@/lib/actions/enrollment.actions";
 import { EnrollmentsClient } from "@/components/modules/enrollments/EnrollmentsClient";
 
 export default async function EnrollmentsPage() {
-  const result = await getEnrollments();
+  const result = await getEnrollments({ limit: 100 });
   const enrollments = result.success && result.data ? result.data : [];
 
   return (

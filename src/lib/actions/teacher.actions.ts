@@ -2,21 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import {
-  TeacherSchema,
-  TeacherSchemaType,
-} from "@/lib/validations/teacher.schema";
+import { TeacherSchema } from "@/lib/validations/teacher.schema";
 import { Prisma } from "@prisma/client";
 
 /**
  * Obtener lista de docentes con filtros
  */
-export async function getTeachers(params: {
+export async function getTeachers(params?: {
   search?: string;
   specialty?: string;
   active?: boolean;
 }) {
-  const { search, specialty, active } = params;
+  const search = params?.search;
+  const specialty = params?.specialty;
+  const active = params?.active;
 
   try {
     const where: Prisma.TeacherWhereInput = {};
@@ -48,6 +47,9 @@ export async function getTeachers(params: {
           include: {
             gradeLevel: true,
           },
+        },
+        _count: {
+          select: { sections: true, schedules: true },
         },
       },
     });
@@ -102,7 +104,11 @@ export async function createTeacher(data: unknown) {
   const parsed = TeacherSchema.safeParse(data);
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.flatten() };
+    return {
+      success: false,
+      error: "Datos inválidos",
+      details: parsed.error.flatten(),
+    };
   }
 
   try {
@@ -133,7 +139,11 @@ export async function updateTeacher(id: string, data: unknown) {
   const parsed = TeacherSchema.partial().safeParse(data);
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.flatten() };
+    return {
+      success: false,
+      error: "Datos inválidos",
+      details: parsed.error.flatten(),
+    };
   }
 
   try {
@@ -152,19 +162,19 @@ export async function updateTeacher(id: string, data: unknown) {
 }
 
 /**
- * Desactivar un docente (borrado lógico)
+ * Cambiar estado (Activar/Desactivar)
  */
-export async function deactivateTeacher(id: string) {
+export async function toggleTeacherStatus(id: string, active: boolean) {
   try {
     const teacher = await prisma.teacher.update({
       where: { id },
-      data: { active: false },
+      data: { active },
     });
 
     revalidatePath("/dashboard/docentes");
     return { success: true, data: teacher };
   } catch (error) {
-    console.error("Error in deactivateTeacher:", error);
-    return { success: false, error: "Error al desactivar el docente" };
+    console.error("Error in toggleTeacherStatus:", error);
+    return { success: false, error: "Error al cambiar estado del docente" };
   }
 }

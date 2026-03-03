@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { Badge } from "@/components/ui/badge";
-import { updateTeacher } from "@/lib/actions/teachers.actions";
+import { updateTeacher } from "@/lib/actions/teacher.actions";
 import { toast } from "sonner";
 
 export function TeachersClient({ initialData }: { initialData: any[] }) {
@@ -97,7 +97,7 @@ export function TeachersClient({ initialData }: { initialData: any[] }) {
                 className="mb-3 border-4 border-white shadow-sm"
               />
               <div className="text-center">
-                <h3 className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                <h3 className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
                   {teacher.firstName} {teacher.lastName}
                 </h3>
                 <p className="text-sm text-slate-500 line-clamp-1">

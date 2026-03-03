@@ -1,5 +1,5 @@
 import OverduePaymentsClient from "@/components/modules/payments/OverduePaymentsClient";
-import { getOverduePayments } from "@/lib/actions/payments.actions";
+import { getOverduePayments } from "@/lib/actions/payment.actions";
 
 export const metadata = {
   title: "Pagos Vencidos | TerraNova Academy",

@@ -1,7 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, StudentStatus } from "@prisma/client";
+import {
+  CreateStudentSchema,
+  StudentSchema,
+} from "@/lib/validations/student.schema";
+import { revalidatePath } from "next/cache";
 
 export async function getStudents(
   query?: string,
@@ -20,7 +25,7 @@ export async function getStudents(
     }
 
     if (status) {
-      where.status = status as any;
+      where.status = status as StudentStatus;
     }
 
     if (level) {
@@ -93,16 +98,6 @@ export async function getStudentById(id: string) {
       return { success: false, error: "Estudiante no encontrado." };
     }
 
-    // LOG TEMPORAL DE DIAGNÓSTICO
-    console.log("=== getStudentById LOG ===");
-    console.log("INCIDENTS:", student.enrollments?.[0]?.incidents?.length);
-    console.log("PAYMENTS:", student.enrollments?.[0]?.payments?.length);
-    console.log(
-      "GRADE RECORDS:",
-      student.enrollments?.[0]?.gradeRecords?.length,
-    );
-    console.log("ATTENDANCES:", student.enrollments?.[0]?.attendances?.length);
-
     return { success: true, data: student };
   } catch (error) {
     console.error("Error obteniendo estudiante:", error);
@@ -113,9 +108,19 @@ export async function getStudentById(id: string) {
   }
 }
 
-export async function createStudent(data: any) {
+export async function createStudent(data: unknown) {
+  const parsed = CreateStudentSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Datos de entrada inválidos",
+      details: parsed.error.flatten(),
+    };
+  }
+
   try {
-    const { student, guardian } = data;
+    const { guardians, ...student } = parsed.data;
+    const guardian = guardians[0]; // Tomamos el primer apoderado del wizard/form
 
     const existing = await prisma.student.findUnique({
       where: { dni: student.dni },
@@ -132,10 +137,11 @@ export async function createStudent(data: any) {
         firstName: student.firstName,
         lastName: student.lastName,
         dni: student.dni,
-        birthDate: new Date(student.birthDate),
+        birthDate: student.birthDate,
         gender: student.gender,
         address: student.address,
         photoUrl: student.photoUrl,
+        status: (student.status as StudentStatus) || "ACTIVO",
         guardians: {
           create: {
             firstName: guardian.firstName,
@@ -150,6 +156,7 @@ export async function createStudent(data: any) {
       },
     });
 
+    revalidatePath("/dashboard/estudiantes");
     return { success: true, data: newStudent };
   } catch (error) {
     console.error("Error creating student:", error);
@@ -160,13 +167,26 @@ export async function createStudent(data: any) {
   }
 }
 
-export async function updateStudent(id: string, data: any) {
-  try {
-    const { student, guardian } = data;
+export async function updateStudent(id: string, data: unknown) {
+  const parsed = CreateStudentSchema.partial().safeParse(data);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Datos inválidos",
+      details: parsed.error.flatten(),
+    };
+  }
 
-    const existing = await prisma.student.findUnique({
-      where: { dni: student.dni },
-    });
+  try {
+    const { guardians, ...student } = parsed.data;
+    const guardian = guardians?.[0];
+
+    const existing = student?.dni
+      ? await prisma.student.findUnique({
+          where: { dni: student.dni },
+        })
+      : null;
+
     if (existing && existing.id !== id) {
       return {
         success: false,
@@ -184,31 +204,35 @@ export async function updateStudent(id: string, data: any) {
     const updatedStudent = await prisma.student.update({
       where: { id },
       data: {
-        firstName: student.firstName,
-        lastName: student.lastName,
-        dni: student.dni,
-        birthDate: new Date(student.birthDate),
-        gender: student.gender,
-        address: student.address,
-        photoUrl: student.photoUrl,
-        guardians: {
-          update: guardianId
+        firstName: student?.firstName,
+        lastName: student?.lastName,
+        dni: student?.dni,
+        birthDate: student?.birthDate,
+        gender: student?.gender,
+        address: student?.address,
+        photoUrl: student?.photoUrl,
+        status: student?.status as StudentStatus,
+        guardians:
+          guardian && guardianId
             ? {
-                where: { id: guardianId },
-                data: {
-                  firstName: guardian.firstName,
-                  lastName: guardian.lastName,
-                  dni: guardian.dni,
-                  relation: guardian.relation,
-                  phone: guardian.phone,
-                  email: guardian.email,
+                update: {
+                  where: { id: guardianId },
+                  data: {
+                    firstName: guardian.firstName,
+                    lastName: guardian.lastName,
+                    dni: guardian.dni,
+                    relation: guardian.relation,
+                    phone: guardian.phone,
+                    email: guardian.email,
+                  },
                 },
               }
             : undefined,
-        },
       },
     });
 
+    revalidatePath("/dashboard/estudiantes");
+    revalidatePath(`/dashboard/estudiantes/${id}`);
     return { success: true, data: updatedStudent };
   } catch (error) {
     console.error("Error updating student:", error);
@@ -219,12 +243,16 @@ export async function updateStudent(id: string, data: any) {
   }
 }
 
-export async function toggleStudentStatus(id: string, newStatus: string) {
+export async function toggleStudentStatus(
+  id: string,
+  newStatus: StudentStatus,
+) {
   try {
     const updatedStudent = await prisma.student.update({
       where: { id },
-      data: { status: newStatus as any },
+      data: { status: newStatus },
     });
+    revalidatePath("/dashboard/estudiantes");
     return { success: true, data: updatedStudent };
   } catch (error) {
     console.error("Error toggling student status:", error);

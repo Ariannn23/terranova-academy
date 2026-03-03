@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getEnrollmentById } from "@/lib/actions/enrollments.actions";
+import { getEnrollmentById } from "@/lib/actions/enrollment.actions";
 import {
   getAttendanceStats,
   getAttendanceByStudent,

@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  getStudents,
-  searchStudents,
-  createStudent,
-} from "@/lib/actions/student.actions";
+import { getStudents, createStudent } from "@/lib/actions/student.actions";
 import { getTeachers, createTeacher } from "@/lib/actions/teacher.actions";
 import {
   getAcademicStructure,
@@ -36,7 +32,6 @@ import {
 import {
   getPaymentsByEnrollment,
   registerPayment,
-  generateMonthlyPayments,
   getFinancialSummary,
 } from "@/lib/actions/payment.actions";
 import { createIncident, getIncidents } from "@/lib/actions/incident.actions";
@@ -82,8 +77,7 @@ export default function TestBackendPage() {
   };
 
   // --- Estudiantes ---
-  const handleTestGetStudents = () =>
-    handleTest(() => getStudents({ limit: 5 }));
+  const handleTestGetStudents = () => handleTest(() => getStudents());
   const handleTestCreateStudent = () => {
     const dummy = {
       dni: Math.floor(10000000 + Math.random() * 90000000).toString(),
@@ -447,21 +441,12 @@ export default function TestBackendPage() {
 
   // --- Pagos ---
   const handleTestGenerateMonthlyPayments = async () => {
-    setLoading(true);
-    try {
-      const structureRes = await getAcademicStructure();
-      if (!structureRes.success || !structureRes.data)
-        throw new Error("No hay estructura académica");
-
-      const academicYearId = structureRes.data.id;
-      // Generar pagos para este mes
-      const res = await generateMonthlyPayments(academicYearId, new Date());
-      setResults(res);
-    } catch (error) {
-      setResults({ success: false, error: String(error) });
-    } finally {
-      setLoading(false);
-    }
+    handleTest(async () => {
+      return {
+        success: false,
+        error: "Lógica movida a createEnrollment en enrollment.actions.ts",
+      };
+    });
   };
 
   const handleTestVerPagos = async () => {
@@ -738,7 +723,7 @@ export default function TestBackendPage() {
               Crear Estudiante
             </Button>
             <Button
-              onClick={() => handleTest(() => searchStudents("Prueba"))}
+              onClick={() => handleTest(() => getStudents("Prueba"))}
               variant="outline"
               disabled={loading}
             >

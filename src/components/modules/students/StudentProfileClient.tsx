@@ -116,7 +116,31 @@ export function StudentProfileClient({ student }: { student: any }) {
   };
 
   // ── Pagos ─────────────────────────────────────────────────────────────────
-  const payments: any[] = currentEnrollment?.payments ?? [];
+  const payments: any[] = (currentEnrollment?.payments ?? []).sort(
+    (a: any, b: any) => {
+      const dateA = new Date(a.dueDate);
+      const dateB = new Date(b.dueDate);
+
+      // Comparar solo año, mes y día (sin horas)
+      const d1 = new Date(
+        dateA.getFullYear(),
+        dateA.getMonth(),
+        dateA.getDate(),
+      ).getTime();
+      const d2 = new Date(
+        dateB.getFullYear(),
+        dateB.getMonth(),
+        dateB.getDate(),
+      ).getTime();
+
+      if (d1 !== d2) return d1 - d2;
+
+      // Si tienen la misma fecha (ej: 01 de Marzo), poner MATRICULA antes que MENSUALIDAD
+      if (a.concept?.type === "MATRICULA") return -1;
+      if (b.concept?.type === "MATRICULA") return 1;
+      return 0;
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -127,13 +151,44 @@ export function StudentProfileClient({ student }: { student: any }) {
             <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Directorio
           </Link>
         </Button>
+
         <div className="flex items-center gap-2 flex-wrap">
           {currentEnrollment && (
             <>
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50 text-xs"
+                className="gap-1.5 text-orange-700 border-orange-300 hover:bg-orange-50 text-xs"
+                onClick={() =>
+                  window.open(
+                    `/api/pdf?type=student-incidents&id=${currentEnrollment.id}`,
+                    "_blank",
+                  )
+                }
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Incidencias PDF
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-red-500 border-red-300 hover:bg-red-50 text-xs"
+                onClick={() =>
+                  window.open(
+                    `/api/pdf?type=student-disabilities&id=${currentEnrollment.id}`,
+                    "_blank",
+                  )
+                }
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Inhabilitaciones PDF
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-purple-700 border-purple-300 hover:bg-purple-50 text-xs"
                 onClick={() =>
                   window.open(
                     `/api/pdf?type=grades&id=${currentEnrollment.id}`,
@@ -144,10 +199,11 @@ export function StudentProfileClient({ student }: { student: any }) {
                 <FileDown className="h-3.5 w-3.5" />
                 Libreta PDF
               </Button>
+
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50 text-xs"
+                className="gap-1.5 text-blue-700 border-blue-300 hover:bg-blue-50 text-xs"
                 onClick={() =>
                   window.open(
                     `/api/pdf?type=enrollment&id=${currentEnrollment.id}`,
@@ -158,10 +214,11 @@ export function StudentProfileClient({ student }: { student: any }) {
                 <FileDown className="h-3.5 w-3.5" />
                 Constancia PDF
               </Button>
+
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-orange-700 border-orange-200 hover:bg-orange-50 text-xs"
+                className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50 text-xs"
                 onClick={() =>
                   window.open(
                     `/api/pdf?type=student-attendance&id=${currentEnrollment.id}`,
@@ -174,10 +231,11 @@ export function StudentProfileClient({ student }: { student: any }) {
               </Button>
             </>
           )}
+
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 text-slate-700 border-slate-200 hover:bg-slate-50 text-xs"
+            className="gap-1.5 text-cyan-700 border-cyan-300 hover:bg-cyan-50 text-xs"
             onClick={() =>
               window.open(`/api/pdf?type=student&id=${student.id}`, "_blank")
             }
@@ -185,6 +243,7 @@ export function StudentProfileClient({ student }: { student: any }) {
             <User className="h-3.5 w-3.5" />
             Ficha PDF
           </Button>
+
           <Button
             variant="outline"
             onClick={() => {

@@ -15,27 +15,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { createTeacher, updateTeacher } from "@/lib/actions/teachers.actions";
+import { createTeacher, updateTeacher } from "@/lib/actions/teacher.actions";
 import { uploadTeacherPhoto } from "@/lib/actions/upload.actions";
 import { toast } from "sonner";
 import { Loader2, Camera, X } from "lucide-react";
+import {
+  TeacherSchema,
+  TeacherSchemaType as TeacherFormValues,
+} from "@/lib/validations/teacher.schema";
 
-const teacherSchema = z.object({
-  dni: z.string().length(8, "El DNI debe tener 8 dígitos exactos"),
-  firstName: z.string().min(2, "El nombre es muy corto"),
-  lastName: z.string().min(2, "Los apellidos son muy cortos"),
-  email: z.string().email("Correo electrónico inválido"),
-  phone: z
-    .string()
-    .length(9, "El teléfono debe tener 9 dígitos")
-    .optional()
-    .or(z.literal("")),
-  specialty: z.string().optional().nullable(),
-  photoUrl: z.string().optional().nullable(),
-  active: z.boolean().default(true),
-});
-
-type TeacherFormValues = z.infer<typeof teacherSchema>;
+// Schema removed, using @/lib/validations/teacher.schema
 
 interface TeacherFormProps {
   open: boolean;
@@ -63,7 +52,7 @@ export function TeacherForm({
     reset,
     formState: { errors },
   } = useForm<TeacherFormValues>({
-    resolver: zodResolver(teacherSchema),
+    resolver: zodResolver(TeacherSchema),
     defaultValues: initialData || {
       dni: "",
       firstName: "",
@@ -90,6 +79,11 @@ export function TeacherForm({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("La imagen excede el límite de 10 MB");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
@@ -125,7 +119,7 @@ export function TeacherForm({
 
           const uploadRes = await uploadTeacherPhoto(teacherId, formData);
           if (!uploadRes.success) {
-            toast.error("Datos guardados, pero hubo un error con la foto", {
+            toast.error(uploadRes.error || "Hubo un error con la foto", {
               id: toastId,
             });
           } else {
@@ -221,7 +215,7 @@ export function TeacherForm({
                     ? "Clic para cambiar fotografía"
                     : "Adjuntar fotografía del docente"}
                 </p>
-                <p className="text-xs text-slate-400">JPG, PNG (Max. 5MB)</p>
+                <p className="text-xs text-slate-400">JPG, PNG (Max. 10MB)</p>
               </div>
             </div>
 

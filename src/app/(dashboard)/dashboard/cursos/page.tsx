@@ -1,4 +1,4 @@
-import { getCourses } from "@/lib/actions/courses.actions";
+import { getCourses } from "@/lib/actions/course.actions";
 import { CoursesClient } from "@/components/modules/courses/CoursesClient";
 import { AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";

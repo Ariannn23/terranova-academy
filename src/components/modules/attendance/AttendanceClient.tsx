@@ -36,12 +36,14 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
 
 interface StudentAttendanceInput {
   enrollmentId: string;
   studentName: string;
   studentDni: string;
   status: AttendanceStatus | null;
+  justification?: string;
 }
 
 export function AttendanceClient({
@@ -109,6 +111,9 @@ export function AttendanceClient({
             studentName: item.studentName,
             studentDni: item.studentDni,
             status: item.attendance ? item.attendance.status : null,
+            justification: item.attendance
+              ? item.attendance.justification
+              : undefined,
           })),
         );
       } else {
@@ -141,6 +146,7 @@ export function AttendanceClient({
         enrollmentId: s.enrollmentId,
         date: new Date(selectedDate + "T12:00:00Z"),
         status: s.status as AttendanceStatus,
+        justification: s.justification || undefined,
       }));
 
     if (recordsToSave.length === 0) {
@@ -446,6 +452,70 @@ export function AttendanceClient({
                                   <X className="h-4 w-4 mr-2" /> Falta
                                 </Button>
                               </div>
+                              {(student.status ===
+                                AttendanceStatus.FALTA_INJUSTIFICADA ||
+                                student.status ===
+                                  AttendanceStatus.FALTA_JUSTIFICADA) && (
+                                <div className="mt-2 flex items-center gap-2 animate-in slide-in-from-top-1">
+                                  <Input
+                                    placeholder={
+                                      student.status ===
+                                      AttendanceStatus.FALTA_INJUSTIFICADA
+                                        ? "Falta sin justificación"
+                                        : "Nota de falta (ej. Salud, Motivo personal...)"
+                                    }
+                                    value={student.justification || ""}
+                                    disabled={
+                                      student.status ===
+                                      AttendanceStatus.FALTA_INJUSTIFICADA
+                                    }
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setStudents((prev) =>
+                                        prev.map((s) =>
+                                          s.enrollmentId ===
+                                          student.enrollmentId
+                                            ? { ...s, justification: val }
+                                            : s,
+                                        ),
+                                      );
+                                    }}
+                                    className={cn(
+                                      "text-xs h-8 border-red-100 focus-visible:ring-red-200",
+                                      student.status ===
+                                        AttendanceStatus.FALTA_INJUSTIFICADA
+                                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                        : "bg-white",
+                                    )}
+                                  />
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "cursor-pointer whitespace-nowrap text-[10px]",
+                                      student.status ===
+                                        AttendanceStatus.FALTA_JUSTIFICADA
+                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                        : "bg-slate-50 text-slate-500 border-slate-200",
+                                    )}
+                                    onClick={() => {
+                                      const nextStatus =
+                                        student.status ===
+                                        AttendanceStatus.FALTA_JUSTIFICADA
+                                          ? AttendanceStatus.FALTA_INJUSTIFICADA
+                                          : AttendanceStatus.FALTA_JUSTIFICADA;
+                                      handleStatusChange(
+                                        student.enrollmentId,
+                                        nextStatus,
+                                      );
+                                    }}
+                                  >
+                                    {student.status ===
+                                    AttendanceStatus.FALTA_JUSTIFICADA
+                                      ? "Justificada"
+                                      : "Injustificada"}
+                                  </Badge>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -526,8 +596,8 @@ export function AttendanceClient({
                     </>
                   ) : (
                     <>
-                      <Save className="mr-2 h-5 w-5" />
-                      Guardar Asistencia del Día
+                      <Save className="mr-1 h-5 w-5" />
+                      Guardar Asistencia Diaria
                     </>
                   )}
                 </Button>

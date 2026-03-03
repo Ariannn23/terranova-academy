@@ -64,20 +64,70 @@ const styles = StyleSheet.create({
   },
   tableHeaderCellDay: { fontSize: 8, fontWeight: "bold", color: "#475569" },
   tableCellName: { fontSize: 8, color: "#1e293b" },
-  tableCellDay: { fontSize: 8 },
+  tableCellDay: { fontSize: 7, textAlign: "center" },
+  // Colores por estado
+  statusA: { color: "#059669" }, // Asistió - verde
+  statusF: { color: "#dc2626" }, // Falta - rojo
+  statusT: { color: "#d97706" }, // Tardanza - amarillo
 });
 
-// Sheet expectations: A landscape or tightly packed portrait.
-// We will assume 31 columns for days and output it in A4 landscape.
+// ── Helper: devuelve "A", "F", "T" o "" para un día dado ─────────────────────
+const getAttendanceStatus = (
+  attendances: any[],
+  day: number,
+  year: number,
+  month: number,
+): string => {
+  const record = attendances.find((a) => {
+    const d = new Date(a.date);
+    return (
+      d.getUTCDate() === day &&
+      d.getUTCMonth() + 1 === month &&
+      d.getUTCFullYear() === year
+    );
+  });
+
+  if (!record) return "";
+
+  switch (record.status) {
+    case "PRESENT":
+      return "A";
+    case "ABSENT":
+      return "F";
+    case "LATE":
+      return "T";
+    default:
+      // Fallback: toma la primera letra del status si existe
+      return record.status?.[0] ?? "";
+  }
+};
+
+// ── Helper: devuelve el estilo de color según el status ──────────────────────
+const getStatusStyle = (status: string) => {
+  if (status === "A") return styles.statusA;
+  if (status === "F") return styles.statusF;
+  if (status === "T") return styles.statusT;
+  return {};
+};
+
 export const AttendanceSheetPDF = ({
   section,
   monthName,
   year,
+  month,
   students,
 }: {
-  section: any;
+  section: {
+    name: string;
+    gradeLevel: {
+      level: string;
+      name: string;
+    };
+    [key: string]: any;
+  };
   monthName: string;
   year: number;
+  month: number;
   students: any[];
 }) => {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -109,6 +159,7 @@ export const AttendanceSheetPDF = ({
         </View>
 
         <View style={styles.table}>
+          {/* Encabezado */}
           <View style={styles.tableHeader}>
             <View style={styles.tableColName}>
               <Text style={styles.tableHeaderCellName}>Estudiante</Text>
@@ -120,6 +171,7 @@ export const AttendanceSheetPDF = ({
             ))}
           </View>
 
+          {/* Filas de estudiantes */}
           {students.map((st, i) => (
             <View style={styles.tableRow} key={i}>
               <View style={styles.tableColName}>
@@ -127,11 +179,21 @@ export const AttendanceSheetPDF = ({
                   {st.lastName}, {st.firstName}
                 </Text>
               </View>
-              {days.map((d) => (
-                <View style={styles.tableColDay} key={d}>
-                  <Text style={styles.tableCellDay}></Text>
-                </View>
-              ))}
+              {days.map((d) => {
+                const status = getAttendanceStatus(
+                  st.attendances ?? [],
+                  d,
+                  year,
+                  month,
+                );
+                return (
+                  <View style={styles.tableColDay} key={d}>
+                    <Text style={[styles.tableCellDay, getStatusStyle(status)]}>
+                      {status}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           ))}
         </View>

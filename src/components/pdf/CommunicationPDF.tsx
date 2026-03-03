@@ -53,14 +53,6 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     lineHeight: 1.2,
   },
-  metadataBox: {
-    backgroundColor: "#f8fafc",
-    padding: 15,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: "#059669",
-    marginBottom: 35,
-  },
   metaRow: {
     flexDirection: "row",
     marginBottom: 6,
@@ -153,13 +145,14 @@ export const CommunicationPDF = ({ announcement }: CommunicationPDFProps) => {
         <View style={styles.contentContainer}>
           <Text style={styles.communicationTitle}>{announcement.title}</Text>
 
-          <View style={styles.metadataBox}>
+          <View style={{ marginBottom: 25 }}>
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Dirigido a:</Text>
               <Text style={styles.metaValue}>
                 {getTargetLevelLabel(announcement.targetLevel)}
               </Text>
             </View>
+
             <View style={styles.metaRow}>
               <Text style={styles.metaLabel}>Referencia:</Text>
               <Text style={styles.metaValue}>

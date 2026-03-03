@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 import {
   Banknote,
   AlertCircle,
@@ -117,7 +118,12 @@ export default function PaymentsDashboardClient({
         />
         <div className="flex gap-3 w-full sm:w-auto">
           <Button
-            onClick={() => router.push("/dashboard/pagos/registrar")}
+            onClick={() => {
+              toast.loading("Cargando módulo de pagos...", {
+                id: "nav-payments",
+              });
+              router.push("/dashboard/pagos/registrar");
+            }}
             className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
           >
             <Plus className="w-4 h-4 mr-2" />

@@ -1,6 +1,6 @@
-// lib/actions/attendance.actions.ts — Server Actions para Asistencia
-
 "use server";
+
+// lib/actions/attendance.actions.ts — Server Actions para Asistencia
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -33,7 +33,7 @@ export async function getAttendanceBySection(sectionId: string, date: Date) {
 
     // Obtener todos los alumnos inscritos en la sección
     const enrollments = await prisma.enrollment.findMany({
-      where: { 
+      where: {
         sectionId,
         active: true,
       },
@@ -50,7 +50,10 @@ export async function getAttendanceBySection(sectionId: string, date: Date) {
     });
 
     if (enrollments.length === 0) {
-      return { success: false, error: "No hay matrículas activas en esta sección" };
+      return {
+        success: false,
+        error: "No hay matrículas activas en esta sección",
+      };
     }
 
     // Obtener registros de asistencia para esa fecha
@@ -66,25 +69,32 @@ export async function getAttendanceBySection(sectionId: string, date: Date) {
 
     // Combinar datos: alumno + asistencia
     const result = enrollments.map((enrollment) => {
-      const attendance = attendances.find((a) => a.enrollmentId === enrollment.id);
+      const attendance = attendances.find(
+        (a) => a.enrollmentId === enrollment.id,
+      );
       return {
         id: enrollment.id,
         enrollmentId: enrollment.id,
         studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
         studentDni: enrollment.student.dni,
-        attendance: attendance ? {
-          id: attendance.id,
-          status: attendance.status,
-          justification: attendance.justification,
-          date: attendance.date.toISOString(),
-        } : null,
+        attendance: attendance
+          ? {
+              id: attendance.id,
+              status: attendance.status,
+              justification: attendance.justification,
+              date: attendance.date.toISOString(),
+            }
+          : null,
       };
     });
 
     return { success: true, data: result };
   } catch (error) {
     console.error("Error en getAttendanceBySection:", error);
-    return { success: false, error: "Error al obtener asistencia de la sección" };
+    return {
+      success: false,
+      error: "Error al obtener asistencia de la sección",
+    };
   }
 }
 
@@ -95,7 +105,7 @@ export async function getAttendanceBySection(sectionId: string, date: Date) {
 export async function getAttendanceByStudent(
   enrollmentId: string,
   month?: number,
-  year?: number
+  year?: number,
 ) {
   try {
     if (!enrollmentId || enrollmentId.trim().length === 0) {
@@ -157,7 +167,10 @@ export async function getAttendanceByStudent(
     };
   } catch (error) {
     console.error("Error en getAttendanceByStudent:", error);
-    return { success: false, error: "Error al obtener historial de asistencia" };
+    return {
+      success: false,
+      error: "Error al obtener historial de asistencia",
+    };
   }
 }
 
@@ -185,7 +198,10 @@ export async function saveAttendance(input: unknown) {
 
     // Validar que los registros están dentro del rango académico
     for (const record of records) {
-      if (record.date < activeYear.startDate || record.date > activeYear.endDate) {
+      if (
+        record.date < activeYear.startDate ||
+        record.date > activeYear.endDate
+      ) {
         return {
           success: false,
           error: `La fecha ${record.date.toLocaleDateString()} está fuera del año académico`,
@@ -205,19 +221,23 @@ export async function saveAttendance(input: unknown) {
           },
           update: {
             status: record.status,
+            justification: record.justification,
           },
           create: {
             enrollmentId: record.enrollmentId,
             date: new Date(record.date),
             status: record.status,
+            justification: record.justification,
           },
-        })
-      )
+        }),
+      ),
     );
 
     // Recalcular estado de estudiantes después de guardar asistencia
-    const uniqueEnrollmentIds = Array.from(new Set(records.map((r) => r.enrollmentId)));
-    
+    const uniqueEnrollmentIds = Array.from(
+      new Set(records.map((r) => r.enrollmentId)),
+    );
+
     for (const enrollmentId of uniqueEnrollmentIds) {
       await updateStudentStatusByEnrollment(enrollmentId);
     }
@@ -313,7 +333,13 @@ export async function getAttendanceStats(enrollmentId: string) {
 
     // Obtener todos los registros de asistencia
     const attendances = await prisma.attendance.findMany({
-      where: { enrollmentId },
+      where: {
+        enrollmentId,
+        date: {
+          gte: enrollment.academicYear.startDate,
+          lte: enrollment.academicYear.endDate,
+        },
+      },
     });
 
     // Obtener días festivos en el año académico
@@ -324,7 +350,9 @@ export async function getAttendanceStats(enrollmentId: string) {
       },
     });
 
-    const holidayDates = holidays.map((h) => h.date.toISOString().split("T")[0]);
+    const holidayDates = holidays.map(
+      (h) => h.date.toISOString().split("T")[0],
+    );
 
     // Filtrar asistencias que no sean en días festivos
     const validAttendances = attendances.filter((a) => {
@@ -333,13 +361,17 @@ export async function getAttendanceStats(enrollmentId: string) {
     });
 
     // Contar estados
-    const presente = validAttendances.filter((a) => a.status === "PRESENTE").length;
-    const tardanza = validAttendances.filter((a) => a.status === "TARDANZA").length;
+    const presente = validAttendances.filter(
+      (a) => a.status === "PRESENTE",
+    ).length;
+    const tardanza = validAttendances.filter(
+      (a) => a.status === "TARDANZA",
+    ).length;
     const justificada = validAttendances.filter(
-      (a) => a.status === "FALTA_JUSTIFICADA"
+      (a) => a.status === "FALTA_JUSTIFICADA",
     ).length;
     const injustificada = validAttendances.filter(
-      (a) => a.status === "FALTA_INJUSTIFICADA"
+      (a) => a.status === "FALTA_INJUSTIFICADA",
     ).length;
 
     const totalDays = validAttendances.length;
@@ -358,7 +390,10 @@ export async function getAttendanceStats(enrollmentId: string) {
     };
   } catch (error) {
     console.error("Error en getAttendanceStats:", error);
-    return { success: false, error: "Error al obtener estadísticas de asistencia" };
+    return {
+      success: false,
+      error: "Error al obtener estadísticas de asistencia",
+    };
   }
 }
 
@@ -369,7 +404,7 @@ export async function getAttendanceStats(enrollmentId: string) {
 export async function getCriticalAttendance(input?: unknown) {
   try {
     let parsedData: { sectionId?: string } = {};
-    
+
     if (input) {
       const parsed = CriticalAttendanceFilterSchema.safeParse(input);
       if (!parsed.success) {
@@ -412,7 +447,9 @@ export async function getCriticalAttendance(input?: unknown) {
         },
       });
 
-      const holidayDates = holidays.map((h) => h.date.toISOString().split("T")[0]);
+      const holidayDates = holidays.map(
+        (h) => h.date.toISOString().split("T")[0],
+      );
 
       // Filtrar asistencias que no sean en días festivos
       const validAttendances = attendances.filter((a) => {
@@ -421,7 +458,7 @@ export async function getCriticalAttendance(input?: unknown) {
       });
 
       const injustificada = validAttendances.filter(
-        (a) => a.status === "FALTA_INJUSTIFICADA"
+        (a) => a.status === "FALTA_INJUSTIFICADA",
       ).length;
       const totalDays = validAttendances.length;
 
@@ -447,9 +484,7 @@ export async function getCriticalAttendance(input?: unknown) {
       success: true,
       data: {
         count: criticalStudents.length,
-        students: criticalStudents.sort(
-          (a, b) => b.percentage - a.percentage
-        ),
+        students: criticalStudents.sort((a, b) => b.percentage - a.percentage),
       },
     };
   } catch (error) {
@@ -470,7 +505,7 @@ export async function getSectionAttendanceReport(input: unknown) {
     }
 
     const { sectionId, month, year } = parsed.data;
-    
+
     // Validar sectionId
     if (!sectionId || sectionId.trim().length === 0) {
       return { success: false, error: "ID de sección inválido" };
@@ -514,7 +549,9 @@ export async function getSectionAttendanceReport(input: unknown) {
       },
     });
 
-    const holidayDates = holidays.map((h) => h.date.toISOString().split("T")[0]);
+    const holidayDates = holidays.map(
+      (h) => h.date.toISOString().split("T")[0],
+    );
 
     // Generar lista de todos los días del mes (excluyendo festivos)
     const allDays: Date[] = [];
@@ -529,7 +566,7 @@ export async function getSectionAttendanceReport(input: unknown) {
     // Construir planilla por alumno
     const planilla = section.enrollments.map((enrollment) => {
       const studentAttendances = attendances.filter(
-        (a) => a.enrollmentId === enrollment.id
+        (a) => a.enrollmentId === enrollment.id,
       );
 
       const dayStatuses = allDays.map((date) => {
@@ -547,13 +584,17 @@ export async function getSectionAttendanceReport(input: unknown) {
       });
 
       // Calcular resumen
-      const presente = dayStatuses.filter((d) => d.status === "PRESENTE").length;
-      const tardanza = dayStatuses.filter((d) => d.status === "TARDANZA").length;
+      const presente = dayStatuses.filter(
+        (d) => d.status === "PRESENTE",
+      ).length;
+      const tardanza = dayStatuses.filter(
+        (d) => d.status === "TARDANZA",
+      ).length;
       const justificada = dayStatuses.filter(
-        (d) => d.status === "FALTA_JUSTIFICADA"
+        (d) => d.status === "FALTA_JUSTIFICADA",
       ).length;
       const injustificada = dayStatuses.filter(
-        (d) => d.status === "FALTA_INJUSTIFICADA"
+        (d) => d.status === "FALTA_INJUSTIFICADA",
       ).length;
 
       return {
@@ -588,16 +629,12 @@ export async function getSectionAttendanceReport(input: unknown) {
   }
 }
 
-/**
- * Función interna: recalcular y actualizar el estado del estudiante
- * Se llama automáticamente después de guardar asistencia o justificación
- */
 async function updateStudentStatusByEnrollment(enrollmentId: string) {
   try {
     if (!enrollmentId || enrollmentId.trim().length === 0) {
       return;
     }
-    
+
     const enrollment = await prisma.enrollment.findUnique({
       where: { id: enrollmentId },
       include: { student: true, academicYear: true },
@@ -605,9 +642,16 @@ async function updateStudentStatusByEnrollment(enrollmentId: string) {
 
     if (!enrollment) return;
 
-    // Obtener estadísticas actuales de asistencia
+    const classStartDate = new Date(enrollment.academicYear.year, 2, 1);
+
     const attendances = await prisma.attendance.findMany({
-      where: { enrollmentId },
+      where: {
+        enrollmentId,
+        date: {
+          gte: classStartDate,
+          lte: enrollment.academicYear.endDate,
+        },
+      },
     });
 
     const holidays = await prisma.calendarEvent.findMany({
@@ -617,39 +661,48 @@ async function updateStudentStatusByEnrollment(enrollmentId: string) {
       },
     });
 
-    const holidayDates = holidays.map((h) => h.date.toISOString().split("T")[0]);
+    const holidayDates = holidays.map(
+      (h) => h.date.toISOString().split("T")[0],
+    );
 
     const validAttendances = attendances.filter((a) => {
       const dateStr = a.date.toISOString().split("T")[0];
       return !holidayDates.includes(dateStr);
     });
 
-    const presente = validAttendances.filter((a) => a.status === "PRESENTE").length;
-    const totalDays = validAttendances.length;
-    const attendancePercent = totalDays > 0
-      ? (presente / totalDays) * 100
-      : 100;
+    const presente = validAttendances.filter(
+      (a) => a.status === "PRESENTE",
+    ).length;
 
-    // Obtener notas del estudiante para calcular cursos jalados
+    const totalDays = validAttendances.length;
+
+    if (totalDays < 10) {
+      return;
+    }
+
+    const attendancePercent = (presente / totalDays) * 100;
     const grades = await prisma.gradeRecord.findMany({
       where: { enrollmentId },
     });
 
-    const failingCourses = grades.filter((g) => g.score && g.score < 11).length;
-    const totalCourses = grades.length;
-    const average = grades.length > 0
-      ? grades.reduce((sum, g) => sum + (g.score || 0), 0) / grades.length
-      : 20;
+    const failingCourses = grades.filter(
+      (g) => g.score !== null && g.score < 11,
+    ).length;
 
-    // Calcular nuevo estado
+    const totalCourses = grades.length;
+
+    const average =
+      grades.length > 0
+        ? grades.reduce((sum, g) => sum + (g.score || 0), 0) / grades.length
+        : 20;
+
     const newStatus = calculateStudentStatus(
       attendancePercent,
       failingCourses,
       totalCourses,
-      average
+      average,
     );
 
-    // Actualizar si cambió
     if (newStatus !== enrollment.student.status) {
       await prisma.student.update({
         where: { id: enrollment.student.id },

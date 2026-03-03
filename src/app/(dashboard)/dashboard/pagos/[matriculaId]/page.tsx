@@ -1,5 +1,5 @@
 import StudentPaymentHistory from "@/components/modules/payments/StudentPaymentHistory";
-import { getStudentPaymentHistory } from "@/lib/actions/payments.actions";
+import { getEnrollmentById } from "@/lib/actions/enrollment.actions";
 import { notFound } from "next/navigation";
 
 export const metadata = {
@@ -12,7 +12,7 @@ export default async function PaymentHistoryPage({
 }: {
   params: { matriculaId: string };
 }) {
-  const historyRes = await getStudentPaymentHistory(params.matriculaId);
+  const historyRes = await getEnrollmentById(params.matriculaId);
 
   if (!historyRes.success) {
     if (historyRes.error === "No encontrado") notFound();

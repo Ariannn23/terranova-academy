@@ -39,11 +39,11 @@ export function IncidentDetailClient({ incident }: IncidentDetailClientProps) {
 
   useEffect(() => {
     toast.dismiss("view-incident");
-    toast.dismiss("view-profile"); 
+    toast.dismiss("view-profile");
     toast.dismiss();
   }, []);
   const handlePrint = () => {
-    window.print();
+    window.open(`/api/pdf?type=incident&id=${incident.id}`, "_blank");
   };
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

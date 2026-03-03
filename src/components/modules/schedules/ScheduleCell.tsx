@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   saveScheduleBlock,
   deleteScheduleBlock,
-} from "@/lib/actions/schedules.actions";
+} from "@/lib/actions/schedule.actions";
 import {
   Dialog,
   DialogContent,

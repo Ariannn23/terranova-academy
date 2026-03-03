@@ -1,4 +1,4 @@
-import { getAnnouncements } from "@/lib/actions/announcements.actions";
+import { getAnnouncements } from "@/lib/actions/announcement.actions";
 import { AnnouncementsClient } from "@/components/modules/announcements/AnnouncementsClient";
 import { AlertTriangle } from "lucide-react";
 

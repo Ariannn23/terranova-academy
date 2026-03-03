@@ -1,4 +1,4 @@
-import { getStudents } from "@/lib/actions/students.actions";
+import { getStudents } from "@/lib/actions/student.actions";
 import { StudentsClient } from "@/components/modules/students/StudentsClient";
 
 export default async function StudentsPage() {

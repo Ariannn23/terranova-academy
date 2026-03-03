@@ -14,14 +14,15 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye } from "lucide-react";
-import Link from "next/link";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useDashboard } from "@/app/(dashboard)/_components/DashboardProvider";
 
 export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
   const router = useRouter();
+  const { setIsNavigating } = useDashboard();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [yearFilter, setYearFilter] = useState("ALL");
@@ -50,6 +51,7 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Estudiante",
       accessorKey: "student",
+      align: "left" as const,
       cell: (row: any) => (
         <div className="flex items-center space-x-3">
           <StudentAvatar
@@ -69,8 +71,9 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Grado y Sección",
       accessorKey: "section",
+      align: "center" as const,
       cell: (row: any) => (
-        <div className="flex flex-col justify-center items-center">
+        <div className="flex flex-col items-center">
           <p className="font-medium text-slate-700">
             {row.section.gradeLevel.name} "{row.section.name}"
           </p>
@@ -83,61 +86,57 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Año Lectivo",
       accessorKey: "year",
+      align: "center" as const,
       cell: (row: any) => (
-        <div className="flex justify-center w-full">
-          <span className="text-sm font-medium">{row.academicYear.year}</span>
-        </div>
+        <span className="text-sm font-medium">{row.academicYear.year}</span>
       ),
     },
     {
       header: "Fecha de Alta",
       accessorKey: "date",
+      align: "center" as const,
       cell: (row: any) => (
-        <div className="flex justify-center w-full">
-          <span className="text-sm text-slate-600">
-            {format(new Date(row.enrollDate), "dd MMM, yyyy")}
-          </span>
-        </div>
+        <span className="text-sm text-slate-600">
+          {format(new Date(row.enrollDate), "dd MMM, yyyy")}
+        </span>
       ),
     },
     {
       header: "Estado",
       accessorKey: "active",
+      align: "center" as const,
       cell: (row: any) => (
-        <div className="flex justify-center w-full">
-          <Badge
-            variant={row.active ? "default" : "destructive"}
-            className={
-              row.active
-                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                : ""
-            }
-          >
-            {row.active ? "Activa" : "Anulada"}
-          </Badge>
-        </div>
+        <Badge
+          variant={row.active ? "default" : "destructive"}
+          className={
+            row.active
+              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+              : ""
+          }
+        >
+          {row.active ? "Activa" : "Anulada"}
+        </Badge>
       ),
     },
     {
       header: "Acciones",
       accessorKey: "actions",
+      align: "center" as const,
       cell: (row: any) => (
-        <div className="flex justify-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              toast.loading("Cargando detalle de matrícula...", {
-                id: "view-enrollment",
-              });
-              router.push(`/dashboard/matriculas/${row.id}`);
-            }}
-            title="Ver Detalle de Matrícula"
-            className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            toast.loading("Cargando detalle de matrícula...", {
+              id: "view-enrollment",
+            });
+            router.push(`/dashboard/matriculas/${row.id}`);
+          }}
+          title="Ver Detalle de Matrícula"
+          className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
       ),
     },
   ];
@@ -148,10 +147,17 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
         title="Gestión de Matrículas"
         description="Listado general de alumnos matriculados y sus asignaciones de sección."
         action={
-          <Button asChild className="bg-emerald-700 hover:bg-emerald-800">
-            <Link href="/dashboard/matriculas/nueva">
-              <Plus className="mr-2 h-4 w-4" /> Nueva Matrícula
-            </Link>
+          <Button
+            className="bg-emerald-700 hover:bg-emerald-800"
+            onClick={() => {
+              toast.loading("Iniciando registro de matrícula...", {
+                id: "nav-new-enrollment",
+              });
+              setIsNavigating(true);
+              router.push("/dashboard/matriculas/nueva");
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nueva Matrícula
           </Button>
         }
       />

@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { deleteAnnouncement } from "@/lib/actions/announcements.actions";
+import { deleteAnnouncement } from "@/lib/actions/announcement.actions";
 import { useRouter } from "next/navigation";
 
 export function AnnouncementsClient({ initialData }: { initialData: any[] }) {

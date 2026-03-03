@@ -76,10 +76,13 @@ export const StudentInfoPDF = ({ student }: { student: any }) => {
             </Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>DNI / Código:</Text>
-            <Text style={styles.value}>
-              {student.dni} {student.code ? `(${student.code})` : ""}
-            </Text>
+            <Text style={styles.label}>DNI:</Text>
+            <Text style={styles.value}>{student.dni || "No registrado"}</Text>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>Código:</Text>
+            <Text style={styles.value}>{student.code || "No registrado"}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Fecha Nacimiento:</Text>

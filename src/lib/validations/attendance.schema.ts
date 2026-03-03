@@ -9,9 +9,13 @@ import { AttendanceStatus } from "@prisma/client";
 export const AttendanceRecordSchema = z.object({
   enrollmentId: z.string().min(1, "ID de matrícula requerido"),
   date: z.coerce.date(),
-  status: z.enum(
-    ["PRESENTE", "TARDANZA", "FALTA_JUSTIFICADA", "FALTA_INJUSTIFICADA"] as const
-  ),
+  status: z.enum([
+    "PRESENTE",
+    "TARDANZA",
+    "FALTA_JUSTIFICADA",
+    "FALTA_INJUSTIFICADA",
+  ] as const),
+  justification: z.string().optional(),
 });
 
 export type AttendanceRecord = z.infer<typeof AttendanceRecordSchema>;
@@ -20,7 +24,9 @@ export type AttendanceRecord = z.infer<typeof AttendanceRecordSchema>;
  * Schema para guardar múltiples registros de asistencia (batch)
  */
 export const SaveAttendanceBatchSchema = z.object({
-  records: z.array(AttendanceRecordSchema).min(1, "Debe incluir al menos un registro"),
+  records: z
+    .array(AttendanceRecordSchema)
+    .min(1, "Debe incluir al menos un registro"),
 });
 
 export type SaveAttendanceBatch = z.infer<typeof SaveAttendanceBatchSchema>;
@@ -60,7 +66,9 @@ export const CriticalAttendanceFilterSchema = z.object({
   sectionId: z.string().min(1, "ID de sección requerido").optional(),
 });
 
-export type CriticalAttendanceFilter = z.infer<typeof CriticalAttendanceFilterSchema>;
+export type CriticalAttendanceFilter = z.infer<
+  typeof CriticalAttendanceFilterSchema
+>;
 
 /**
  * Schema para reporte de asistencia de sección
@@ -71,4 +79,6 @@ export const SectionAttendanceReportSchema = z.object({
   year: z.number().int().min(2000),
 });
 
-export type SectionAttendanceReport = z.infer<typeof SectionAttendanceReportSchema>;
+export type SectionAttendanceReport = z.infer<
+  typeof SectionAttendanceReportSchema
+>;

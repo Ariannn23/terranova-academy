@@ -1,4 +1,4 @@
-import { getEnrollmentById } from "@/lib/actions/enrollments.actions";
+import { getEnrollmentById } from "@/lib/actions/enrollment.actions";
 import { EnrollmentDetailsClient } from "@/components/modules/enrollments/EnrollmentDetailsClient";
 import { notFound } from "next/navigation";
 

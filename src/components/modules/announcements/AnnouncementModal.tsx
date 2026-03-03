@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AnnouncementSchema } from "@/lib/validations/incident.schema";
-import { createAnnouncement } from "@/lib/actions/announcements.actions";
+import { createAnnouncement } from "@/lib/actions/announcement.actions";
 import { useRouter } from "next/navigation";
 
 interface AnnouncementModalProps {
@@ -61,7 +61,7 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
       const processedValues = {
         ...values,
         targetLevel:
-          values.targetLevel === "ALL" || !values.targetLevel
+          (values.targetLevel as string) === "ALL" || !values.targetLevel
             ? null
             : values.targetLevel,
       };

@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createCourse, updateCourse } from "@/lib/actions/courses.actions";
+import { createCourse, updateCourse } from "@/lib/actions/course.actions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 

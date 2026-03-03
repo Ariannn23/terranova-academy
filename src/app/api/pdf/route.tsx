@@ -9,6 +9,9 @@ import { StudentInfoPDF } from "@/components/pdf/StudentInfoPDF";
 import { StudentAttendancePDF } from "@/components/pdf/StudentAttendancePDF";
 import { CommunicationPDF } from "@/components/pdf/CommunicationPDF";
 import { getStudentGrades } from "@/lib/actions/grade.actions";
+import { IncidentReportPDF } from "@/components/pdf/IncidentReportPDF";
+import { StudentIncidentsPDF } from "@/components/pdf/StudentIncidentsPDF";
+import { StudentDisabilitiesPDF } from "@/components/pdf/StudentDisabilitiesPDF";
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,21 +53,42 @@ export async function GET(request: NextRequest) {
             { status: 404 },
           );
 
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+
         const enrollments = await prisma.enrollment.findMany({
-          where: { sectionId: id, active: true },
-          include: { student: true },
+          where: {
+            sectionId: id,
+            active: true,
+          },
+          include: {
+            student: true,
+            attendances: {
+              where: {
+                date: {
+                  gte: startDate,
+                  lte: endDate,
+                },
+              },
+              orderBy: { date: "asc" },
+            },
+          },
           orderBy: { student: { lastName: "asc" } },
         });
 
-        const students = enrollments.map((e) => e.student);
+        const students = enrollments.map((e) => ({
+          ...e.student,
+          attendances: e.attendances,
+        }));
         const monthName = new Date(year, month - 1, 1).toLocaleString("es", {
           month: "long",
         });
 
         pdfStream = await renderToStream(
           <AttendanceSheetPDF
-            section={section}
+            section={section as any}
             year={year}
+            month={month}
             monthName={monthName}
             students={students}
           />,
@@ -239,6 +263,98 @@ export async function GET(request: NextRequest) {
           <CommunicationPDF announcement={announcement} />,
         );
         break;
+      }
+      case "incident": {
+        const incident = await prisma.incident.findUnique({
+          where: { id },
+          include: {
+            enrollment: {
+              include: {
+                student: true,
+                section: { include: { gradeLevel: true } },
+              },
+            },
+          },
+        });
+
+        if (!incident)
+          return NextResponse.json(
+            { error: "Incidencia no encontrada" },
+            { status: 404 },
+          );
+
+        pdfStream = await renderToStream(
+          <IncidentReportPDF incident={incident} />,
+        );
+        break;
+      }
+      case "student-incidents": {
+        const enrollmentId = searchParams.get("id");
+        if (!enrollmentId) return new Response("Missing id", { status: 400 });
+
+        const enrollment = await prisma.enrollment.findUnique({
+          where: { id: enrollmentId },
+          include: {
+            student: true,
+            section: {
+              include: {
+                gradeLevel: true,
+                academicYear: true,
+              },
+            },
+            incidents: {
+              orderBy: { date: "asc" },
+              where: {
+                enrollmentId: enrollmentId,
+              },
+            },
+          },
+        });
+
+        const stream = await renderToStream(
+          <StudentIncidentsPDF enrollment={enrollment} />,
+        );
+
+        return new Response(stream as any, {
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `inline; filename=incidencias-${enrollment?.student?.lastName}.pdf`,
+          },
+        });
+      }
+      case "student-disabilities": {
+        const enrollmentId = searchParams.get("id");
+        if (!enrollmentId) return new Response("Missing id", { status: 400 });
+
+        const enrollment = await prisma.enrollment.findUnique({
+          where: { id: enrollmentId },
+          include: {
+            student: true,
+            section: {
+              include: {
+                gradeLevel: true,
+                academicYear: true,
+              },
+            },
+            disabilities: {
+              orderBy: { startDate: "asc" },
+              where: {
+                enrollmentId: enrollmentId,
+              },
+            },
+          },
+        });
+
+        const stream = await renderToStream(
+          <StudentDisabilitiesPDF enrollment={enrollment} />,
+        );
+
+        return new Response(stream as any, {
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `inline; filename=inhabilitaciones-${enrollment?.student?.lastName}.pdf`,
+          },
+        });
       }
 
       default:

@@ -1,4 +1,4 @@
-import { getActiveSectionsForSchedules } from "@/lib/actions/schedules.actions";
+import { getActiveSectionsForSchedules } from "@/lib/actions/schedule.actions";
 import { SchedulesListClient } from "@/components/modules/schedules/SchedulesListClient";
 import { AlertTriangle } from "lucide-react";
 

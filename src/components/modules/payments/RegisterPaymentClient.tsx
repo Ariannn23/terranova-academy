@@ -64,8 +64,8 @@ import Link from "next/link";
 import {
   searchStudentsForPayment,
   getStudentPendingPayments,
-  processPayment,
-} from "@/lib/actions/payments.actions";
+  registerPayment as processPayment,
+} from "@/lib/actions/payment.actions";
 import { ReceiptModal } from "./ReceiptModal";
 
 const PaymentFormSchema = z.object({
@@ -97,6 +97,11 @@ export default function RegisterPaymentClient() {
       method: "Efectivo",
     },
   });
+
+  useEffect(() => {
+    // Descartar toast de navegación al montar
+    toast.dismiss("nav-payments");
+  }, []);
 
   // Efecto para buscar alumnos
   useEffect(() => {
@@ -150,7 +155,10 @@ export default function RegisterPaymentClient() {
     const toastId = toast.loading("Procesando pago y generando recibo...");
 
     try {
-      const res = await processPayment(values.paymentId, values.method);
+      const res = await processPayment({
+        paymentId: values.paymentId,
+        method: values.method,
+      });
 
       if (res.success) {
         toast.success("Pago procesado correctamente", { id: toastId });

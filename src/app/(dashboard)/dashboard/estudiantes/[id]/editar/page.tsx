@@ -1,4 +1,4 @@
-import { getStudentById } from "@/lib/actions/students.actions";
+import { getStudentById } from "@/lib/actions/student.actions";
 import { notFound } from "next/navigation";
 import { StudentForm } from "@/components/modules/students/StudentForm";
 

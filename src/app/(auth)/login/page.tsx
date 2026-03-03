@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { loginAction } from "@/lib/actions/auth.actions";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,10 +40,14 @@ export default function LoginPage() {
 
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
     setErrorProp("");
+    const toastId = toast.loading("Verificando credenciales...");
     startTransition(() => {
       loginAction(values).then((res) => {
         if (res?.error) {
+          toast.error(res.error, { id: toastId });
           setErrorProp(res.error);
+        } else {
+          toast.success("¡Bienvenido al sistema!", { id: toastId });
         }
       });
     });

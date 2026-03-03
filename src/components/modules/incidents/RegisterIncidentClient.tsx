@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { searchStudentsForPayment } from "@/lib/actions/payments.actions";
+import { searchStudentsForPayment } from "@/lib/actions/payment.actions";
 import { createIncident } from "@/lib/actions/incident.actions";
 import { IncidentSchema } from "@/lib/validations/incident.schema";
 

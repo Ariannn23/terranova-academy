@@ -8,7 +8,7 @@ import { Plus, Search, Edit2, Archive, ArchiveRestore } from "lucide-react";
 import { CourseForm } from "./CourseForm";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
-import { updateCourse } from "@/lib/actions/courses.actions";
+import { updateCourse } from "@/lib/actions/course.actions";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 

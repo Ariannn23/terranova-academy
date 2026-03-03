@@ -1,4 +1,4 @@
-import { getTeachers } from "@/lib/actions/teachers.actions";
+import { getTeachers } from "@/lib/actions/teacher.actions";
 import { TeachersClient } from "@/components/modules/teachers/TeachersClient";
 import { AlertTriangle } from "lucide-react";
 

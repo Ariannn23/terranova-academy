@@ -29,7 +29,7 @@ import {
   exportAttendanceReport,
   exportFinancialReport,
 } from "@/lib/actions/report.actions";
-import { searchStudentsForPayment } from "@/lib/actions/payments.actions";
+import { searchStudentsForPayment } from "@/lib/actions/payment.actions";
 
 // ─── Helper para descargar base64 ────────────────────────────────────────────
 function downloadBase64(base64: string, filename: string) {

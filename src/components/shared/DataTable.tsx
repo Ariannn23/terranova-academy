@@ -18,6 +18,7 @@ interface Column<T> {
   header: string;
   accessorKey: keyof T | string;
   cell?: (item: T) => React.ReactNode;
+  align?: "left" | "center" | "right";
 }
 
 interface DataTableProps<T> {
@@ -39,12 +40,9 @@ export function DataTable<T>({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Filtrado
   const filteredData = data.filter((item) => {
     if (!search || !searchKey) return true;
-
     const keys = Array.isArray(searchKey) ? searchKey : [searchKey];
-
     return keys.some((key) => {
       const value = String(key)
         .split(".")
@@ -56,18 +54,21 @@ export function DataTable<T>({
     });
   });
 
-  // Paginación
   const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
-  // Mover a página anterior
   const prevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
   const nextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
+  const alignClass = (align?: "left" | "center" | "right") => {
+    if (align === "center") return "text-center";
+    if (align === "right") return "text-right";
+    return "text-left";
+  };
+
   return (
     <div className="space-y-4">
-      {/* Buscador */}
       {searchKey && (
         <div className="flex items-center relative max-w-sm">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -76,20 +77,24 @@ export function DataTable<T>({
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              setCurrentPage(1); // Reset page on search
+              setCurrentPage(1);
             }}
             className="pl-9 bg-white"
           />
         </div>
       )}
 
-      {/* Tabla */}
       <div className="rounded-md border bg-white shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-slate-50">
             <TableRow>
               {columns.map((col, i) => (
-                <TableHead key={i} className="font-semibold text-slate-600">
+                <TableHead
+                  key={i}
+                  className={`font-semibold text-slate-600 ${alignClass(col.align)} ${
+                    col.align === "left" ? "pl-8" : ""
+                  }`}
+                >
                   {col.header}
                 </TableHead>
               ))}
@@ -104,7 +109,10 @@ export function DataTable<T>({
                   onClick={() => onRowClick && onRowClick(item)}
                 >
                   {columns.map((col, colIndex) => (
-                    <TableCell key={colIndex} className="py-3">
+                    <TableCell
+                      key={colIndex}
+                      className={`py-3 ${alignClass(col.align)}`}
+                    >
                       {col.cell
                         ? col.cell(item)
                         : (item as any)[col.accessorKey]}
@@ -129,12 +137,11 @@ export function DataTable<T>({
         </Table>
       </div>
 
-      {/* Paginación */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-slate-500">
-          Mostrando {startIndex + 1} a{" "}
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border border-t-0 rounded-b-md">
+        <div className="text-xs text-slate-500 italic">
+          Mostrando {startIndex + 1}-
           {Math.min(startIndex + itemsPerPage, filteredData.length)} de{" "}
-          {filteredData.length} registros
+          {filteredData.length}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -142,23 +149,21 @@ export function DataTable<T>({
             size="sm"
             onClick={prevPage}
             disabled={currentPage === 1}
-            className="h-8 shadow-sm"
+            className="h-8 w-8 p-0 shadow-sm bg-white"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Anterior
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="text-sm font-medium px-2 text-slate-600">
-            Página {currentPage} de {totalPages}
+          <div className="text-xs font-semibold px-2 text-slate-600">
+            {currentPage} / {totalPages}
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={nextPage}
             disabled={currentPage === totalPages}
-            className="h-8 shadow-sm"
+            className="h-8 w-8 p-0 shadow-sm bg-white"
           >
-            Siguiente
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>

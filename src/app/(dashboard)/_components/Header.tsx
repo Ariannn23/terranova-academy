@@ -3,6 +3,7 @@
 import { LogOut, User } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function Header({ user }: { user?: any }) {
   const initials = user?.name
@@ -39,7 +40,12 @@ export default function Header({ user }: { user?: any }) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => {
+            toast.info("Cerrando sesión...", {
+              icon: <LogOut className="h-4 w-4" />,
+            });
+            signOut({ callbackUrl: "/login" });
+          }}
           className="text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 ml-4 hidden sm:flex"
         >
           <LogOut className="h-4 w-4 mr-2" />
@@ -50,7 +56,12 @@ export default function Header({ user }: { user?: any }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => {
+            toast.info("Cerrando sesión...", {
+              icon: <LogOut className="h-4 w-4" />,
+            });
+            signOut({ callbackUrl: "/login" });
+          }}
           className="text-slate-600 hover:text-red-600 sm:hidden ml-2"
         >
           <LogOut className="h-5 w-5" />

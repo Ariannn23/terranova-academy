@@ -4,12 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
   PaymentConceptSchema,
-  CreatePaymentSchema,
   RegisterPaymentReceiptSchema,
-  UpdatePaymentSchema,
-  PaymentTypeEnum,
 } from "@/lib/validations/payment.schema";
 import { PaymentStatus, PaymentType } from "@prisma/client";
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 
 // ==========================================
 // ACCIONES PARA CONCEPTOS DE PAGO
@@ -20,6 +18,7 @@ export async function getPaymentConcepts(type?: PaymentType) {
     const concepts = await prisma.paymentConcept.findMany({
       where: {
         ...(type ? { type } : {}),
+        active: true,
       },
       orderBy: { name: "asc" },
     });
@@ -32,7 +31,12 @@ export async function getPaymentConcepts(type?: PaymentType) {
 
 export async function createPaymentConcept(data: unknown) {
   const parsed = PaymentConceptSchema.safeParse(data);
-  if (!parsed.success) return { success: false, error: parsed.error.flatten() };
+  if (!parsed.success)
+    return {
+      success: false,
+      error: "Datos inválidos",
+      details: parsed.error.flatten(),
+    };
 
   try {
     const concept = await prisma.paymentConcept.create({
@@ -46,43 +50,153 @@ export async function createPaymentConcept(data: unknown) {
   }
 }
 
-export async function updatePaymentConcept(id: string, data: unknown) {
-  const parsed = PaymentConceptSchema.safeParse(data);
-  if (!parsed.success) return { success: false, error: parsed.error.flatten() };
-
-  try {
-    const concept = await prisma.paymentConcept.update({
-      where: { id },
-      data: parsed.data,
-    });
-    revalidatePath("/dashboard/pagos");
-    return { success: true, data: concept };
-  } catch (error: any) {
-    if (error.code === "P2025") {
-      return { success: false, error: "Concepto no encontrado" };
-    }
-    console.error("Error in updatePaymentConcept:", error);
-    return { success: false, error: "Error al actualizar concepto de pago" };
-  }
-}
-
-export async function deactivatePaymentConcept(id: string) {
-  try {
-    await prisma.paymentConcept.update({
-      where: { id },
-      data: { active: false },
-    });
-    revalidatePath("/dashboard/pagos");
-    return { success: true };
-  } catch (error) {
-    console.error("Error in deactivatePaymentConcept:", error);
-    return { success: false, error: "Error al desactivar concepto de pago" };
-  }
-}
-
 // ==========================================
 // ACCIONES PARA PAGOS Y COBROS (PAYMENTS)
 // ==========================================
+
+export async function getPaymentDashboardStats(month?: number, year?: number) {
+  try {
+    const now = new Date();
+    const targetMonth = month !== undefined ? month : now.getMonth();
+    const targetYear = year !== undefined ? year : now.getFullYear();
+
+    const startDate = startOfMonth(new Date(targetYear, targetMonth));
+    const endDate = endOfMonth(new Date(targetYear, targetMonth));
+
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
+    const [
+      paidThisMonth,
+      pendingThisMonth,
+      totalOverdue,
+      dueThisWeek,
+      latestPayments,
+    ] = await Promise.all([
+      prisma.payment.aggregate({
+        where: {
+          status: PaymentStatus.PAGADO,
+          paidAt: { gte: startDate, lte: endDate },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.payment.aggregate({
+        where: {
+          status: PaymentStatus.PENDIENTE,
+          dueDate: { gte: startDate, lte: endDate },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.payment.aggregate({
+        where: { status: PaymentStatus.VENCIDO },
+        _sum: { amount: true },
+      }),
+      prisma.payment.aggregate({
+        where: {
+          status: PaymentStatus.PENDIENTE,
+          dueDate: { gte: weekStart, lte: weekEnd },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.payment.findMany({
+        where: { status: PaymentStatus.PAGADO },
+        include: {
+          enrollment: {
+            include: {
+              student: {
+                select: { firstName: true, lastName: true, dni: true },
+              },
+              section: { include: { gradeLevel: true } },
+            },
+          },
+          concept: true,
+        },
+        orderBy: { paidAt: "desc" },
+        take: 10,
+      }),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        totalPaid: paidThisMonth._sum.amount || 0,
+        totalPending: pendingThisMonth._sum.amount || 0,
+        totalOverdue: totalOverdue._sum.amount || 0,
+        dueThisWeek: dueThisWeek._sum.amount || 0,
+        latestPayments,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getPaymentDashboardStats:", error);
+    return {
+      success: false,
+      error: "Error al cargar estadísticas financieras",
+    };
+  }
+}
+
+export async function searchStudentsForPayment(query: string) {
+  try {
+    if (!query || query.length < 2) return { success: true, data: [] };
+
+    const students = await prisma.student.findMany({
+      where: {
+        OR: [
+          { firstName: { contains: query, mode: "insensitive" } },
+          { lastName: { contains: query, mode: "insensitive" } },
+          { dni: { contains: query } },
+        ],
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        dni: true,
+        enrollments: {
+          where: { active: true },
+          include: {
+            section: { include: { gradeLevel: true } },
+          },
+        },
+      },
+      take: 10,
+    });
+
+    return { success: true, data: students };
+  } catch (error) {
+    console.error("Error in searchStudentsForPayment:", error);
+    return { success: false, error: "Error en la búsqueda rápida" };
+  }
+}
+
+export async function getStudentPendingPayments(studentId: string) {
+  try {
+    const activeEnrollment = await prisma.enrollment.findFirst({
+      where: { studentId, active: true },
+    });
+
+    if (!activeEnrollment) {
+      return {
+        success: false,
+        error: "El estudiante no tiene matrícula activa.",
+      };
+    }
+
+    const unPaid = await prisma.payment.findMany({
+      where: {
+        enrollmentId: activeEnrollment.id,
+        status: { in: [PaymentStatus.PENDIENTE, PaymentStatus.VENCIDO] },
+      },
+      include: { concept: true },
+      orderBy: { dueDate: "asc" },
+    });
+
+    return { success: true, data: unPaid };
+  } catch (error) {
+    console.error("Error in getStudentPendingPayments:", error);
+    return { success: false, error: "Error al buscar deuda." };
+  }
+}
 
 export async function getPaymentsByEnrollment(enrollmentId: string) {
   try {
@@ -101,31 +215,20 @@ export async function getPaymentsByEnrollment(enrollmentId: string) {
 }
 
 // Genera un número de recibo correlativo simple: AÑO-MES-XXXX (ej. 2026-03-0001)
-async function generateReceiptNumber(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  date: Date,
-): Promise<string> {
+async function generateReceiptNumber(tx: any, date: Date): Promise<string> {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const prefix = `${year}-${month}-`;
 
-  // Buscar el último pago registrado este mes que tenga referencia
   const lastPayment = await tx.payment.findFirst({
-    where: {
-      reference: {
-        startsWith: prefix,
-      },
-    },
-    orderBy: {
-      reference: "desc",
-    },
+    where: { reference: { startsWith: prefix } },
+    orderBy: { reference: "desc" },
   });
 
   if (!lastPayment || !lastPayment.reference) {
-    return `${prefix}0001`; // Primer recibo del mes
+    return `${prefix}0001`;
   }
 
-  // Extraer el correlativo (los últimos 4 dígitos) y sumarle 1
   const lastSequence = parseInt(lastPayment.reference.split("-")[2], 10);
   const nextSequence = String(lastSequence + 1).padStart(4, "0");
 
@@ -134,36 +237,30 @@ async function generateReceiptNumber(
 
 export async function registerPayment(data: unknown) {
   const parsed = RegisterPaymentReceiptSchema.safeParse(data);
-  if (!parsed.success) return { success: false, error: parsed.error.flatten() };
+  if (!parsed.success)
+    return {
+      success: false,
+      error: "Datos inválidos",
+      details: parsed.error.flatten(),
+    };
 
   const { paymentId, method, paidAt, notes } = parsed.data;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Obtener el pago actual y verificar matrícula
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
         include: { enrollment: true },
       });
 
-      if (!payment) {
-        throw new Error("Pago no encontrado");
-      }
-
-      if (payment.status === PaymentStatus.PAGADO) {
+      if (!payment) throw new Error("Pago no encontrado");
+      if (payment.status === PaymentStatus.PAGADO)
         throw new Error("Este registro ya se encuentra pagado");
-      }
+      if (!payment.enrollment.active)
+        throw new Error("La matrícula del estudiante no está activa.");
 
-      if (!payment.enrollment.active) {
-        throw new Error(
-          "No se puede registrar el pago. La matrícula del estudiante no está activa.",
-        );
-      }
-
-      // 2. Generar número de recibo (referencia)
       const receiptNumber = await generateReceiptNumber(tx, paidAt);
 
-      // 3. Procesar el cobro
       const updatedPayment = await tx.payment.update({
         where: { id: paymentId },
         data: {
@@ -193,105 +290,6 @@ export async function registerPayment(data: unknown) {
   }
 }
 
-// Generador masivo de mensualidades para un año académico (se ejecuta ej. cada mes mediante Cron)
-export async function generateMonthlyPayments(
-  academicYearId: string,
-  monthDate: Date,
-  amountOverride?: number,
-) {
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Obtener todas las matrículas activas del año
-      const enrollments = await tx.enrollment.findMany({
-        where: {
-          academicYearId,
-          active: true,
-        },
-      });
-
-      if (enrollments.length === 0) {
-        return { count: 0, message: "No hay alumnos matriculados" };
-      }
-
-      // 2. Buscar/Crear el concepto por defecto de Mensualidad
-      let concept = await tx.paymentConcept.findFirst({
-        where: { type: PaymentType.MENSUALIDAD, active: true },
-      });
-
-      const amountToCharge = amountOverride || concept?.amount || 0;
-
-      if (!concept) {
-        concept = await tx.paymentConcept.create({
-          data: {
-            name: "Mensualidad Regular",
-            type: PaymentType.MENSUALIDAD,
-            amount: amountToCharge,
-          },
-        });
-      }
-
-      // 3. Crear el cobro para cada estudiante para ese mes
-      // (Suponemos dueDate el día 5 del mes proporcionado)
-      const dueDate = new Date(
-        monthDate.getFullYear(),
-        monthDate.getMonth(),
-        5,
-      );
-      const startOfMonth = new Date(
-        monthDate.getFullYear(),
-        monthDate.getMonth(),
-        1,
-      );
-      const endOfMonth = new Date(
-        monthDate.getFullYear(),
-        monthDate.getMonth() + 1,
-        0,
-      );
-
-      let createdCount = 0;
-
-      for (const enr of enrollments) {
-        // Evitar doble facturación (no crear si ya tiene deuda de mensualidad ese mes)
-        const existingPayment = await tx.payment.findFirst({
-          where: {
-            enrollmentId: enr.id,
-            conceptId: concept.id,
-            dueDate: {
-              gte: startOfMonth,
-              lte: endOfMonth,
-            },
-          },
-        });
-
-        if (!existingPayment) {
-          await tx.payment.create({
-            data: {
-              enrollmentId: enr.id,
-              conceptId: concept.id,
-              amount: amountToCharge,
-              dueDate: dueDate,
-              status: PaymentStatus.PENDIENTE,
-            },
-          });
-          createdCount++;
-        }
-      }
-
-      return { count: createdCount };
-    });
-
-    revalidatePath("/dashboard/pagos");
-    return { success: true, data: result };
-  } catch (error: any) {
-    console.error("Error in generateMonthlyPayments:", error);
-    return {
-      success: false,
-      error: "Error al generar cobros mensuales masivos",
-    };
-  }
-}
-
-// Actualiza los estados de PENDIENTE a VENCIDO basados en la fecha
 export async function updateOverduePayments() {
   try {
     const today = new Date();
@@ -300,19 +298,12 @@ export async function updateOverduePayments() {
     const result = await prisma.payment.updateMany({
       where: {
         status: PaymentStatus.PENDIENTE,
-        dueDate: {
-          lt: today,
-        },
+        dueDate: { lt: today },
       },
-      data: {
-        status: PaymentStatus.VENCIDO,
-      },
+      data: { status: PaymentStatus.VENCIDO },
     });
 
-    if (result.count > 0) {
-      revalidatePath("/dashboard/pagos");
-    }
-
+    if (result.count > 0) revalidatePath("/dashboard/pagos");
     return { success: true, count: result.count };
   } catch (error) {
     console.error("Error in updateOverduePayments:", error);
@@ -320,33 +311,18 @@ export async function updateOverduePayments() {
   }
 }
 
-// ==========================================
-// REPORTES FINANCIEROS
-// ==========================================
-
 export async function getOverduePayments() {
   try {
     const payments = await prisma.payment.findMany({
-      where: {
-        status: PaymentStatus.VENCIDO,
-      },
+      where: { status: PaymentStatus.VENCIDO },
       include: {
         enrollment: {
           include: {
-            student: {
-              select: { firstName: true, lastName: true, dni: true },
-            },
-            section: {
-              select: {
-                name: true,
-                gradeLevel: { select: { name: true, level: true } },
-              },
-            },
+            student: { select: { firstName: true, lastName: true, dni: true } },
+            section: { include: { gradeLevel: true } },
           },
         },
-        concept: {
-          select: { name: true },
-        },
+        concept: { select: { name: true } },
       },
       orderBy: { dueDate: "asc" },
     });

@@ -1,4 +1,4 @@
-import { getWizardData } from "@/lib/actions/enrollments.actions";
+import { getWizardData } from "@/lib/actions/enrollment.actions";
 import { EnrollmentWizard } from "@/components/modules/enrollments/EnrollmentWizard";
 import { EmptyState } from "@/components/shared/EmptyState";
 

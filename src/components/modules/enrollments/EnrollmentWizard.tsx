@@ -22,16 +22,22 @@ import {
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { createEnrollment } from "@/lib/actions/enrollments.actions";
+import { createEnrollment } from "@/lib/actions/enrollment.actions";
 
 export function EnrollmentWizard({ initialData }: { initialData: any }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [isPending, startTransition] = useTransition();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [selectedSection, setSelectedSection] = useState<any | null>(null);
   const [errorProp, setErrorProp] = useState("");
-  const [isPending, startTransition] = useTransition();
+
+  useState(() => {
+    // Limpiar toast de navegación al montar
+    toast.dismiss("nav-new-enrollment");
+    return undefined;
+  });
 
   const { students, sections, academicYears } = initialData;
   const currentYear = academicYears[0];
@@ -55,17 +61,25 @@ export function EnrollmentWizard({ initialData }: { initialData: any }) {
     );
 
     startTransition(() => {
-      createEnrollment(selectedStudent.id, selectedSection.id, currentYear.id)
+      createEnrollment({
+        studentId: selectedStudent.id,
+        sectionId: selectedSection.id,
+        academicYearId: currentYear.id,
+      })
         .then((res) => {
           if (res.success) {
             toast.success("Alumno matriculado con éxito", { id: toastId });
             router.push("/dashboard/matriculas");
             router.refresh();
           } else {
-            toast.error(res.error || "Ocurrió un error al matricular", {
+            const errorMsg =
+              typeof res.error === "string"
+                ? res.error
+                : "Error de validación en los datos";
+            toast.error(errorMsg, {
               id: toastId,
             });
-            setErrorProp(res.error || "Error inesperado");
+            setErrorProp(errorMsg);
           }
         })
         .catch(() => {

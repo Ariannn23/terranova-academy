@@ -1,4 +1,4 @@
-import { getPaymentDashboardStats } from "@/lib/actions/payments.actions";
+import { getPaymentDashboardStats } from "@/lib/actions/payment.actions";
 import PaymentsDashboardClient from "@/components/modules/payments/PaymentsDashboardClient";
 
 export const metadata = {

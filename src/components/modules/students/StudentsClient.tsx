@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toggleStudentStatus } from "@/lib/actions/students.actions";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useDashboard } from "@/app/(dashboard)/_components/DashboardProvider";
 
 export function StudentsClient({ initialData }: { initialData: any[] }) {
   const router = useRouter();
+  const { setIsNavigating } = useDashboard();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -49,15 +48,16 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Estudiante",
       accessorKey: "firstName",
+      align: "left" as const,
       cell: (row: any) => (
-        <div className="flex items-center space-x-3 min-w-[200px]">
+        <div className="flex items-center gap-3 min-w-[220px] pl-4">
           <StudentAvatar
             name={`${row.firstName} ${row.lastName}`}
             imageUrl={row.photoUrl}
             size="sm"
           />
-          <div>
-            <p className="font-medium text-slate-900">
+          <div className="text-left">
+            <p className="font-medium text-slate-900 leading-tight">
               {row.firstName} {row.lastName}
             </p>
             <div className="flex gap-2 text-xs text-slate-500 mt-0.5">
@@ -70,61 +70,78 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
         </div>
       ),
     },
+
     {
       header: "Grado y Nivel",
       accessorKey: "grade",
+      align: "center" as const,
       cell: (row: any) => {
         const enrollment = row.enrollments?.[0];
+
         if (!enrollment)
           return (
-            <div className="text-center w-full text-slate-400">
-              Sin Matrícula
+            <div className="flex justify-center">
+              <span className="text-slate-400 text-sm">Sin Matrícula</span>
             </div>
           );
+
+        const gradeLevel = enrollment.section.gradeLevel;
+        const level = gradeLevel.level; // INICIAL | PRIMARIA | SECUNDARIA
+        const name = gradeLevel.name;
+
+        // 🔥 Ajuste estético solo para secundaria
+        let displayName = name;
+
+        if (level === "SECUNDARIA" && !name.toLowerCase().includes("grado")) {
+          displayName = name.replace("Secundaria", "Grado Secundaria");
+        }
+
         return (
-          <div className="flex justify-center flex-col items-center">
-            <p className="font-medium text-slate-700">
-              {enrollment.section.gradeLevel.name}
-            </p>
-            <p className="text-xs text-slate-500">
-              {enrollment.section.gradeLevel.level}
-            </p>
+          <div className="flex justify-center">
+            <div className="flex flex-col items-center">
+              <p className="font-medium text-slate-700 leading-tight">
+                {displayName}
+              </p>
+              <p className="text-xs text-slate-500">{level}</p>
+            </div>
           </div>
         );
       },
     },
+
     {
       header: "Estado",
       accessorKey: "status",
+      align: "center" as const,
       cell: (row: any) => (
-        <div className="flex justify-center w-full">
+        <div className="flex justify-center">
           <StatusBadge status={row.status} />
         </div>
       ),
     },
+
     {
       header: "Acciones",
       accessorKey: "actions",
-      cell: (row: any) => {
-        return (
-          <div className="flex justify-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                toast.loading("Cargando perfil del estudiante...", {
-                  id: "view-student",
-                });
-                router.push(`/dashboard/estudiantes/${row.id}`);
-              }}
-              title="Ver Perfil o Editar"
-              className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-          </div>
-        );
-      },
+      align: "center" as const,
+      cell: (row: any) => (
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              toast.loading("Cargando perfil del estudiante...", {
+                id: "view-student",
+              });
+              router.push(`/dashboard/estudiantes/${row.id}`);
+            }}
+            title="Ver Perfil"
+            className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
     },
   ];
 
@@ -134,10 +151,17 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
         title="Directorio de Estudiantes"
         description="Gestiona matriculados, históricos y sus perfiles completos."
         action={
-          <Button asChild className="bg-emerald-700 hover:bg-emerald-800">
-            <Link href="/dashboard/estudiantes/nuevo">
-              <Plus className="mr-2 h-4 w-4" /> Nuevo Estudiante
-            </Link>
+          <Button
+            className="bg-emerald-700 hover:bg-emerald-800"
+            onClick={() => {
+              toast.loading("Iniciando registro de estudiante...", {
+                id: "nav-new-student",
+              });
+              setIsNavigating(true);
+              router.push("/dashboard/estudiantes/nuevo");
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nuevo Estudiante
           </Button>
         }
       />

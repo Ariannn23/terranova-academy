@@ -1,0 +1,272 @@
+[
+  {
+    "dni": "78541230",
+    "firstName": "Liam Gael",
+    "lastName": "Torres Paz",
+    "birthDate": "2022-03-15",
+    "gender": "MASCULINO",
+    "address": "Calle Las Flores 120, Trujillo",
+    "guardians": [
+      {
+        "dni": "10254789",
+        "firstName": "Gael",
+        "lastName": "Torres",
+        "relation": "PADRE",
+        "phone": "941223366",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "79654122",
+    "firstName": "Emma Lucía",
+    "lastName": "Rojas Vite",
+    "birthDate": "2021-08-22",
+    "gender": "FEMENINO",
+    "address": "Av. Larco 850, Víctor Larco",
+    "guardians": [
+      {
+        "dni": "40558811",
+        "firstName": "Lucía",
+        "lastName": "Vite",
+        "relation": "MADRE",
+        "phone": "987445522",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "77412589",
+    "firstName": "Noah Sebastián",
+    "lastName": "Cueva Oro",
+    "birthDate": "2022-01-10",
+    "gender": "MASCULINO",
+    "address": "Jr. Junín 405, Centro Histórico",
+    "guardians": [
+      {
+        "dni": "18456213",
+        "firstName": "Sebastián",
+        "lastName": "Cueva",
+        "relation": "PADRE",
+        "phone": "963114477",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "76321455",
+    "firstName": "Mía Fernanda",
+    "lastName": "Soto Luna",
+    "birthDate": "2021-11-30",
+    "gender": "FEMENINO",
+    "address": "Urb. El Golf, Mz. C Lt. 05",
+    "guardians": [
+      {
+        "dni": "41258744",
+        "firstName": "Fernanda",
+        "lastName": "Luna",
+        "relation": "MADRE",
+        "phone": "951002233",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "75412366",
+    "firstName": "Enzo Matías",
+    "lastName": "Ruiz Vega",
+    "birthDate": "2022-05-05",
+    "gender": "MASCULINO",
+    "address": "Calle San Andrés 210, Trujillo",
+    "guardians": [
+      {
+        "dni": "15663322",
+        "firstName": "Matías",
+        "lastName": "Ruiz",
+        "relation": "PADRE",
+        "phone": "942336699",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "74112233",
+    "firstName": "Valentino",
+    "lastName": "Paz Arana",
+    "birthDate": "2017-04-12",
+    "gender": "MASCULINO",
+    "address": "Av. España 1560, Trujillo",
+    "guardians": [
+      {
+        "dni": "10887744",
+        "firstName": "Carlos",
+        "lastName": "Paz",
+        "relation": "PADRE",
+        "phone": "945112233",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "73225544",
+    "firstName": "Sofía Belén",
+    "lastName": "Mendoza Ríos",
+    "birthDate": "2016-09-19",
+    "gender": "FEMENINO",
+    "address": "Jr. Pizarro 780, Centro",
+    "guardians": [
+      {
+        "dni": "45223311",
+        "firstName": "Rocío",
+        "lastName": "Ríos",
+        "relation": "MADRE",
+        "phone": "988774411",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "72558899",
+    "firstName": "Joaquín Andrés",
+    "lastName": "Flores Gil",
+    "birthDate": "2018-01-05",
+    "gender": "MASCULINO",
+    "address": "Calle Los Cedros 304, Trujillo",
+    "guardians": [
+      {
+        "dni": "17441122",
+        "firstName": "Andrés",
+        "lastName": "Flores",
+        "relation": "PADRE",
+        "phone": "966332211",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "71447788",
+    "firstName": "Martina Paz",
+    "lastName": "Castro Vaca",
+    "birthDate": "2015-06-22",
+    "gender": "FEMENINO",
+    "address": "Urb. San Isidro, Calle A-12",
+    "guardians": [
+      {
+        "dni": "40112255",
+        "firstName": "Elena",
+        "lastName": "Vaca",
+        "relation": "MADRE",
+        "phone": "955221144",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "70336655",
+    "firstName": "Thiago Omar",
+    "lastName": "Vargas Ortiz",
+    "birthDate": "2017-10-30",
+    "gender": "MASCULINO",
+    "address": "Av. Mansiche 1120, Trujillo",
+    "guardians": [
+      {
+        "dni": "05224433",
+        "firstName": "Marta",
+        "lastName": "Ortiz",
+        "relation": "ABUELA",
+        "phone": "944110022",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "74125896",
+    "firstName": "Mateo Sebastián",
+    "lastName": "Quispe Luna",
+    "birthDate": "2009-05-12",
+    "gender": "MASCULINO",
+    "address": "Av. Larco 450, Trujillo",
+    "guardians": [
+      {
+        "dni": "10258963",
+        "firstName": "Carlos",
+        "lastName": "Quispe",
+        "relation": "PADRE",
+        "phone": "945123789",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "70258147",
+    "firstName": "Adrián Marcelo",
+    "lastName": "Tello Ruiz",
+    "birthDate": "2010-02-14",
+    "gender": "MASCULINO",
+    "address": "Calle San Andrés 415, Trujillo",
+    "guardians": [
+      {
+        "dni": "10854236",
+        "firstName": "Roberto",
+        "lastName": "Tello",
+        "relation": "PADRE",
+        "phone": "942558774",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "61254789",
+    "firstName": "Camila Fernanda",
+    "lastName": "Soto Vega",
+    "birthDate": "2009-09-30",
+    "gender": "FEMENINO",
+    "address": "Jr. Independencia 620, Centro",
+    "guardians": [
+      {
+        "dni": "41258963",
+        "firstName": "Patricia",
+        "lastName": "Vega",
+        "relation": "MADRE",
+        "phone": "988441223",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "74582136",
+    "firstName": "Iker Josué",
+    "lastName": "Paredes Blas",
+    "birthDate": "2010-07-11",
+    "gender": "MASCULINO",
+    "address": "Av. Huamán 102, Víctor Larco",
+    "guardians": [
+      {
+        "dni": "05214789",
+        "firstName": "Julia",
+        "lastName": "Blas",
+        "relation": "ABUELA",
+        "phone": "961002335",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "dni": "68954123",
+    "firstName": "Daniela Sofía",
+    "lastName": "Luna Cáceres",
+    "birthDate": "2009-12-05",
+    "gender": "FEMENINO",
+    "address": "Urb. La Merced, Mz. B Lt. 12",
+    "guardians": [
+      {
+        "dni": "18254712",
+        "firstName": "Fernando",
+        "lastName": "Luna",
+        "relation": "PADRE",
+        "phone": "951884662",
+        "isPrimary": true
+      }
+    ]
+  }
+]

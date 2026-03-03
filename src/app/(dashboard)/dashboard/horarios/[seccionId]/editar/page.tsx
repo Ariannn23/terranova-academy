@@ -1,4 +1,4 @@
-import { getSectionSchedule } from "@/lib/actions/schedules.actions";
+import { getSectionSchedule } from "@/lib/actions/schedule.actions";
 import { ScheduleGrid } from "@/components/modules/schedules/ScheduleGrid";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";

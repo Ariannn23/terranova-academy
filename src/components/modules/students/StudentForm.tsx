@@ -26,30 +26,12 @@ import {
 import { Loader2, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { createStudent, updateStudent } from "@/lib/actions/students.actions";
+import { createStudent, updateStudent } from "@/lib/actions/student.actions";
 import { uploadStudentPhoto } from "@/lib/actions/upload.actions";
-
-const studentSchema = z.object({
-  student: z.object({
-    firstName: z.string().min(2, "Mínimo 2 caracteres"),
-    lastName: z.string().min(2, "Mínimo 2 caracteres"),
-    dni: z.string().length(8, "DNI debe tener 8 dígitos"),
-    birthDate: z.string().min(1, "Requerido"),
-    gender: z.string().min(1, "Selecciona una opción"),
-    address: z.string().optional(),
-    photoUrl: z.string().optional(),
-  }),
-  guardian: z.object({
-    firstName: z.string().min(2, "Mínimo 2 caracteres"),
-    lastName: z.string().min(2, "Mínimo 2 caracteres"),
-    dni: z.string().length(8, "DNI debe tener 8 dígitos"),
-    relation: z.string().min(2, "Requerido (Ej. Padre, Madre)"),
-    phone: z.string().length(9, "Teléfono debe tener 9 dígitos"),
-    email: z.string().optional(),
-  }),
-});
-
-type StudentFormValues = z.infer<typeof studentSchema>;
+import {
+  CreateStudentSchema,
+  CreateStudentSchemaType as StudentFormValues,
+} from "@/lib/validations/student.schema";
 
 export function StudentForm({ initialData }: { initialData?: any }) {
   const router = useRouter();
@@ -62,25 +44,26 @@ export function StudentForm({ initialData }: { initialData?: any }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<StudentFormValues>({
-    resolver: zodResolver(studentSchema),
+    resolver: zodResolver(CreateStudentSchema),
     defaultValues: {
-      student: {
-        firstName: "",
-        lastName: "",
-        dni: "",
-        birthDate: "",
-        gender: "M",
-        address: "",
-        photoUrl: "",
-      },
-      guardian: {
-        firstName: "",
-        lastName: "",
-        dni: "",
-        relation: "",
-        phone: "",
-        email: "",
-      },
+      firstName: "",
+      lastName: "",
+      dni: "",
+      birthDate: "" as any,
+      gender: "M",
+      address: "",
+      photoUrl: "",
+      guardians: [
+        {
+          firstName: "",
+          lastName: "",
+          dni: "",
+          relation: "",
+          phone: "",
+          email: "",
+          isPrimary: true,
+        },
+      ],
     },
   });
 
@@ -95,23 +78,24 @@ export function StudentForm({ initialData }: { initialData?: any }) {
       setPreviewUrl(initialData.photoUrl || null);
 
       form.reset({
-        student: {
-          firstName: initialData.firstName || "",
-          lastName: initialData.lastName || "",
-          dni: initialData.dni || "",
-          birthDate: birthDateString,
-          gender: initialData.gender || "M",
-          address: initialData.address || "",
-          photoUrl: initialData.photoUrl || "",
-        },
-        guardian: {
-          firstName: g?.firstName || "",
-          lastName: g?.lastName || "",
-          dni: g?.dni || "",
-          relation: g?.relation || "",
-          phone: g?.phone || "",
-          email: g?.email || "",
-        },
+        firstName: initialData.firstName || "",
+        lastName: initialData.lastName || "",
+        dni: initialData.dni || "",
+        birthDate: birthDateString as any,
+        gender: initialData.gender || "M",
+        address: initialData.address || "",
+        photoUrl: initialData.photoUrl || "",
+        guardians: [
+          {
+            firstName: g?.firstName || "",
+            lastName: g?.lastName || "",
+            dni: g?.dni || "",
+            relation: g?.relation || "",
+            phone: g?.phone || "",
+            email: g?.email || "",
+            isPrimary: true,
+          },
+        ],
       });
     }
   }, [initialData, form]);
@@ -119,6 +103,11 @@ export function StudentForm({ initialData }: { initialData?: any }) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("La imagen excede el límite de 10 MB");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
@@ -129,7 +118,7 @@ export function StudentForm({ initialData }: { initialData?: any }) {
     setSelectedFile(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    form.setValue("student.photoUrl", "");
+    form.setValue("photoUrl", "");
   };
 
   const onSubmit = (data: StudentFormValues) => {
@@ -156,7 +145,7 @@ export function StudentForm({ initialData }: { initialData?: any }) {
 
             const uploadRes = await uploadStudentPhoto(studentId, formData);
             if (!uploadRes.success) {
-              toast.error("Datos guardados, pero hubo un error con la foto", {
+              toast.error(uploadRes.error || "Hubo un error con la foto", {
                 id: toastId,
               });
             } else {
@@ -259,7 +248,7 @@ export function StudentForm({ initialData }: { initialData?: any }) {
                       ? "Clic para cambiar fotografía"
                       : "Adjuntar fotografía del estudiante"}
                   </p>
-                  <p className="text-xs text-slate-400">JPG, PNG (Max. 5MB)</p>
+                  <p className="text-xs text-slate-400">JPG, PNG (Max. 10MB)</p>
                 </div>
               </div>
 
@@ -282,12 +271,12 @@ export function StudentForm({ initialData }: { initialData?: any }) {
               <Label htmlFor="firstName">Nombres</Label>
               <Input
                 id="firstName"
-                {...form.register("student.firstName")}
+                {...form.register("firstName")}
                 placeholder="Ej. Juan"
               />
-              {form.formState.errors.student?.firstName && (
+              {form.formState.errors.firstName && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.student.firstName.message}
+                  {form.formState.errors.firstName.message}
                 </p>
               )}
             </div>
@@ -296,12 +285,12 @@ export function StudentForm({ initialData }: { initialData?: any }) {
               <Label htmlFor="lastName">Apellidos</Label>
               <Input
                 id="lastName"
-                {...form.register("student.lastName")}
+                {...form.register("lastName")}
                 placeholder="Ej. Pérez"
               />
-              {form.formState.errors.student?.lastName && (
+              {form.formState.errors.lastName && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.student.lastName.message}
+                  {form.formState.errors.lastName.message}
                 </p>
               )}
             </div>
@@ -310,13 +299,13 @@ export function StudentForm({ initialData }: { initialData?: any }) {
               <Label htmlFor="dni">DNI</Label>
               <Input
                 id="dni"
-                {...form.register("student.dni")}
+                {...form.register("dni")}
                 placeholder="8 dígitos"
                 maxLength={8}
               />
-              {form.formState.errors.student?.dni && (
+              {form.formState.errors.dni && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.student.dni.message}
+                  {form.formState.errors.dni.message}
                 </p>
               )}
             </div>
@@ -326,11 +315,11 @@ export function StudentForm({ initialData }: { initialData?: any }) {
               <Input
                 id="birthDate"
                 type="date"
-                {...form.register("student.birthDate")}
+                {...form.register("birthDate")}
               />
-              {form.formState.errors.student?.birthDate && (
+              {form.formState.errors.birthDate && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.student.birthDate.message}
+                  {form.formState.errors.birthDate.message}
                 </p>
               )}
             </div>
@@ -338,8 +327,8 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             <div className="space-y-2">
               <Label>Género</Label>
               <Select
-                onValueChange={(val) => form.setValue("student.gender", val)}
-                defaultValue={form.getValues("student.gender")}
+                onValueChange={(val) => form.setValue("gender", val)}
+                defaultValue={form.getValues("gender")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar..." />
@@ -349,9 +338,9 @@ export function StudentForm({ initialData }: { initialData?: any }) {
                   <SelectItem value="F">Femenino</SelectItem>
                 </SelectContent>
               </Select>
-              {form.formState.errors.student?.gender && (
+              {form.formState.errors.gender && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.student.gender.message}
+                  {form.formState.errors.gender.message}
                 </p>
               )}
             </div>
@@ -359,7 +348,7 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             <div className="space-y-2">
               <Label>Dirección (Opcional)</Label>
               <Input
-                {...form.register("student.address")}
+                {...form.register("address")}
                 placeholder="Av. Principal 123"
               />
             </div>
@@ -378,12 +367,12 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             <div className="space-y-2">
               <Label>Nombres</Label>
               <Input
-                {...form.register("guardian.firstName")}
+                {...form.register("guardians.0.firstName")}
                 placeholder="Ej. María"
               />
-              {form.formState.errors.guardian?.firstName && (
+              {form.formState.errors.guardians?.[0]?.firstName && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.guardian.firstName.message}
+                  {form.formState.errors.guardians[0].firstName.message}
                 </p>
               )}
             </div>
@@ -391,12 +380,12 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             <div className="space-y-2">
               <Label>Apellidos</Label>
               <Input
-                {...form.register("guardian.lastName")}
+                {...form.register("guardians.0.lastName")}
                 placeholder="Ej. Gomez"
               />
-              {form.formState.errors.guardian?.lastName && (
+              {form.formState.errors.guardians?.[0]?.lastName && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.guardian.lastName.message}
+                  {form.formState.errors.guardians[0].lastName.message}
                 </p>
               )}
             </div>
@@ -404,13 +393,13 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             <div className="space-y-2">
               <Label>DNI</Label>
               <Input
-                {...form.register("guardian.dni")}
+                {...form.register("guardians.0.dni")}
                 placeholder="8 dígitos"
                 maxLength={8}
               />
-              {form.formState.errors.guardian?.dni && (
+              {form.formState.errors.guardians?.[0]?.dni && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.guardian.dni.message}
+                  {form.formState.errors.guardians[0].dni.message}
                 </p>
               )}
             </div>
@@ -418,22 +407,25 @@ export function StudentForm({ initialData }: { initialData?: any }) {
             <div className="space-y-2">
               <Label>Parentesco</Label>
               <Input
-                {...form.register("guardian.relation")}
+                {...form.register("guardians.0.relation")}
                 placeholder="Ej. Padre, Madre, Tío"
               />
-              {form.formState.errors.guardian?.relation && (
+              {form.formState.errors.guardians?.[0]?.relation && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.guardian.relation.message}
+                  {form.formState.errors.guardians[0].relation.message}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label>Teléfono Celular</Label>
-              <Input {...form.register("guardian.phone")} placeholder="9..." />
-              {form.formState.errors.guardian?.phone && (
+              <Input
+                {...form.register("guardians.0.phone")}
+                placeholder="9..."
+              />
+              {form.formState.errors.guardians?.[0]?.phone && (
                 <p className="text-sm text-red-500">
-                  {form.formState.errors.guardian.phone.message}
+                  {form.formState.errors.guardians[0].phone.message}
                 </p>
               )}
             </div>
@@ -442,7 +434,7 @@ export function StudentForm({ initialData }: { initialData?: any }) {
               <Label>Correo Electrónico (Opcional)</Label>
               <Input
                 type="email"
-                {...form.register("guardian.email")}
+                {...form.register("guardians.0.email")}
                 placeholder="correo@ejemplo.com"
               />
             </div>
