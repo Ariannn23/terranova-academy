@@ -45,3 +45,14 @@ ts_errors.txt
 !next.config.mjs
 !postcss.config.mjs
 !tailwind.config.ts
+
+# Debug & one-off scripts
+debug-db.ts
+test-login.ts
+prisma_error.log
+backend_analysis.md
+MASTER.md
+image/
+
+# Fix: archivo tiene espacio en el nombre
+SECURITY-PROMT .md
