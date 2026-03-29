@@ -16,29 +16,48 @@ import { Prisma } from "@prisma/client";
  */
 export async function getAcademicStructure() {
   try {
-    const activeYear = await prisma.academicYear.findFirst({
-      where: { active: true },
-      include: {
-        sections: {
-          include: {
-            gradeLevel: true,
-            teacher: {
-              select: { id: true, firstName: true, lastName: true },
+    // ⚠️ ANTES: sections: { include: { teacher: { select: {...} } } }
+    // Prisma genera SELECT FROM "Teacher" WHERE id IN (null, null, ...) cuando
+    // teacherId = null — incluso con `select` en vez de `include: true`.
+    // El bug ocurre porque Prisma hace un segundo SELECT para resolver la relación
+    // y pasa los teacherIds (incluidos los nulls) directamente al IN().
+    //
+    // FIX: Traemos secciones SIN teacher, luego teachers activos en paralelo,
+    // y resolvemos el join en memoria con un Map (idéntico a getActiveSectionsForSchedules).
+    const [activeYear, teachers] = await Promise.all([
+      prisma.academicYear.findFirst({
+        where: { active: true },
+        include: {
+          sections: {
+            include: {
+              gradeLevel: true,
+              // teacher omitido — se resuelve en memoria
             },
           },
         },
-      },
-    });
+      }),
+      prisma.teacher.findMany({
+        select: { id: true, firstName: true, lastName: true },
+      }),
+    ]);
 
     if (!activeYear) {
       return { success: false, error: "No hay un año académico activo" };
     }
 
-    // Agrupación por Niveles y Grados
+    // Índice O(1) por id de docente
+    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
+
+    // Inyectar docente en cada sección (null-safe)
+    const sectionsWithTeacher = activeYear.sections.map((s) => ({
+      ...s,
+      teacher: s.teacherId ? (teacherMap.get(s.teacherId) ?? null) : null,
+    }));
+
     const levels = ["INICIAL", "PRIMARIA", "SECUNDARIA"];
     const structure = levels
       .map((level) => {
-        const levelSections = activeYear.sections.filter(
+        const levelSections = sectionsWithTeacher.filter(
           (s) => s.gradeLevel.level === level,
         );
 
@@ -262,16 +281,32 @@ export async function saveSchedule(sectionId: string, scheduleData: any[]) {
  */
 export async function getScheduleBySection(sectionId: string) {
   try {
-    const schedules = await prisma.schedule.findMany({
-      where: { sectionId },
-      include: { course: true, teacher: true },
-      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-    });
-    return { success: true, data: schedules };
+    // ⚠️ include: { teacher: true } genera un sub-SELECT adicional de Prisma.
+    // Usamos selects explícitos + join en memoria para evitar queries inválidas.
+    const [schedules, teachers] = await Promise.all([
+      prisma.schedule.findMany({
+        where: { sectionId },
+        include: { course: true },
+        orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+      }),
+      prisma.teacher.findMany({
+        where: { active: true },
+        select: { id: true, firstName: true, lastName: true },
+      }),
+    ]);
+
+    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
+    const schedulesWithTeacher = schedules.map((s) => ({
+      ...s,
+      teacher: teacherMap.get(s.teacherId) ?? null,
+    }));
+
+    return { success: true, data: schedulesWithTeacher };
   } catch (error) {
     return { success: false, error: "Error al obtener el horario" };
   }
 }
+
 
 export async function getScheduleByTeacher(teacherId: string) {
   try {

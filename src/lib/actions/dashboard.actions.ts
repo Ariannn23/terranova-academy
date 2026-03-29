@@ -86,28 +86,23 @@ export async function getStudentsAtRisk() {
 // 3. Asistencia Crítica (Alumnos con menos del 80%)
 export async function getCriticalAttendance() {
   try {
-    // Para simplificar el KPI, devolvemos el total de incidencias de inasistencia (injustificadas)
-    // recientes en la última semana, en un app real se promedia vs dias.
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    const absencesCount = await prisma.attendance.count({
-      where: {
-        status: "FALTA_INJUSTIFICADA",
-        date: { gte: oneWeekAgo },
-      },
-    });
-
-    // Simulación del KPI % Asistencia Promedio hoy:
-    // (Total Asistencias / Total Registros de hoy)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const attendancesToday = await prisma.attendance.groupBy({
-      by: ["status"],
-      where: { date: { gte: today } },
-      _count: true,
-    });
+    // Ambas queries ahora se ejecutan en paralelo en lugar de secuencialmente
+    const [absencesCount, attendancesToday] = await Promise.all([
+      prisma.attendance.count({
+        where: { status: "FALTA_INJUSTIFICADA", date: { gte: oneWeekAgo } },
+      }),
+      prisma.attendance.groupBy({
+        by: ["status"],
+        where: { date: { gte: today } },
+        _count: true,
+      }),
+    ]);
 
     let present = 0;
     let total = 0;
@@ -121,10 +116,7 @@ export async function getCriticalAttendance() {
 
     return {
       success: true,
-      data: {
-        absencesLastWeek: absencesCount,
-        averageToday,
-      },
+      data: { absencesLastWeek: absencesCount, averageToday },
     };
   } catch (error) {
     console.error("Error en getCriticalAttendance:", error);
@@ -176,32 +168,30 @@ export async function getPriorityAlerts() {
     const recentDate = new Date();
     recentDate.setDate(recentDate.getDate() - 15);
 
-    // Usar incidentes severos como alertas
-    const incidents = await prisma.incident.findMany({
-      where: {
-        severity: "GRAVE",
-        date: { gte: recentDate },
-      },
-      include: {
-        enrollment: {
-          include: {
-            student: { select: { firstName: true, lastName: true } },
+    // Ambas queries ahora se ejecutan en paralelo en lugar de secuencialmente
+    const [incidents, disabledStudents] = await Promise.all([
+      prisma.incident.findMany({
+        where: { severity: "GRAVE", date: { gte: recentDate } },
+        include: {
+          enrollment: {
+            include: {
+              student: { select: { firstName: true, lastName: true } },
+            },
           },
         },
-      },
-      orderBy: { date: "desc" },
-      take: 3,
-    });
-
-    // Estudiantes inhabilitados que requieren revisión
-    const disabledStudents = await prisma.student.findMany({
-      where: {
-        status: StudentStatus.INHABILITADO,
-        updatedAt: { gte: recentDate },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 2,
-    });
+        orderBy: { date: "desc" },
+        take: 3,
+      }),
+      prisma.student.findMany({
+        where: {
+          status: StudentStatus.INHABILITADO,
+          updatedAt: { gte: recentDate },
+        },
+        select: { id: true, firstName: true, lastName: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+        take: 2,
+      }),
+    ]);
 
     return {
       success: true,

@@ -70,42 +70,85 @@ export async function saveGrades(data: unknown) {
   const { courseId, period, grades } = parsed.data;
 
   try {
+    // ── TRANSACCIÓN REDUCIDA: solo escrituras atómicas ─────────────────────
+    // syncStudentStatus se movió FUERA (ver abajo). Esto reduce el tiempo que
+    // la transacción mantiene abierta la conexión (y el COMMIT costoso).
+    //
+    // Antes: tx contenía upserts + calcFinal + syncStatus → COMMIT a 183ms
+    // Ahora: tx contiene solo upserts + calcFinal upserts
+    //
+    // student.status es un campo denormalizado (caché del estado calculado).
+    // Si el proceso falla después del COMMIT, las notas quedan guardadas y el
+    // status se corrige en el siguiente guardado. Esto es aceptable.
     const result = await prisma.$transaction(
       async (tx) => {
-        // 1. Guardar cada nota
-        for (const item of grades) {
-          await tx.gradeRecord.upsert({
-            where: {
-              enrollmentId_courseId_period: {
+        // ── FASE 1: Upserts de notas en paralelo ──────────────────────────
+        await Promise.all(
+          grades.map((item) =>
+            tx.gradeRecord.upsert({
+              where: {
+                enrollmentId_courseId_period: {
+                  enrollmentId: item.enrollmentId,
+                  courseId,
+                  period,
+                },
+              },
+              update: { score: item.score },
+              create: {
                 enrollmentId: item.enrollmentId,
                 courseId,
                 period,
+                score: item.score,
               },
-            },
-            update: { score: item.score },
-            create: {
-              enrollmentId: item.enrollmentId,
-              courseId,
-              period,
-              score: item.score,
-            },
-          });
+            }),
+          ),
+        );
 
-          // 2. Si el periodo no es 'FINAL', disparamos el cálculo de la nota final del curso
-          if (period !== GradePeriod.FINAL) {
-            await internalCalculateFinalGrade(tx, item.enrollmentId, courseId);
-          }
-
-          // 3. Sincronizar estado del alumno (Semáforo)
-          await syncStudentStatus(tx, item.enrollmentId);
+        // ── FASE 2: Recálculo de nota final en paralelo ───────────────────
+        // Pasamos el score recién guardado para evitar un findMany extra por alumno.
+        // internalCalculateFinalGrade solo necesita el score nuevo del periodo actual;
+        // los otros periodos los trae con un findMany filtrado (P1–P4 sin el actual).
+        if (period !== GradePeriod.FINAL) {
+          await Promise.all(
+            grades.map((item) =>
+              internalCalculateFinalGrade(
+                tx,
+                item.enrollmentId,
+                courseId,
+                period,
+                item.score,
+              ),
+            ),
+          );
         }
+
         return { count: grades.length };
       },
-      {
-        maxWait: 15000,
-        timeout: 15000,
-      },
+      { maxWait: 15000, timeout: 15000 },
     );
+
+    // ── FASE 3 (POST-TRANSACTION): Sync de estado del alumno ─────────────
+    // Corre DESPUÉS del COMMIT con await — el semáforo está actualizado
+    // antes de que la UI reciba la respuesta.
+    // Usa prisma global (no tx, que ya no existe en este punto).
+    // Si falla, las notas ya están guardadas correctamente en DB:
+    // el error se loggea pero NO revierte nada ni rompe la respuesta.
+    const uniqueEnrollmentIds = Array.from(
+      new Set(grades.map((g) => g.enrollmentId)),
+    );
+    try {
+      await Promise.all(
+        uniqueEnrollmentIds.map((enrollmentId) =>
+          syncStudentStatus(prisma, enrollmentId),
+        ),
+      );
+    } catch (syncError) {
+      console.error(
+        "[saveGrades] syncStudentStatus post-tx falló:",
+        syncError,
+      );
+      // No relanzamos — las notas están guardadas, solo el semáforo falló.
+    }
 
     revalidatePath("/dashboard/notas");
     return { success: true, data: result };
@@ -119,6 +162,7 @@ export async function saveGrades(data: unknown) {
     };
   }
 }
+
 
 /**
  * Obtiene la boleta completa del estudiante (todos los cursos, todos los periodos).
@@ -158,24 +202,42 @@ export async function calculateFinalGrade(
 
 /**
  * Helper interno para transacciones que calcula la nota final.
+ * Si se proveen `currentPeriod` y `currentScore`, se usa ese valor directamente
+ * en lugar de releer el registro que acabamos de guardar (ahorra 1 query por alumno).
  */
 async function internalCalculateFinalGrade(
   tx: any,
   enrollmentId: string,
   courseId: string,
+  currentPeriod?: GradePeriod,
+  currentScore?: number | null,
 ) {
+  // Construir el conjunto de notas de periodos intermedios.
+  // Si ya sabemos el score del periodo actual, solo pedimos los otros 3.
+  const periodsToFetch = currentPeriod
+    ? [GradePeriod.P1, GradePeriod.P2, GradePeriod.P3, GradePeriod.P4].filter(
+        (p) => p !== currentPeriod,
+      )
+    : [GradePeriod.P1, GradePeriod.P2, GradePeriod.P3, GradePeriod.P4];
+
   const records = await tx.gradeRecord.findMany({
     where: {
       enrollmentId,
       courseId,
-      period: {
-        in: [GradePeriod.P1, GradePeriod.P2, GradePeriod.P3, GradePeriod.P4],
-      },
+      period: { in: periodsToFetch },
     },
+    select: { period: true, score: true },
   });
 
-  const getScore = (p: GradePeriod) =>
-    records.find((r: any) => r.period === p)?.score ?? null;
+  // Construir mapa de scores: periodos de DB + el actual ya conocido
+  const scoreMap = new Map<GradePeriod, number | null>(
+    records.map((r: any) => [r.period, r.score]),
+  );
+  if (currentPeriod !== undefined) {
+    scoreMap.set(currentPeriod, currentScore ?? null);
+  }
+
+  const getScore = (p: GradePeriod) => scoreMap.get(p) ?? null;
 
   const finalScore = calculateFinalScore(
     getScore(GradePeriod.P1),
@@ -204,9 +266,10 @@ async function internalCalculateFinalGrade(
 
 /**
  * Sincroniza el estado (ACTIVO, OBSERVADO, etc.) de un estudiante basado en sus notas actuales.
+ * Acepta tanto un cliente de transacción (tx) como el cliente global de Prisma.
  */
-async function syncStudentStatus(tx: any, enrollmentId: string) {
-  const enrollment = await tx.enrollment.findUnique({
+async function syncStudentStatus(client: any, enrollmentId: string) {
+  const enrollment = await client.enrollment.findUnique({
     where: { id: enrollmentId },
     include: {
       student: true,
@@ -247,7 +310,7 @@ async function syncStudentStatus(tx: any, enrollmentId: string) {
   );
 
   if (enrollment.student.status !== newStatus) {
-    await tx.student.update({
+    await client.student.update({
       where: { id: enrollment.studentId },
       data: { status: newStatus },
     });

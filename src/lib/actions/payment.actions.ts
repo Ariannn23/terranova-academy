@@ -66,63 +66,96 @@ export async function getPaymentDashboardStats(month?: number, year?: number) {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    const [
-      paidThisMonth,
-      pendingThisMonth,
-      totalOverdue,
-      dueThisWeek,
-      latestPayments,
-    ] = await Promise.all([
-      prisma.payment.aggregate({
-        where: {
-          status: PaymentStatus.PAGADO,
-          paidAt: { gte: startDate, lte: endDate },
-        },
-        _sum: { amount: true },
-      }),
-      prisma.payment.aggregate({
-        where: {
-          status: PaymentStatus.PENDIENTE,
-          dueDate: { gte: startDate, lte: endDate },
-        },
-        _sum: { amount: true },
-      }),
-      prisma.payment.aggregate({
-        where: { status: PaymentStatus.VENCIDO },
-        _sum: { amount: true },
-      }),
-      prisma.payment.aggregate({
-        where: {
-          status: PaymentStatus.PENDIENTE,
-          dueDate: { gte: weekStart, lte: weekEnd },
-        },
-        _sum: { amount: true },
-      }),
+    // ── ANTES: 4 aggregate() separados + 1 findMany = 5 queries en Promise.all ──
+    // Prisma wraps aggregate en subquery: SELECT SUM FROM (SELECT ... OFFSET $1)
+    // PostgreSQL no puede usar índices en ese patrón → seq scan completo.
+    //
+    // ── AHORA: 1 $queryRaw con SUM(...) FILTER (WHERE ...) + 1 findMany ─────────
+    // PostgreSQL evalúa directamente los índices de status, paidAt y dueDate.
+    //
+    // ⚠️ SCHEMA-COUPLED: Si renombras status, paidAt, dueDate o amount en Payment,
+    // actualiza este raw query manualmente.
+    const yearStart = new Date(targetYear, 0, 1);   // 1 Jan del año académico activo
+    const yearEnd   = new Date(targetYear, 11, 31, 23, 59, 59, 999); // 31 Dic
+
+    const [statsRows, latestPayments] = await Promise.all([
+      prisma.$queryRaw<
+        {
+          paid_month: number;
+          pending_month: number;
+          total_overdue: number;
+          due_week: number;
+        }[]
+      >`
+        SELECT
+          COALESCE(SUM(amount) FILTER (
+            WHERE status = 'PAGADO'
+            AND "paidAt" >= ${startDate} AND "paidAt" <= ${endDate}
+          ), 0)::float AS paid_month,
+
+          COALESCE(SUM(amount) FILTER (
+            WHERE status = 'PENDIENTE'
+            AND "dueDate" >= ${startDate} AND "dueDate" <= ${endDate}
+          ), 0)::float AS pending_month,
+
+          -- total_overdue scoped al año académico activo para evitar full table scan
+          -- y permitir que el planner use @@index([status, dueDate])
+          COALESCE(SUM(amount) FILTER (
+            WHERE status = 'VENCIDO'
+            AND "dueDate" >= ${yearStart} AND "dueDate" <= ${yearEnd}
+          ), 0)::float AS total_overdue,
+
+          COALESCE(SUM(amount) FILTER (
+            WHERE status = 'PENDIENTE'
+            AND "dueDate" >= ${weekStart} AND "dueDate" <= ${weekEnd}
+          ), 0)::float AS due_week
+
+        FROM "Payment"
+      `,
+      // ── latestPayments: select preciso para evitar el SELECT Section separado ──
+      // ANTES: section: { include: { gradeLevel: true } }
+      //   → Prisma generaba SELECT FROM "Section" WHERE id IN ($1,$2) [~1229ms]
+      //   porque traía el objeto section completo y luego resolvía gradeLevel
+      //   en otro roundtrip.
+      // AHORA: select solo los campos de UI que necesita el componente.
       prisma.payment.findMany({
         where: { status: PaymentStatus.PAGADO },
-        include: {
+        select: {
+          id: true,
+          amount: true,
+          paidAt: true,
+          method: true,
+          reference: true,
+          concept: { select: { name: true, type: true } },
           enrollment: {
-            include: {
+            select: {
+              id: true,
               student: {
                 select: { firstName: true, lastName: true, dni: true },
               },
-              section: { include: { gradeLevel: true } },
+              section: {
+                select: {
+                  name: true,
+                  gradeLevel: { select: { name: true, level: true } },
+                },
+              },
             },
           },
-          concept: true,
         },
         orderBy: { paidAt: "desc" },
         take: 10,
       }),
     ]);
 
+    const stats = statsRows[0];
+
     return {
       success: true,
       data: {
-        totalPaid: paidThisMonth._sum.amount || 0,
-        totalPending: pendingThisMonth._sum.amount || 0,
-        totalOverdue: totalOverdue._sum.amount || 0,
-        dueThisWeek: dueThisWeek._sum.amount || 0,
+        totalPaid: stats.paid_month,
+        totalPending: stats.pending_month,
+        totalOverdue: stats.total_overdue,
+        dueThisWeek: stats.due_week,
         latestPayments,
       },
     };
@@ -134,6 +167,7 @@ export async function getPaymentDashboardStats(month?: number, year?: number) {
     };
   }
 }
+
 
 export async function searchStudentsForPayment(query: string) {
   try {
@@ -171,9 +205,14 @@ export async function searchStudentsForPayment(query: string) {
 
 export async function getStudentPendingPayments(studentId: string) {
   try {
-    const activeEnrollment = await prisma.enrollment.findFirst({
-      where: { studentId, active: true },
-    });
+    // Antes: findFirst (enrollment) LUEGO findMany (payments) — 2 queries secuenciales
+    // Ahora: ambas en paralelo; si no hay enrollment activo retornamos el error
+    const [activeEnrollment] = await Promise.all([
+      prisma.enrollment.findFirst({
+        where: { studentId, active: true },
+        select: { id: true },
+      }),
+    ]);
 
     if (!activeEnrollment) {
       return {
@@ -404,17 +443,55 @@ export async function getFinancialSummary(month: number, year: number) {
 
 export async function getFinancialReport(year: number) {
   try {
-    const months = Array.from({ length: 12 }, (_, i) => i + 1);
-    const reportList = await Promise.all(
-      months.map(async (m) => {
-        const res = await getFinancialSummary(m, year);
-        return {
-          month: m,
-          year,
-          ...res.data,
-        };
-      }),
-    );
+    // ── ANTES: 12 queries paralelas (Promise.all de 12 findMany) ─────────────────
+    // ── AHORA: 1 sola query con DATE_TRUNC, resolución en memoria ─────────────
+    //
+    // ⚠️ SCHEMA-COUPLED: Este raw query usa amount, status y dueDate
+    // de la tabla Payment. Si renombras alguna de esas columnas en
+    // schema.prisma, actualiza este query manualmente también.
+    const rows = await prisma.$queryRaw<
+      {
+        month: number;
+        status: string;
+        total: number;
+      }[]
+    >`
+      SELECT
+        EXTRACT(MONTH FROM "dueDate")::int AS month,
+        status,
+        SUM(amount)::float AS total
+      FROM "Payment"
+      WHERE EXTRACT(YEAR FROM "dueDate") = ${year}
+      GROUP BY EXTRACT(MONTH FROM "dueDate"), status
+      ORDER BY month
+    `;
+
+    // Construir el reporte mes a mes en memoria (sin más queries)
+    const reportList = Array.from({ length: 12 }, (_, i) => {
+      const m = i + 1;
+      const monthRows = rows.filter((r) => r.month === m);
+
+      let totalBilled = 0;
+      let totalPaid = 0;
+      let totalPending = 0;
+      let totalOverdue = 0;
+
+      for (const r of monthRows) {
+        totalBilled += r.total;
+        if (r.status === PaymentStatus.PAGADO) totalPaid += r.total;
+        else if (r.status === PaymentStatus.PENDIENTE) totalPending += r.total;
+        else if (r.status === PaymentStatus.VENCIDO) totalOverdue += r.total;
+      }
+
+      return {
+        month: m,
+        year,
+        totalBilled,
+        totalPaid,
+        totalPending,
+        totalOverdue,
+      };
+    });
 
     return { success: true, data: reportList };
   } catch (error) {

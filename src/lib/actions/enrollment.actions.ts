@@ -59,7 +59,15 @@ export async function getEnrollments(params: {
       };
     }
 
-    const [enrollments, total] = await prisma.$transaction([
+    // ⚠️ ANTES: prisma.$transaction([findMany, count]) — array / batch API
+    // Con @prisma/adapter-pg v7, el batch API saca UN solo cliente del pool
+    // y ejecuta ambas queries en él de forma concurrente via pipelining interno.
+    // pg v8 detecta las dos llamadas a client.query() simultáneas y emite:
+    //   DeprecationWarning: Calling client.query() when the client is already
+    //   executing a query is deprecated and will be removed in pg@9.0
+    //
+    // AHORA: Promise.all — el pool asigna conexiones independientes por query.
+    const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
         where,
         skip,
@@ -75,6 +83,7 @@ export async function getEnrollments(params: {
       }),
       prisma.enrollment.count({ where }),
     ]);
+
 
     return {
       success: true,
@@ -100,7 +109,12 @@ export async function getEnrollmentById(id: string) {
       where: { id },
       include: {
         student: { include: { guardians: true } },
-        section: { include: { gradeLevel: true, teacher: true } },
+        section: {
+          // ⚠️ teacher: true removido — section.teacherId es nullable (String?).
+          // Prisma genera WHERE id IN (null) cuando teacherId = null → 1 query inválida.
+          // Se resuelve con un lookup condicional post-query en memoria.
+          include: { gradeLevel: true },
+        },
         academicYear: true,
         gradeRecords: { include: { course: true } },
         payments: { include: { concept: true }, orderBy: { dueDate: "asc" } },
@@ -112,12 +126,28 @@ export async function getEnrollmentById(id: string) {
     if (!enrollment)
       return { success: false, error: "Matrícula no encontrada" };
 
-    return { success: true, data: enrollment };
+    // Adjuntar docente tutor de la sección solo si existe teacherId
+    let sectionTeacher = null;
+    if (enrollment.section.teacherId) {
+      sectionTeacher = await prisma.teacher.findUnique({
+        where: { id: enrollment.section.teacherId },
+        select: { id: true, firstName: true, lastName: true, photoUrl: true },
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        ...enrollment,
+        section: { ...enrollment.section, teacher: sectionTeacher },
+      },
+    };
   } catch (error) {
     console.error("Error in getEnrollmentById:", error);
     return { success: false, error: "Error al obtener el detalle" };
   }
 }
+
 
 /**
  * Obtener matrículas por sección

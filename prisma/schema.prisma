@@ -283,7 +283,18 @@ model Payment {
 
   enrollment Enrollment     @relation(fields: [enrollmentId], references: [id])
   concept    PaymentConcept @relation(fields: [conceptId], references: [id])
+
+  // Índices para acelerar las queries más frecuentes en /dashboard/pagos:
+  // - Filtrado por estado (PENDIENTE, VENCIDO, PAGADO)
+  // - Filtrado por rango de fechas de vencimiento
+  // - Ordenación por fecha de pago (reportes de pagos recientes)
+  // - Filtrado combinado estado + fecha (el más común en producción)
+  @@index([status])
+  @@index([dueDate])
+  @@index([paidAt])
+  @@index([status, dueDate])
 }
+
 
 model Incident {
   id           String           @id @default(cuid())

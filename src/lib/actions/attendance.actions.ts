@@ -120,10 +120,15 @@ export async function getAttendanceByStudent(
       return { success: false, error: "Año inválido" };
     }
 
-    // Verificar que la matrícula existe
+    // Verificar que la matrícula existe — select solo los campos necesarios
+    // en lugar de include: { student: true, section: true } que trae todas las columnas
     const enrollment = await prisma.enrollment.findUnique({
       where: { id: enrollmentId },
-      include: { student: true, section: true },
+      select: {
+        id: true,
+        student: { select: { firstName: true, lastName: true, dni: true } },
+        section: { select: { name: true } },
+      },
     });
 
     if (!enrollment) {
@@ -415,68 +420,97 @@ export async function getCriticalAttendance(input?: unknown) {
 
     const { sectionId } = parsedData;
 
-    // Obtener matrículas activas
-    let enrollmentFilter: any = { active: true };
-    if (sectionId) {
-      enrollmentFilter = { ...enrollmentFilter, sectionId };
-    }
-
+    // Obtener matrículas activas — solo los campos que necesitamos
     const enrollments = await prisma.enrollment.findMany({
-      where: enrollmentFilter,
-      include: {
-        student: true,
-        section: { include: { gradeLevel: true } },
-        academicYear: true,
+      where: { active: true, ...(sectionId ? { sectionId } : {}) },
+      select: {
+        id: true,
+        academicYearId: true,
+        student: { select: { firstName: true, lastName: true, dni: true } },
+        section: {
+          select: { name: true, gradeLevel: { select: { name: true } } },
+        },
       },
     });
 
-    // Para cada matrícula, calcular porcentaje de faltas injustificadas
+    if (enrollments.length === 0) {
+      return { success: true, data: { count: 0, students: [] } };
+    }
+
+    // ── ANTES: 2 queries por alumno dentro de un for loop = N+1 ──────────
+    // ── DESPUÉS: 2 queries totales, independientemente del nº de alumnos ─
+
+    const enrollmentIds = enrollments.map((e) => e.id);
+    // Obtener todos los años académicos únicos para traer los feriados de una vez
+    const uniqueYearIds = Array.from(new Set(enrollments.map((e) => e.academicYearId)));
+
+    // 1 sola query para todas las asistencias de todos los alumnos
+    // 1 sola query para todos los días festivos de los años involucrados
+    const [allAttendances, allHolidays] = await Promise.all([
+      prisma.attendance.findMany({
+        where: { enrollmentId: { in: enrollmentIds } },
+        select: { enrollmentId: true, date: true, status: true },
+      }),
+      prisma.calendarEvent.findMany({
+        where: {
+          academicYearId: { in: uniqueYearIds },
+          type: "FERIADO",
+        },
+        select: { academicYearId: true, date: true },
+      }),
+    ]);
+
+    // Construir un Set de fechas festivas por año académico para O(1) lookup
+    const holidaysByYear = new Map<string, Set<string>>();
+    for (const h of allHolidays) {
+      if (!holidaysByYear.has(h.academicYearId)) {
+        holidaysByYear.set(h.academicYearId, new Set());
+      }
+      holidaysByYear
+        .get(h.academicYearId)!
+        .add(h.date.toISOString().split("T")[0]);
+    }
+
+    // Agrupar asistencias por enrollmentId en memoria
+    const attendanceByEnrollment = new Map<string, typeof allAttendances>();
+    for (const a of allAttendances) {
+      if (!attendanceByEnrollment.has(a.enrollmentId)) {
+        attendanceByEnrollment.set(a.enrollmentId, []);
+      }
+      attendanceByEnrollment.get(a.enrollmentId)!.push(a);
+    }
+
+    // Calcular porcentaje de faltas injustificadas en memoria (sin más queries)
     const criticalStudents = [];
 
     for (const enrollment of enrollments) {
-      // Obtener asistencias
-      const attendances = await prisma.attendance.findMany({
-        where: { enrollmentId: enrollment.id },
-      });
+      const yearHolidays =
+        holidaysByYear.get(enrollment.academicYearId) ?? new Set<string>();
+      const attendances = attendanceByEnrollment.get(enrollment.id) ?? [];
 
-      // Obtener días festivos
-      const holidays = await prisma.calendarEvent.findMany({
-        where: {
-          academicYearId: enrollment.academicYearId,
-          type: "FERIADO",
-        },
-      });
-
-      const holidayDates = holidays.map(
-        (h) => h.date.toISOString().split("T")[0],
+      const validAttendances = attendances.filter(
+        (a) => !yearHolidays.has(a.date.toISOString().split("T")[0]),
       );
 
-      // Filtrar asistencias que no sean en días festivos
-      const validAttendances = attendances.filter((a) => {
-        const dateStr = a.date.toISOString().split("T")[0];
-        return !holidayDates.includes(dateStr);
-      });
+      const totalDays = validAttendances.length;
+      if (totalDays === 0) continue;
 
       const injustificada = validAttendances.filter(
         (a) => a.status === "FALTA_INJUSTIFICADA",
       ).length;
-      const totalDays = validAttendances.length;
+      const injustificadaPercent = (injustificada / totalDays) * 100;
 
-      if (totalDays > 0) {
-        const injustificadaPercent = (injustificada / totalDays) * 100;
-
-        if (injustificadaPercent > RISK_ABSENCE_PERCENT) {
-          criticalStudents.push({
-            enrollmentId: enrollment.id,
-            studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
-            studentDni: enrollment.student.dni,
-            section: enrollment.section.name,
-            level: enrollment.section.gradeLevel.name,
-            unjustifiedAbsences: injustificada,
-            totalDays,
-            percentage: Math.round(injustificadaPercent * 100) / 100,
-          });
-        }
+      if (injustificadaPercent > RISK_ABSENCE_PERCENT) {
+        criticalStudents.push({
+          enrollmentId: enrollment.id,
+          studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
+          studentDni: enrollment.student.dni,
+          section: enrollment.section.name,
+          level: enrollment.section.gradeLevel.name,
+          unjustifiedAbsences: injustificada,
+          totalDays,
+          percentage: Math.round(injustificadaPercent * 100) / 100,
+        });
       }
     }
 

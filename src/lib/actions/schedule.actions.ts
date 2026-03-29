@@ -5,34 +5,47 @@ import { revalidatePath } from "next/cache";
 
 export async function getSectionSchedule(sectionId: string) {
   try {
-    const section = await prisma.section.findUnique({
-      where: { id: sectionId },
-      include: {
-        gradeLevel: {
-          include: { courses: true },
-        },
-        schedules: {
-          include: {
-            course: true,
-            teacher: true,
+    // Fetch section and active teachers in parallel.
+    // ⚠️ include: { teacher: true } inside schedules causes Prisma to generate
+    //    SELECT FROM "Teacher" WHERE id IN (...) — which returns null entries when
+    //    teacherId is null. We avoid this by joining teachers in memory instead.
+    const [section, teachers] = await Promise.all([
+      prisma.section.findUnique({
+        where: { id: sectionId },
+        include: {
+          gradeLevel: {
+            include: { courses: true },
+          },
+          schedules: {
+            include: {
+              course: true,
+              // teacher omitted — joined in memory below
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.teacher.findMany({
+        where: { active: true },
+        orderBy: { lastName: "asc" },
+      }),
+    ]);
 
     if (!section) return { success: false, error: "Sección no encontrada." };
 
-    // Get active teachers for the dropdown
-    const teachers = await prisma.teacher.findMany({
-      where: { active: true },
-      orderBy: { lastName: "asc" },
-    });
+    // Build teacher map for O(1) lookup
+    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
+
+    // Attach teacher to each schedule block (null-safe)
+    const schedulesWithTeacher = section.schedules.map((s: any) => ({
+      ...s,
+      teacher: s.teacherId ? (teacherMap.get(s.teacherId) ?? null) : null,
+    }));
 
     return {
       success: true,
       data: {
         section,
-        schedules: section.schedules,
+        schedules: schedulesWithTeacher,
         courses: section.gradeLevel.courses,
         teachers,
       },
@@ -45,6 +58,7 @@ export async function getSectionSchedule(sectionId: string) {
     };
   }
 }
+
 
 export async function checkTeacherConflict(
   teacherId: string,
@@ -163,25 +177,49 @@ export async function getActiveSectionsForSchedules() {
   try {
     const activeYear = await prisma.academicYear.findFirst({
       where: { active: true },
+      select: { id: true },
     });
 
     if (!activeYear) {
       return { success: false, error: "No hay año académico activo." };
     }
 
-    const sections = await prisma.section.findMany({
-      where: { academicYearId: activeYear.id },
-      include: {
-        gradeLevel: true,
-        teacher: true,
-        _count: {
-          select: { schedules: true },
+    // ── ANTES: include: { teacher: true } generaba la query inválida ──────────
+    //   SELECT FROM "Teacher" WHERE "id" IN (null, null, null, ...) [1340ms]
+    //   Causa: Prisma hace un segundo SELECT para los teacherId relacionados.
+    //   Cuando teacherId = null en la Section, pasa null al IN() → query inválida.
+    //
+    // ── AHORA: Traemos secciones y docentes en paralelo, join en memoria ───────
+    //   2 queries limpias, sin nulls en el IN(), sin roundtrip extra.
+    const [sections, teachers] = await Promise.all([
+      prisma.section.findMany({
+        where: { academicYearId: activeYear.id },
+        select: {
+          id: true,
+          name: true,
+          teacherId: true,
+          gradeLevelId: true,
+          gradeLevel: { select: { id: true, name: true, level: true, order: true } },
+          _count: { select: { schedules: true } },
         },
-      },
-      orderBy: [{ gradeLevel: { order: "asc" } }, { name: "asc" }],
-    });
+        orderBy: [{ gradeLevel: { order: "asc" } }, { name: "asc" }],
+      }),
+      prisma.teacher.findMany({
+        where: { active: true },
+        select: { id: true, firstName: true, lastName: true, photoUrl: true },
+      }),
+    ]);
 
-    return { success: true, data: sections };
+    // Índice de docentes para O(1) lookup en memoria
+    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
+
+    // Unir docente a su sección (null-safe: si teacherId es null → teacher: null)
+    const sectionsWithTeacher = sections.map((s) => ({
+      ...s,
+      teacher: s.teacherId ? (teacherMap.get(s.teacherId) ?? null) : null,
+    }));
+
+    return { success: true, data: sectionsWithTeacher };
   } catch (error) {
     console.error("Error fetching sections for schedules:", error);
     return {
@@ -190,3 +228,4 @@ export async function getActiveSectionsForSchedules() {
     };
   }
 }
+

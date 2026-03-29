@@ -5,7 +5,23 @@ import { prisma } from "@/lib/prisma";
 import { Level } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Guard 1: solo disponible en entornos no-productivos
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Not available in production" },
+      { status: 403 },
+    );
+  }
+
+  // Guard 2: requiere token secreto como query param
+  // Llamada válida: /api/seed?token=TU_SEED_TOKEN
+  const { searchParams } = new URL(request.url);
+  const token = searchParams.get("token");
+  if (!token || token !== process.env.SEED_TOKEN) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const results: string[] = [];
 
@@ -85,13 +101,11 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: " Seed completado",
+      message: "✅ Seed completado",
       counts,
       results,
-      login: {
-        email: "director@terranova.edu.pe",
-        password: "Admin1234!",
-      },
+      // ⚠️ Las credenciales NO se devuelven en la respuesta HTTP.
+      // Consulta tu .env.local o la documentación interna del proyecto.
     });
   } catch (error) {
     const err = error as Error;
