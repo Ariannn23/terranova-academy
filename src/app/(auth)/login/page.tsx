@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { LoginSchema, type LoginFormValues } from "@/lib/validations/auth.schema";
 import { loginAction } from "@/lib/actions/auth.actions";
 import { toast } from "sonner";
 
@@ -20,17 +20,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2, Mail, Lock } from "lucide-react";
 
-// Esquema de validación del formulario
-const LoginSchema = z.object({
-  email: z.string().email("Correo electrónico inválido"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
-});
-
 export default function LoginPage() {
   const [errorProp, setErrorProp] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<z.infer<typeof LoginSchema>>({
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
       email: "",
@@ -38,7 +32,7 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof LoginSchema>) => {
+  const onSubmit = (values: LoginFormValues) => {
     setErrorProp("");
     const toastId = toast.loading("Verificando credenciales...");
     startTransition(() => {
@@ -165,12 +159,12 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-slate-500 mt-8">
             ¿Olvidaste tu contraseña?{" "}
-            <a
-              href="/login/recover"
-              className="font-medium text-emerald-700 hover:underline"
+            <span
+              title="Próximamente"
+              className="font-medium text-slate-400 cursor-not-allowed select-none"
             >
               Recupérala aquí
-            </a>
+            </span>
           </p>
         </div>
       </div>

@@ -6,6 +6,7 @@ import {
   getPriorityAlerts,
   getUpcomingPayments,
 } from "@/lib/actions/dashboard.actions";
+import { getFinancialReport } from "@/lib/actions/payment.actions";
 
 import { KPICard } from "@/components/modules/dashboard/KPICard";
 import { AlertList } from "@/components/modules/dashboard/AlertList";
@@ -16,12 +17,18 @@ import { AttendanceChart } from "@/components/modules/dashboard/AttendanceChart"
 import { GraduationCap, Users, CalendarCheck, CreditCard } from "lucide-react";
 
 export default async function DashboardPage() {
-  // 1. Data Fetching secuencial para evitar saturar el pool de conexiones de la BD
-  const financialRes = await getFinancialSummary();
-  const riskRes = await getStudentsAtRisk();
-  const attendanceRes = await getCriticalAttendance();
-  const alertsRes = await getPriorityAlerts();
-  const upcomingRes = await getUpcomingPayments();
+  const currentYear = new Date().getFullYear();
+
+  // 1. Data Fetching en paralelo — todas las queries independientes entre sí
+  const [financialRes, riskRes, attendanceRes, alertsRes, upcomingRes, reportRes] =
+    await Promise.all([
+      getFinancialSummary(),
+      getStudentsAtRisk(),
+      getCriticalAttendance(),
+      getPriorityAlerts(),
+      getUpcomingPayments(),
+      getFinancialReport(currentYear),
+    ]);
 
   // 2. Extraer los datos brutos del response.
   const financials =
@@ -45,19 +52,29 @@ export default async function DashboardPage() {
 
   // Transformar de crudo a estructura de la UI de forma limpia:
 
-  // A) Formatear las Alertas Prioritarias (Mixeando Inhabilitados, Incidentes y Pagos urgentes)
-  const mappedAlerts: any[] = [];
-  priorityAlertsData.incidents?.forEach((inc: any) => {
+  // Tipo local para las alertas del panel derecho
+  type DashboardAlert = {
+    id: string;
+    type: "INCIDENT" | "DISABLED";
+    title: string;
+    subtitle: string;
+    date: Date;
+    urgency: "HIGH";
+  };
+
+  // A) Formatear las Alertas Prioritarias
+  const mappedAlerts: DashboardAlert[] = [];
+  priorityAlertsData.incidents?.forEach((inc) => {
     mappedAlerts.push({
       id: `inc-${inc.id}`,
       type: "INCIDENT",
       title: "Incidente Severo Reportado",
-      subtitle: `${inc.enrollment?.student?.firstName || ""} ${inc.enrollment?.student?.lastName || ""}`,
+      subtitle: `${inc.enrollment?.student?.firstName ?? ""} ${inc.enrollment?.student?.lastName ?? ""}`,
       date: inc.date,
       urgency: "HIGH",
     });
   });
-  priorityAlertsData.disabledStudents?.forEach((stu: any) => {
+  priorityAlertsData.disabledStudents?.forEach((stu) => {
     mappedAlerts.push({
       id: `stu-${stu.id}`,
       type: "DISABLED",
@@ -67,34 +84,29 @@ export default async function DashboardPage() {
       urgency: "HIGH",
     });
   });
-  // Asegurar solo top 5
   const topAlerts = mappedAlerts.slice(0, 5);
 
-  // B) Datos simulados/calculados para gráficas por falta de data histórica profunda en seed
-  const mockRevenueData = [
-    {
-      month: "Ene",
-      ingresos: financials.totalCollected * 0.2,
-      pendientes: financials.totalPending * 0.1,
-    },
-    {
-      month: "Feb",
-      ingresos: financials.totalCollected * 0.8,
-      pendientes: financials.totalOverdue,
-    },
-    {
-      month: "Mar",
-      ingresos: financials.totalCollected,
-      pendientes: financials.totalPending,
-    },
-  ];
+  // B) Gráfica de ingresos — datos reales del reporte anual
+  const MONTH_NAMES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const reportData = reportRes.success && reportRes.data ? reportRes.data : [];
+  // Mostrar solo los meses con actividad (totalBilled > 0) o hasta el mes actual
+  const currentMonth = new Date().getMonth() + 1;
+  const revenueData = reportData
+    .filter((r) => r.month <= currentMonth)
+    .map((r) => ({
+      month: MONTH_NAMES[r.month - 1],
+      ingresos: r.totalPaid,
+      pendientes: r.totalPending + r.totalOverdue,
+    }));
 
+  // C) Gráfica de asistencia — promedio real del dashboard (desglose diario no disponible sin query adicional)
+  const avgToday = attendance.averageToday || 96;
   const mockAttendanceData = [
-    { date: "Lun", porcentaje: 98 },
-    { date: "Mar", porcentaje: 95 },
-    { date: "Mié", porcentaje: 99 },
-    { date: "Jue", porcentaje: 94 },
-    { date: "Vie", porcentaje: attendance.averageToday || 96 },
+    { date: "Lun", porcentaje: avgToday },
+    { date: "Mar", porcentaje: avgToday },
+    { date: "Mié", porcentaje: avgToday },
+    { date: "Jue", porcentaje: avgToday },
+    { date: "Vie", porcentaje: avgToday },
   ];
 
   return (
@@ -151,7 +163,7 @@ export default async function DashboardPage() {
         {/* Gráfica de Ingresos (Ocupa 2 columnas) */}
         <div className="lg:col-span-2 space-y-6">
           <div className="h-[350px]">
-            <RevenueChart data={mockRevenueData} />
+            <RevenueChart data={revenueData} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[320px] h-auto">
