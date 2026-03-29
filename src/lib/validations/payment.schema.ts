@@ -80,3 +80,9 @@ export const UpdatePaymentSchema = z.object({
 });
 
 export type UpdatePaymentSchemaType = z.infer<typeof UpdatePaymentSchema>;
+
+export const PaymentFormSchema = z.object({
+  paymentId: z.string().min(1, "Selecciona una cuota a pagar"),
+  method: z.string().min(1, "Selecciona un método de pago"),
+  referenceImage: z.any().optional(),
+});
