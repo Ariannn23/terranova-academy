@@ -18,9 +18,11 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useDashboard } from "@/app/(dashboard)/_components/DashboardProvider";
 
 export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
   const router = useRouter();
+  const { setIsNavigating } = useDashboard();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [yearFilter, setYearFilter] = useState("ALL");
@@ -151,6 +153,7 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
               toast.loading("Iniciando registro de matrícula...", {
                 id: "nav-new-enrollment",
               });
+              setIsNavigating(true);
               router.push("/dashboard/matriculas/nueva");
             }}
           >

@@ -17,9 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Plus, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useDashboard } from "@/app/(dashboard)/_components/DashboardProvider";
 
 export function StudentsClient({ initialData }: { initialData: any[] }) {
   const router = useRouter();
+  const { setIsNavigating } = useDashboard();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -155,6 +157,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
               toast.loading("Iniciando registro de estudiante...", {
                 id: "nav-new-student",
               });
+              setIsNavigating(true);
               router.push("/dashboard/estudiantes/nuevo");
             }}
           >

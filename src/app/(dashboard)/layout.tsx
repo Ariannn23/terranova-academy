@@ -2,7 +2,11 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Sidebar from "./_components/Sidebar";
 import Header from "./_components/Header";
-import { InitialLoader } from "./_components/InitialLoader";
+import {
+  DashboardProvider,
+  MainContentWrapper,
+} from "./_components/DashboardProvider";
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -16,14 +20,16 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
-      <Sidebar />
-      <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-        <Header user={session.user} />
-        <main className="flex-1 w-full mx-auto">
-          <InitialLoader>{children}</InitialLoader>
-        </main>
+    <DashboardProvider>
+      <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
+        <Sidebar />
+        <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+          <Header user={session.user} />
+          <main className="flex-1 w-full mx-auto">
+            <MainContentWrapper>{children}</MainContentWrapper>
+          </main>
+        </div>
       </div>
-    </div>
+    </DashboardProvider>
   );
 }

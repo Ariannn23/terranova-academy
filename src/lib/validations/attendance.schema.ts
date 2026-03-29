@@ -82,11 +82,3 @@ export const SectionAttendanceReportSchema = z.object({
 export type SectionAttendanceReport = z.infer<
   typeof SectionAttendanceReportSchema
 >;
-
-export interface StudentAttendanceInput {
-  enrollmentId: string;
-  studentName: string;
-  studentDni: string;
-  status: AttendanceStatus | null;
-  justification?: string;
-}

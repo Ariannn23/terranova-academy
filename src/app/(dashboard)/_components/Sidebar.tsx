@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useDashboard } from "./DashboardProvider";
 
 const modules = [
   { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
@@ -49,8 +50,13 @@ const modules = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { setIsNavigating } = useDashboard();
 
   const handleNavigation = (href: string) => {
+    // Solo activamos loader si la ruta es realmente diferente a la actual
+    if (pathname !== href) {
+      setIsNavigating(true);
+    }
     setIsOpen(false);
   };
 

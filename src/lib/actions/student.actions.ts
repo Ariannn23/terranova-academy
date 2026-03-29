@@ -61,8 +61,6 @@ export async function getStudents(
   }
 }
 
-export type StudentProfileResult = NonNullable<Awaited<ReturnType<typeof getStudentById>>["data"]>;
-
 export async function getStudentById(id: string) {
   try {
     const student = await prisma.student.findUnique({

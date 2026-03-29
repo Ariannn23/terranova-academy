@@ -186,7 +186,6 @@ export async function searchStudentsForPayment(query: string) {
         firstName: true,
         lastName: true,
         dni: true,
-        code: true,
         enrollments: {
           where: { active: true },
           include: {
@@ -203,8 +202,6 @@ export async function searchStudentsForPayment(query: string) {
     return { success: false, error: "Error en la búsqueda rápida" };
   }
 }
-
-export type SearchStudentResult = NonNullable<Awaited<ReturnType<typeof searchStudentsForPayment>>["data"]>[0];
 
 export async function getStudentPendingPayments(studentId: string) {
   try {
@@ -331,8 +328,6 @@ export async function registerPayment(data: unknown) {
     };
   }
 }
-
-export type ReceiptData = NonNullable<Awaited<ReturnType<typeof registerPayment>>["data"]>;
 
 export async function updateOverduePayments() {
   try {

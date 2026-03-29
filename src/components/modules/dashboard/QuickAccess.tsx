@@ -10,8 +10,18 @@ import {
   FileSearch,
   Settings,
 } from "lucide-react";
+import { useDashboard } from "@/app/(dashboard)/_components/DashboardProvider";
+import { usePathname } from "next/navigation";
 
 export function QuickAccess() {
+  const { setIsNavigating } = useDashboard();
+  const pathname = usePathname();
+
+  const handleNavigation = (href: string) => {
+    if (pathname !== href) {
+      setIsNavigating(true);
+    }
+  };
 
   const actions = [
     {
@@ -63,6 +73,7 @@ export function QuickAccess() {
             <Link
               key={action.title}
               href={action.href}
+              onClick={() => handleNavigation(action.href)}
               className="flex flex-col items-center justify-center p-4 text-center rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all group"
             >
               <div
