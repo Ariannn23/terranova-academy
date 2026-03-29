@@ -13,7 +13,16 @@ import { IncidentReportPDF } from "@/components/pdf/IncidentReportPDF";
 import { StudentIncidentsPDF } from "@/components/pdf/StudentIncidentsPDF";
 import { StudentDisabilitiesPDF } from "@/components/pdf/StudentDisabilitiesPDF";
 
+import { auth } from "@/lib/auth";
+
 export async function GET(request: NextRequest) {
+  // Guard: requiere sesión activa
+  const session = await auth();
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get("type");
