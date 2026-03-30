@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { searchStudentsForPayment, SearchStudentResult } from "@/lib/actions/payment.actions";
 import { toast } from "sonner";
 
-export function usePaymentSearch() {
+export function useStudentSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchStudentResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);

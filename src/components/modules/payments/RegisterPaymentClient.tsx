@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ReceiptModal } from "./ReceiptModal";
 
-import { usePaymentSearch } from "./hooks/usePaymentSearch";
+import { useStudentSearch } from "@/components/shared/hooks/useStudentSearch";
 import { usePaymentForm } from "./hooks/usePaymentForm";
 import { PaymentSearchInput } from "./_components/PaymentSearchInput";
 import { PendingPaymentsList } from "./_components/PendingPaymentsList";
@@ -29,7 +29,7 @@ export default function RegisterPaymentClient() {
     selectedStudent,
     setSelectedStudent,
     clearSearch,
-  } = usePaymentSearch();
+  } = useStudentSearch();
 
   const {
     form,
