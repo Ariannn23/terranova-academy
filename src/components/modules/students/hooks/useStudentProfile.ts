@@ -18,7 +18,7 @@ export function useStudentProfile(student: StudentProfileResult) {
         acc[gr.courseId].grades.push({
           period: gr.period,
           score: gr.score !== null ? Number(gr.score) : null,
-          isConfigured: gr.gradeConfig?.active ?? false,
+          isConfigured: (gr as any).gradeConfig?.active ?? false,
         });
       }
     }

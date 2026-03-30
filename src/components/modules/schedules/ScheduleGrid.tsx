@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ScheduleCell } from "./ScheduleCell";
+import { ScheduleCellModal } from "./_components/ScheduleCellModal";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ export function ScheduleGrid({
   courses: any[];
   teachers: any[];
 }) {
+  const [selectedCell, setSelectedCell] = useState<any | null>(null);
+
   useEffect(() => {
     toast.dismiss();
   }, []);
@@ -109,12 +112,15 @@ export function ScheduleGrid({
                   return (
                     <ScheduleCell
                       key={`${day.id}-${block.startTime}`}
-                      sectionId={section.id}
-                      dayOfWeek={day.id}
-                      block={block}
                       schedule={currentSchedule}
-                      courses={courses}
-                      teachers={teachers}
+                      onClick={() =>
+                        setSelectedCell({
+                          sectionId: section.id,
+                          dayOfWeek: day.id,
+                          block,
+                          schedule: currentSchedule,
+                        })
+                      }
                     />
                   );
                 })
@@ -123,6 +129,14 @@ export function ScheduleGrid({
           ))}
         </div>
       </div>
+
+      <ScheduleCellModal
+        isOpen={!!selectedCell}
+        onClose={() => setSelectedCell(null)}
+        data={selectedCell}
+        courses={courses}
+        teachers={teachers}
+      />
     </div>
   );
 }

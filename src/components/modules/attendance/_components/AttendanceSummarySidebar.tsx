@@ -1,4 +1,10 @@
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BadgeInfo, Save, Loader2 } from "lucide-react";
 
@@ -19,7 +25,7 @@ export function AttendanceSummarySidebar({
   stats,
   isLoadingGrid,
   isSaving,
-  handleSave
+  handleSave,
 }: AttendanceSummarySidebarProps) {
   return (
     <Card className="sticky top-6">
@@ -67,7 +73,8 @@ export function AttendanceSummarySidebar({
           <div className="flex items-start gap-3 p-3 text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-lg">
             <BadgeInfo className="h-5 w-5 shrink-0 mt-0.5" />
             <p>
-              Falta marcar la asistencia a <strong>{stats.unmarkedCount}</strong> alumno(s).
+              Falta marcar la asistencia a{" "}
+              <strong>{stats.unmarkedCount}</strong> alumno(s).
             </p>
           </div>
         )}
@@ -86,7 +93,7 @@ export function AttendanceSummarySidebar({
           ) : (
             <>
               <Save className="mr-1 h-5 w-5" />
-              Guardar Asistencia Diaria
+              Guardar Asistencia
             </>
           )}
         </Button>

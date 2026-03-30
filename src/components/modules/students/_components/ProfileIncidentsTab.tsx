@@ -52,9 +52,9 @@ export function ProfileIncidentsTab({
                       {d.reason === "DOCUMENTACION" && "🚨 Falta de Documentos"}
                     </Badge>
                     <span className="text-xs text-slate-500 font-medium">
-                      {format(new Date(d.createdAt), "dd MMM yyyy", {
+                      {d.createdAt ? format(new Date(d.createdAt), "dd MMM yyyy", {
                         locale: es,
-                      })}
+                      }) : "Sin fecha"}
                     </span>
                   </div>
                   <p className="text-slate-700 text-sm">{d.description}</p>
@@ -104,16 +104,12 @@ export function ProfileIncidentsTab({
                       </span>
                     </div>
                     <span className="text-xs text-slate-500">
-                      {format(new Date(inc.date), "dd MMM yyyy", {
+                      {inc.date ? format(new Date(inc.date), "dd MMM yyyy", {
                         locale: es,
-                      })}
+                      }) : "Sin fecha"}
                     </span>
                   </div>
                   <p className="text-slate-700 text-sm">{inc.description}</p>
-                  <p className="text-xs text-slate-400 mt-3 border-t border-slate-200 pt-2">
-                    Reportado por: {inc.reportedBy.firstName}{" "}
-                    {inc.reportedBy.lastName}
-                  </p>
                 </div>
               ))}
             </div>

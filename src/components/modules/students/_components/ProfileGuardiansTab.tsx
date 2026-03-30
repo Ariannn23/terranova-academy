@@ -14,10 +14,9 @@ export function ProfileGuardiansTab({ student }: { student: StudentProfileResult
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {student.guardians.map((relation: any) => {
-        const guard = relation.guardian;
+      {student.guardians.map((guard: any) => {
         return (
-          <Card key={relation.id}>
+          <Card key={guard.id}>
             <CardContent className="pt-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -25,13 +24,13 @@ export function ProfileGuardiansTab({ student }: { student: StudentProfileResult
                     {guard.firstName} {guard.lastName}
                   </h4>
                   <p className="text-sm text-slate-500 capitalize">
-                    {relation.relationship.toLowerCase()}
+                    {guard.relation?.toLowerCase() || "apoderado"}
                   </p>
                 </div>
-                {relation.isEmergencyContact && (
+                {guard.isPrimary && (
                   <Badge variant="secondary" className="bg-red-50 text-red-700">
                     <ShieldAlert className="h-3 w-3 mr-1" />
-                    Emergencia
+                    Principal
                   </Badge>
                 )}
               </div>

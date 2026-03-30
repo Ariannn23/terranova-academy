@@ -19,7 +19,7 @@ interface AttendanceClientProps {
   initialStructure: any;
 }
 
-export default function AttendanceClient({
+export function AttendanceClient({
   initialStructure,
 }: AttendanceClientProps) {
   useEffect(() => {

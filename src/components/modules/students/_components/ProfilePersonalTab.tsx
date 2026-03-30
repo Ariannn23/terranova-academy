@@ -55,7 +55,7 @@ export function ProfilePersonalTab({ student }: { student: StudentProfileResult 
           <div>
             <p className="text-xs text-slate-400 mb-1">Dato Médico / Alergias</p>
             <p className="font-medium text-slate-900">
-              {student.medicalInfo || "Ninguno"}
+              {(student as any).medicalInfo || "Ninguno"}
             </p>
           </div>
         </div>
