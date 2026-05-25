@@ -141,7 +141,7 @@ export function useStudentForm(initialData?: any) {
             );
           }
 
-          router.push("/dashboard/estudiantes");
+          router.push(`/dashboard/estudiantes/${studentId}`);
           router.refresh();
         } else {
           toast.error(action.error || "Ocurrió un error al guardar", {

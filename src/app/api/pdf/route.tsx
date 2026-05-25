@@ -12,6 +12,7 @@ import { getStudentGrades } from "@/lib/actions/grade.actions";
 import { IncidentReportPDF } from "@/components/pdf/IncidentReportPDF";
 import { StudentIncidentsPDF } from "@/components/pdf/StudentIncidentsPDF";
 import { StudentDisabilitiesPDF } from "@/components/pdf/StudentDisabilitiesPDF";
+import { ScheduleReportPDF } from "@/components/pdf/ScheduleReportPDF";
 
 import { auth } from "@/lib/auth";
 
@@ -362,6 +363,49 @@ export async function GET(request: NextRequest) {
           headers: {
             "Content-Type": "application/pdf",
             "Content-Disposition": `inline; filename=inhabilitaciones-${enrollment?.student?.lastName}.pdf`,
+          },
+        });
+      }
+
+      case "student-schedule": {
+        const enrollmentId = searchParams.get("id");
+        if (!enrollmentId) return new Response("Missing id", { status: 400 });
+
+        const enrollment = await prisma.enrollment.findUnique({
+          where: { id: enrollmentId },
+          include: {
+            student: true,
+            section: {
+              include: {
+                gradeLevel: true,
+                academicYear: true,
+              },
+            },
+          },
+        });
+
+        if (!enrollment)
+          return NextResponse.json(
+            { error: "Matrícula no encontrada" },
+            { status: 404 },
+          );
+
+        const schedules = await prisma.schedule.findMany({
+          where: { sectionId: enrollment.sectionId },
+          include: {
+            course: true,
+            teacher: true,
+          },
+        });
+
+        const stream = await renderToStream(
+          <ScheduleReportPDF enrollment={enrollment} schedules={schedules} />
+        );
+
+        return new Response(stream as any, {
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `inline; filename=horario-${enrollment.student.lastName}.pdf`,
           },
         });
       }

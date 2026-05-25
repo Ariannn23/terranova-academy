@@ -4,7 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, User, Calendar, BookOpen, CheckSquare, CreditCard, ShieldAlert } from "lucide-react";
+import { ArrowLeft, User, Calendar, BookOpen, CheckSquare, CreditCard, ShieldAlert, Download, FileText, Pencil } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -54,7 +63,42 @@ export function StudentProfileClient({ student }: { student: StudentProfileResul
           <h1 className="text-2xl font-bold text-slate-900">Perfil del Estudiante</h1>
         </div>
         <div className="flex items-center gap-3">
-           <Button variant="outline" onClick={() => toast.info("Edición en construcción")}>
+           <DropdownMenu>
+             <DropdownMenuTrigger asChild>
+               <Button variant="outline" className="hidden sm:flex" disabled={!currentEnrollment}>
+                 <Download className="h-4 w-4 mr-2" />
+                 Exportar PDF
+               </Button>
+             </DropdownMenuTrigger>
+             <DropdownMenuContent align="end" className="w-48">
+               <DropdownMenuLabel>Documentos</DropdownMenuLabel>
+               <DropdownMenuSeparator />
+               <DropdownMenuItem onClick={() => window.open(`/api/pdf?type=enrollment&id=${currentEnrollment?.id}`, "_blank")}>
+                 <FileText className="h-4 w-4 mr-2 text-slate-500" /> Ficha de Matrícula
+               </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => window.open(`/api/pdf?type=student-schedule&id=${currentEnrollment?.id}`, "_blank")}>
+                 <FileText className="h-4 w-4 mr-2 text-slate-500" /> Horario Semanal
+               </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => window.open(`/api/pdf?type=student-attendance&id=${currentEnrollment?.id}`, "_blank")}>
+                 <FileText className="h-4 w-4 mr-2 text-slate-500" /> Reporte de Asistencias
+               </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => window.open(`/api/pdf?type=student-incidents&id=${currentEnrollment?.id}`, "_blank")}>
+                 <FileText className="h-4 w-4 mr-2 text-slate-500" /> Historial de Incidencias
+               </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => window.open(`/api/pdf?type=student-disabilities&id=${currentEnrollment?.id}`, "_blank")}>
+                 <FileText className="h-4 w-4 mr-2 text-slate-500" /> Historial de Inhabilitaciones
+               </DropdownMenuItem>
+             </DropdownMenuContent>
+           </DropdownMenu>
+
+           <Button 
+             variant="default"
+             onClick={() => {
+               toast.loading("Cargando módulo de edición...");
+               router.push(`/dashboard/estudiantes/${student.id}/editar`);
+             }}
+           >
+             <Pencil className="h-4 w-4 mr-2" />
              Editar Perfil
            </Button>
         </div>

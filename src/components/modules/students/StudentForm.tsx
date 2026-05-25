@@ -9,7 +9,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 import { useStudentForm } from "./hooks/useStudentForm";
 import { StudentPhotoUpload } from "./_components/StudentPhotoUpload";
@@ -31,6 +32,13 @@ export function StudentForm({ initialData }: { initialData?: any }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center text-sm text-slate-500 hover:text-slate-900 transition-colors w-fit -ml-2 mb-2">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        <Link href={initialData ? `/dashboard/estudiantes/${initialData.id}` : "/dashboard/estudiantes"}>
+          {initialData ? "Volver al Perfil del Estudiante" : "Volver a Estudiantes"}
+        </Link>
+      </div>
+
       <PageHeader
         title={initialData ? "Editar Estudiante" : "Crear Nuevo Estudiante"}
         description={

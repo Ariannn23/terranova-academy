@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { SearchStudentResult } from "@/lib/actions/payment.actions";
 
 interface IncidentStudentSearchProps {
@@ -103,14 +103,14 @@ export function IncidentStudentSearch({
                 )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full mt-3 text-orange-600 hover:text-orange-700 hover:bg-orange-100 text-xs h-7 absolute z-10 bottom-0 left-0 rounded-none rounded-b-lg opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-100"
+            <button
+              type="button"
               onClick={removeSelectedStudent}
+              className="absolute top-2 right-2 text-orange-600/50 hover:text-orange-700 hover:bg-orange-100 p-1.5 rounded-full transition-all z-20"
+              aria-label="Remover alumno"
             >
-              Cambiar Alumno
-            </Button>
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
       </CardContent>

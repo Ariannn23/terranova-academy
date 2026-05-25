@@ -100,7 +100,7 @@ export function ScheduleGrid({
               {/* Day Columns */}
               {block.isBreak ? (
                 <div className="col-span-5 p-3 flex items-center justify-center text-amber-600 font-medium tracking-[0.2em] uppercase text-xs">
-                  RECREO Y DESCANSO
+                  RECREO Y DESCANSO|
                 </div>
               ) : (
                 DAYS_OF_WEEK.map((day) => {

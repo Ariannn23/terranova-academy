@@ -53,21 +53,19 @@ export function useRegisterDisability() {
 
   const onSubmit = async (values: z.infer<typeof DisabilitySchema>) => {
     setIsSubmitting(true);
-    toast.loading("Registrando inhabilitación...", { id: "register-disab" });
+    const toastId = toast.loading("Registrando inhabilitación...");
 
     try {
       const res = await createDisability(values);
 
       if (res.success) {
-        toast.success("Inhabilitación registrada correctamente.", {
-          id: "register-disab",
-        });
+        toast.success("Inhabilitación registrada correctamente.", { id: toastId });
         router.push("/dashboard/inhabilitaciones");
       } else {
-        toast.error(res.error, { id: "register-disab" });
+        toast.error(res.error, { id: toastId });
       }
     } catch (error) {
-      toast.error("Error de conexión al servidor.", { id: "register-disab" });
+      toast.error("Error de conexión al servidor.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }

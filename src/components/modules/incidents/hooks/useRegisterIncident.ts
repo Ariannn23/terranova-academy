@@ -57,21 +57,19 @@ export function useRegisterIncident() {
 
   const onSubmit = async (values: z.infer<typeof IncidentSchema>) => {
     setIsSubmitting(true);
-    toast.loading("Registrando incidencia...", { id: "register-inc" });
+    const toastId = toast.loading("Registrando incidencia...");
 
     try {
       const res = await createIncident(values);
 
       if (res.success) {
-        toast.success("Incidencia registrada correctamente.", {
-          id: "register-inc",
-        });
+        toast.success("Incidencia registrada correctamente.", { id: toastId });
         router.push("/dashboard/incidencias");
       } else {
-        toast.error(res.error, { id: "register-inc" });
+        toast.error(res.error, { id: toastId });
       }
     } catch (error) {
-      toast.error("Error de conexión al servidor.", { id: "register-inc" });
+      toast.error("Error de conexión al servidor.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
