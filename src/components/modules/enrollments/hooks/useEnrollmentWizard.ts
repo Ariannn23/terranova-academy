@@ -28,12 +28,29 @@ export function useEnrollmentWizard(initialData: any) {
       s.dni.includes(searchTerm),
   );
 
-  const handleNext = () => setStep((s) => Math.min(3, s + 1));
+  const handleNext = () => {
+    if (step === 2 && selectedSection?.available <= 0) {
+      const message = "La secciÃ³n seleccionada no tiene vacantes disponibles.";
+      setErrorProp(message);
+      toast.error(message);
+      return;
+    }
+
+    setErrorProp("");
+    setStep((s) => Math.min(3, s + 1));
+  };
   const handleBack = () => setStep((s) => Math.max(1, s - 1));
 
   const onSubmit = () => {
     if (!selectedStudent || !selectedSection || !currentYear) return;
     setErrorProp("");
+
+    if (selectedSection.available <= 0) {
+      const message = "La secciÃ³n seleccionada no tiene vacantes disponibles.";
+      setErrorProp(message);
+      toast.error(message);
+      return;
+    }
 
     const toastId = toast.loading("Registrando matrícula y generando cuotas...");
 

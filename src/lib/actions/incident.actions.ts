@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { IncidentSchema } from "@/lib/validations/incident.schema";
 import { IncidentSeverity } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // ==========================================
 // ACCIONES DE INCIDENCIAS (Comportamiento)
@@ -11,6 +13,8 @@ import { IncidentSeverity } from "@prisma/client";
 
 export async function getIncidentById(id: string) {
   try {
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
     const incident = await prisma.incident.findUnique({
       where: { id },
       include: {
@@ -43,6 +47,8 @@ export async function getIncidents(filters?: {
   endDate?: Date;
 }) {
   try {
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
     const whereClause: any = {};
 
     if (filters?.sectionId) {
@@ -93,6 +99,8 @@ export async function getIncidents(filters?: {
 
 export async function getIncidentsByEnrollment(enrollmentId: string) {
   try {
+    await requireAuth();
+
     const incidents = await prisma.incident.findMany({
       where: { enrollmentId },
       orderBy: { date: "desc" },
@@ -108,6 +116,8 @@ export async function getIncidentsByEnrollment(enrollmentId: string) {
 }
 
 export async function createIncident(data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = IncidentSchema.safeParse(data);
   if (!parsed.success) {
     const messages = parsed.error.errors.map((e) => e.message).join(", ");
@@ -143,6 +153,8 @@ export async function createIncident(data: unknown) {
 }
 
 export async function updateIncident(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = IncidentSchema.partial().safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -167,6 +179,8 @@ export async function updateIncident(id: string, data: unknown) {
 
 export async function deleteIncident(id: string) {
   try {
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
     const incident = await prisma.incident.delete({
       where: { id },
       include: {

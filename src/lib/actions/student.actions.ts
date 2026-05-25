@@ -7,6 +7,8 @@ import {
   StudentSchema,
 } from "@/lib/validations/student.schema";
 import { revalidatePath } from "next/cache";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 export async function getStudents(
   query?: string,
@@ -14,6 +16,8 @@ export async function getStudents(
   status?: string,
 ) {
   try {
+    await requireAuth();
+
     const where: Prisma.StudentWhereInput = {};
 
     if (query) {
@@ -65,6 +69,8 @@ export type StudentProfileResult = NonNullable<Awaited<ReturnType<typeof getStud
 
 export async function getStudentById(id: string) {
   try {
+    await requireAuth();
+
     const student = await prisma.student.findUnique({
       where: { id },
       include: {
@@ -111,6 +117,8 @@ export async function getStudentById(id: string) {
 }
 
 export async function createStudent(data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMISSIONS);
+
   const parsed = CreateStudentSchema.safeParse(data);
   if (!parsed.success) {
     return {
@@ -170,6 +178,8 @@ export async function createStudent(data: unknown) {
 }
 
 export async function updateStudent(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMISSIONS);
+
   const parsed = CreateStudentSchema.partial().safeParse(data);
   if (!parsed.success) {
     return {
@@ -250,6 +260,8 @@ export async function toggleStudentStatus(
   newStatus: StudentStatus,
 ) {
   try {
+    await requireRole([...ROLE_GROUPS.ADMISSIONS, "COORDINADOR"]);
+
     const updatedStudent = await prisma.student.update({
       where: { id },
       data: { status: newStatus },

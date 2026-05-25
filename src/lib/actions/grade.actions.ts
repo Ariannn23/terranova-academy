@@ -7,6 +7,8 @@ import { BatchGradeSchema } from "@/lib/validations/grade.schema";
 import { calculateFinalScore, isPassing } from "@/lib/utils/grade-calculator";
 import { calculateStudentStatus } from "@/lib/utils/student-status";
 import { MIN_PASSING_SCORE } from "@/lib/constants";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 /**
  * Obtiene las notas de una sección para un curso y periodo específico.
@@ -18,6 +20,8 @@ export async function getGradesBySection(
   period: GradePeriod,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const grades = await prisma.enrollment.findMany({
       where: {
         sectionId,
@@ -64,6 +68,8 @@ export async function getGradesBySection(
  * Realiza un upsert (crea si no existe, actualiza si existe).
  */
 export async function saveGrades(data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = BatchGradeSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -169,6 +175,8 @@ export async function saveGrades(data: unknown) {
  */
 export async function getStudentGrades(enrollmentId: string) {
   try {
+    await requireAuth();
+
     const records = await prisma.gradeRecord.findMany({
       where: { enrollmentId },
       include: { course: true },
@@ -190,6 +198,8 @@ export async function calculateFinalGrade(
   courseId: string,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const result = await prisma.$transaction(async (tx) => {
       return await internalCalculateFinalGrade(tx, enrollmentId, courseId);
     });
@@ -322,6 +332,8 @@ async function syncStudentStatus(client: any, enrollmentId: string) {
  */
 export async function getStudentsAtRisk(sectionId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const enrollments = await prisma.enrollment.findMany({
       where: {
         sectionId,
@@ -356,6 +368,8 @@ export async function getSectionGradeReport(
   period: GradePeriod,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const enrollments = await prisma.enrollment.findMany({
       where: { sectionId, active: true },
       include: {
@@ -407,6 +421,8 @@ export async function getSectionGradeReport(
  */
 export async function calculateAllFinalGrades(enrollmentId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     await prisma.$transaction(async (tx) => {
       const enrollment = await tx.enrollment.findUnique({
         where: { id: enrollmentId },

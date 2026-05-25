@@ -10,12 +10,16 @@ import {
   ScheduleSchemaType,
 } from "@/lib/validations/academic.schema";
 import { Prisma } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 /**
  * Obtener la estructura académica jerárquica
  */
 export async function getAcademicStructure() {
   try {
+    await requireAuth();
+
     // ⚠️ ANTES: sections: { include: { teacher: { select: {...} } } }
     // Prisma genera SELECT FROM "Teacher" WHERE id IN (null, null, ...) cuando
     // teacherId = null — incluso con `select` en vez de `include: true`.
@@ -114,6 +118,8 @@ export async function getAcademicStructure() {
  */
 export async function getCoursesByGradeLevel(gradeLevelId: string) {
   try {
+    await requireAuth();
+
     const courses = await prisma.course.findMany({
       where: { gradeLevelId, active: true },
       orderBy: { name: "asc" },
@@ -128,6 +134,8 @@ export async function getCoursesByGradeLevel(gradeLevelId: string) {
  * CRUD de Cursos
  */
 export async function createCourse(data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = CourseSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -141,6 +149,8 @@ export async function createCourse(data: unknown) {
 }
 
 export async function updateCourse(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = CourseSchema.partial().safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -160,6 +170,8 @@ export async function updateCourse(id: string, data: unknown) {
  * CRUD de Secciones
  */
 export async function createSection(data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = SectionSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -180,6 +192,8 @@ export async function assignTeacherToSection(
   teacherId: string | null,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     await prisma.section.update({
       where: { id: sectionId },
       data: { teacherId },
@@ -211,6 +225,8 @@ export async function validateScheduleConflicts(
   newSchedules: ScheduleSchemaType[],
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // Obtener horarios existentes del docente en el año académico activo
     const existingSchedules = await prisma.schedule.findMany({
       where: {
@@ -255,6 +271,8 @@ export async function validateScheduleConflicts(
  */
 export async function saveSchedule(sectionId: string, scheduleData: any[]) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // Validar cada item
     const parsedData = z.array(ScheduleSchema).safeParse(scheduleData);
     if (!parsedData.success)
@@ -281,6 +299,8 @@ export async function saveSchedule(sectionId: string, scheduleData: any[]) {
  */
 export async function getScheduleBySection(sectionId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // ⚠️ include: { teacher: true } genera un sub-SELECT adicional de Prisma.
     // Usamos selects explícitos + join en memoria para evitar queries inválidas.
     const [schedules, teachers] = await Promise.all([
@@ -310,6 +330,8 @@ export async function getScheduleBySection(sectionId: string) {
 
 export async function getScheduleByTeacher(teacherId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const schedules = await prisma.schedule.findMany({
       where: {
         teacherId,
@@ -329,6 +351,8 @@ export async function getScheduleByTeacher(teacherId: string) {
  */
 export async function createAcademicYear(year: number, startDate: Date, endDate: Date, setActive: boolean = false) {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     if (year < 2000 || year > 2100) {
       return { success: false, error: "Año inválido" };
     }
@@ -405,6 +429,8 @@ export async function createAcademicYear(year: number, startDate: Date, endDate:
  */
 export async function debugActiveYear() {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     const activeYear = await prisma.academicYear.findFirst({
       where: { active: true },
     });
@@ -434,6 +460,8 @@ export async function debugActiveYear() {
 }
 export async function deleteAcademicYear2026() {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     // Primero eliminar todas las secciones del 2026
     const year2026 = await prisma.academicYear.findUnique({
       where: { year: 2026 },

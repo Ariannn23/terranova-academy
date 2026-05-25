@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Sidebar from "./_components/Sidebar";
 import Header from "./_components/Header";
 import { InitialLoader } from "./_components/InitialLoader";
+import { getAllowedRolesForPath, hasAllowedRole } from "@/lib/rbac";
+import { headers } from "next/headers";
 export default async function DashboardLayout({
   children,
 }: {
@@ -13,6 +15,16 @@ export default async function DashboardLayout({
   // Proteger la ruta: Si no hay sesión, al login
   if (!session?.user) {
     redirect("/login");
+  }
+
+  const pathname = headers().get("x-next-url") ?? "";
+  if (pathname.startsWith("/dashboard")) {
+    const allowedRoles = getAllowedRolesForPath(pathname);
+    const userRole = (session.user as { role?: string }).role;
+
+    if (!hasAllowedRole(userRole, allowedRoles)) {
+      redirect("/dashboard");
+    }
   }
 
   return (

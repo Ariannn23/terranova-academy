@@ -4,6 +4,8 @@ import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { getSectionGradeReport } from "@/lib/actions/grade.actions";
 import { getSectionAttendanceReport } from "@/lib/actions/attendance.actions";
+import { requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // Devuelve un Buffer o string Base64 con el excel.
 // Recomendable devolver base64 para que el FrontEnd arme el Blob con facilidad.
@@ -13,6 +15,8 @@ import { getSectionAttendanceReport } from "@/lib/actions/attendance.actions";
 // ==========================================
 export async function exportGradesToExcel(sectionId: string, period: string) {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const gradesRes = await getSectionGradeReport(sectionId, period as any);
     if (!gradesRes.success || !gradesRes.data)
       throw new Error("No pudimos conseguir las notas de la sección");
@@ -84,6 +88,8 @@ export async function exportAttendanceReport(
   year: number,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const attendanceRes = await getSectionAttendanceReport({
       sectionId,
       month,
@@ -150,6 +156,8 @@ export async function exportAttendanceReport(
 // ==========================================
 export async function exportFinancialReport(year: number) {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     // Conseguir todos los conceptos de ese año
     const payments = await prisma.payment.findMany({
       where: {

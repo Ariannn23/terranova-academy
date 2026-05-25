@@ -2,10 +2,14 @@
 
 import { prisma } from "@/lib/prisma";
 import { PaymentStatus, StudentStatus } from "@prisma/client";
+import { requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // 1. Resumen Financiero: Calcula ingresos vs pendientes del año actual
 export async function getFinancialSummary() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const currentYear = new Date().getFullYear();
 
     // Todos los pagos del año
@@ -59,6 +63,8 @@ export async function getFinancialSummary() {
 // 2. Estudiantes en Riesgo o con bajas calificaciones
 export async function getStudentsAtRisk() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     // Definimos "En riesgo" como alumnos con status EN_RIESGO, OBSERVADO
     // o aquellos inhabilitados
     const count = await prisma.student.count({
@@ -86,6 +92,8 @@ export async function getStudentsAtRisk() {
 // 3. Asistencia Crítica (Alumnos con menos del 80%)
 export async function getCriticalAttendance() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
@@ -127,6 +135,8 @@ export async function getCriticalAttendance() {
 // 4. Cobros próximos a vencer (Esta semana)
 export async function getUpcomingPayments() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const today = new Date();
     const nextWeek = new Date();
     nextWeek.setDate(today.getDate() + 7);
@@ -165,6 +175,8 @@ export async function getUpcomingPayments() {
 // 5. Alertas Prioritarias Mixtas (Inhabilitados, Incidentes)
 export async function getPriorityAlerts() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const recentDate = new Date();
     recentDate.setDate(recentDate.getDate() - 15);
 

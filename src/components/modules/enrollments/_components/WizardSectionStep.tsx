@@ -12,12 +12,14 @@ interface WizardSectionStepProps {
   sections: any[];
   selectedSection: any | null;
   setSelectedSection: (s: any) => void;
+  errorMessage?: string;
 }
 
 export function WizardSectionStep({
   sections,
   selectedSection,
   setSelectedSection,
+  errorMessage,
 }: WizardSectionStepProps) {
   return (
     <>
@@ -28,6 +30,11 @@ export function WizardSectionStep({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
+        {errorMessage && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        )}
         {["INICIAL", "PRIMARIA", "SECUNDARIA"].map((levelGroup) => {
           const levelSections = sections.filter(
             (s: any) => s.level === levelGroup,
@@ -43,7 +50,11 @@ export function WizardSectionStep({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {levelSections.map((sec: any) => {
-                  const isFull = sec.occupied >= sec.capacity;
+                  const available =
+                    typeof sec.available === "number"
+                      ? sec.available
+                      : Math.max(sec.capacity - sec.occupied, 0);
+                  const isFull = available <= 0;
                   return (
                     <div
                       key={sec.id}
@@ -76,7 +87,7 @@ export function WizardSectionStep({
                           <span className="text-red-600 font-medium">Lleno</span>
                         ) : (
                           <span className="text-emerald-600 font-medium">
-                            Disponible
+                            {available} vacantes
                           </span>
                         )}
                       </div>

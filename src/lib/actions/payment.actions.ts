@@ -8,6 +8,8 @@ import {
 } from "@/lib/validations/payment.schema";
 import { PaymentStatus, PaymentType } from "@prisma/client";
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // ==========================================
 // ACCIONES PARA CONCEPTOS DE PAGO
@@ -15,6 +17,8 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 
 export async function getPaymentConcepts(type?: PaymentType) {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     const concepts = await prisma.paymentConcept.findMany({
       where: {
         ...(type ? { type } : {}),
@@ -30,6 +34,8 @@ export async function getPaymentConcepts(type?: PaymentType) {
 }
 
 export async function createPaymentConcept(data: unknown) {
+  await requireRole(ROLE_GROUPS.FINANCE);
+
   const parsed = PaymentConceptSchema.safeParse(data);
   if (!parsed.success)
     return {
@@ -56,6 +62,8 @@ export async function createPaymentConcept(data: unknown) {
 
 export async function getPaymentDashboardStats(month?: number, year?: number) {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     const now = new Date();
     const targetMonth = month !== undefined ? month : now.getMonth();
     const targetYear = year !== undefined ? year : now.getFullYear();
@@ -171,6 +179,8 @@ export async function getPaymentDashboardStats(month?: number, year?: number) {
 
 export async function searchStudentsForPayment(query: string) {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     if (!query || query.length < 2) return { success: true, data: [] };
 
     const students = await prisma.student.findMany({
@@ -208,6 +218,8 @@ export type SearchStudentResult = NonNullable<Awaited<ReturnType<typeof searchSt
 
 export async function getStudentPendingPayments(studentId: string) {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     // Antes: findFirst (enrollment) LUEGO findMany (payments) — 2 queries secuenciales
     // Ahora: ambas en paralelo; si no hay enrollment activo retornamos el error
     const [activeEnrollment] = await Promise.all([
@@ -242,6 +254,8 @@ export async function getStudentPendingPayments(studentId: string) {
 
 export async function getPaymentsByEnrollment(enrollmentId: string) {
   try {
+    await requireAuth();
+
     const payments = await prisma.payment.findMany({
       where: { enrollmentId },
       include: {
@@ -278,6 +292,8 @@ async function generateReceiptNumber(tx: any, date: Date): Promise<string> {
 }
 
 export async function registerPayment(data: unknown) {
+  await requireRole(ROLE_GROUPS.FINANCE);
+
   const parsed = RegisterPaymentReceiptSchema.safeParse(data);
   if (!parsed.success)
     return {
@@ -336,6 +352,8 @@ export type ReceiptData = NonNullable<Awaited<ReturnType<typeof registerPayment>
 
 export async function updateOverduePayments() {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -357,6 +375,8 @@ export async function updateOverduePayments() {
 
 export async function getOverduePayments() {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     const payments = await prisma.payment.findMany({
       where: { status: PaymentStatus.VENCIDO },
       include: {
@@ -379,6 +399,8 @@ export async function getOverduePayments() {
 
 export async function getUpcomingPayments(days: number = 7) {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -412,6 +434,8 @@ export async function getUpcomingPayments(days: number = 7) {
 
 export async function getFinancialSummary(month: number, year: number) {
   try {
+    await requireRole(ROLE_GROUPS.FINANCE);
+
     const startOfMonth = new Date(year, month - 1, 1); // JS dates month is 0-indexed
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
@@ -448,6 +472,8 @@ export async function getFinancialSummary(month: number, year: number) {
 
 export async function getFinancialReport(year: number) {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     // ── ANTES: 12 queries paralelas (Promise.all de 12 findMany) ─────────────────
     // ── AHORA: 1 sola query con DATE_TRUNC, resolución en memoria ─────────────
     //

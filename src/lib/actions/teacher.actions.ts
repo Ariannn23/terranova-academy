@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { TeacherSchema } from "@/lib/validations/teacher.schema";
 import { Prisma } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 /**
  * Obtener lista de docentes con filtros
@@ -13,6 +15,8 @@ export async function getTeachers(params?: {
   specialty?: string;
   active?: boolean;
 }) {
+  await requireAuth();
+
   const search = params?.search;
   const specialty = params?.specialty;
   const active = params?.active;
@@ -66,6 +70,8 @@ export async function getTeachers(params?: {
  */
 export async function getTeacherById(id: string) {
   try {
+    await requireAuth();
+
     const teacher = await prisma.teacher.findUnique({
       where: { id },
       include: {
@@ -101,6 +107,8 @@ export async function getTeacherById(id: string) {
  * Crear un nuevo docente
  */
 export async function createTeacher(data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = TeacherSchema.safeParse(data);
 
   if (!parsed.success) {
@@ -136,6 +144,8 @@ export async function createTeacher(data: unknown) {
  * Actualizar datos de un docente
  */
 export async function updateTeacher(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = TeacherSchema.partial().safeParse(data);
 
   if (!parsed.success) {
@@ -166,6 +176,8 @@ export async function updateTeacher(id: string, data: unknown) {
  */
 export async function toggleTeacherStatus(id: string, active: boolean) {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     const teacher = await prisma.teacher.update({
       where: { id },
       data: { active },

@@ -14,6 +14,8 @@ import {
 } from "@/lib/validations/attendance.schema";
 import { calculateStudentStatus } from "@/lib/utils/student-status";
 import { RISK_ABSENCE_PERCENT } from "@/lib/constants";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 /**
  * Obtener lista de asistencia de una sección en una fecha específica
@@ -21,6 +23,8 @@ import { RISK_ABSENCE_PERCENT } from "@/lib/constants";
  */
 export async function getAttendanceBySection(sectionId: string, date: Date) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // Validar sectionId
     if (!sectionId || sectionId.trim().length === 0) {
       return { success: false, error: "ID de sección inválido" };
@@ -108,6 +112,8 @@ export async function getAttendanceByStudent(
   year?: number,
 ) {
   try {
+    await requireAuth();
+
     if (!enrollmentId || enrollmentId.trim().length === 0) {
       return { success: false, error: "ID de matrícula inválido" };
     }
@@ -185,6 +191,8 @@ export async function getAttendanceByStudent(
  */
 export async function saveAttendance(input: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const parsed = SaveAttendanceBatchSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: parsed.error };
@@ -264,6 +272,8 @@ export async function saveAttendance(input: unknown) {
  */
 export async function justifyAbsence(input: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const parsed = JustifyAbsenceSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: parsed.error };
@@ -322,6 +332,8 @@ export async function justifyAbsence(input: unknown) {
  */
 export async function getAttendanceStats(enrollmentId: string) {
   try {
+    await requireAuth();
+
     if (!enrollmentId || enrollmentId.trim().length === 0) {
       return { success: false, error: "ID de matrícula inválido" };
     }
@@ -408,6 +420,8 @@ export async function getAttendanceStats(enrollmentId: string) {
  */
 export async function getCriticalAttendance(input?: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     let parsedData: { sectionId?: string } = {};
 
     if (input) {
@@ -533,6 +547,8 @@ export async function getCriticalAttendance(input?: unknown) {
  */
 export async function getSectionAttendanceReport(input: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const parsed = SectionAttendanceReportSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: parsed.error };

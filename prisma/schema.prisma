@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
@@ -98,27 +98,28 @@ model AcademicYear {
   active    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  sections  Section[]
+  sections    Section[]
   enrollments Enrollment[]
-  events    CalendarEvent[]
+  events      CalendarEvent[]
 }
 
 model GradeLevel {
-  id       String @id @default(cuid())
-  name     String @unique
-  level    Level
-  order    Int
+  id    String @id @default(cuid())
+  name  String @unique
+  level Level
+  order Int
 
   sections Section[]
   courses  Course[]
 }
 
 model Section {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   name           String
   gradeLevelId   String
   academicYearId String
   teacherId      String?
+  capacity       Int     @default(30)
 
   gradeLevel   GradeLevel   @relation(fields: [gradeLevelId], references: [id])
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -179,10 +180,10 @@ model Teacher {
 }
 
 model Course {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String
   gradeLevelId String
-  hoursPerWeek Int    @default(2)
+  hoursPerWeek Int     @default(2)
   active       Boolean @default(true)
 
   gradeLevel   GradeLevel    @relation(fields: [gradeLevelId], references: [id])
@@ -295,7 +296,6 @@ model Payment {
   @@index([status, dueDate])
 }
 
-
 model Incident {
   id           String           @id @default(cuid())
   enrollmentId String
@@ -322,12 +322,12 @@ model DisabilityRecord {
 }
 
 model Announcement {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   body        String
   targetLevel Level?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model CalendarEvent {

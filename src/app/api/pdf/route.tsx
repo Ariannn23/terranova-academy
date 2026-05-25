@@ -15,6 +15,7 @@ import { StudentDisabilitiesPDF } from "@/components/pdf/StudentDisabilitiesPDF"
 import { ScheduleReportPDF } from "@/components/pdf/ScheduleReportPDF";
 
 import { auth } from "@/lib/auth";
+import { hasAllowedRole, ROLE_GROUPS } from "@/lib/rbac";
 
 export async function GET(request: NextRequest) {
   // Guard: requiere sesión activa
@@ -28,12 +29,37 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get("type");
     const id = searchParams.get("id");
+    const userRole = (session.user as { role?: string }).role;
 
     if (!type || !id) {
       return NextResponse.json(
         { error: "Faltan parámetros type o id" },
         { status: 400 },
       );
+    }
+
+    const financialTypes = new Set(["receipt"]);
+    const academicTypes = new Set([
+      "attendance",
+      "grades",
+      "student-attendance",
+      "student-schedule",
+    ]);
+    const disciplineTypes = new Set([
+      "incident",
+      "student-incidents",
+      "student-disabilities",
+    ]);
+    const allowedRoles = financialTypes.has(type)
+      ? ROLE_GROUPS.FINANCE
+      : academicTypes.has(type)
+        ? ROLE_GROUPS.ACADEMIC
+        : disciplineTypes.has(type)
+          ? ROLE_GROUPS.DISCIPLINE
+          : ROLE_GROUPS.REPORTS;
+
+    if (!hasAllowedRole(userRole, allowedRoles)) {
+      return new Response("Forbidden", { status: 403 });
     }
 
     let pdfStream;

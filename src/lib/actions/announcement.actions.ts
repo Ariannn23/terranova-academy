@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { AnnouncementSchema } from "@/lib/validations/incident.schema";
 import { Level } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // ==========================================
 // ACCIONES PARA COMUNICADOS (Announcement)
@@ -13,6 +15,8 @@ export async function getAnnouncements(filters?: {
   targetLevel?: Level | "ALL";
 }) {
   try {
+    await requireAuth();
+
     const whereClause: any = {};
 
     if (filters?.targetLevel && filters.targetLevel !== "ALL") {
@@ -35,6 +39,8 @@ export async function getAnnouncements(filters?: {
 }
 
 export async function createAnnouncement(data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = AnnouncementSchema.safeParse(data);
   if (!parsed.success) {
     return {
@@ -58,6 +64,8 @@ export async function createAnnouncement(data: unknown) {
 }
 
 export async function updateAnnouncement(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = AnnouncementSchema.partial().safeParse(data);
   if (!parsed.success) {
     return {
@@ -83,6 +91,8 @@ export async function updateAnnouncement(id: string, data: unknown) {
 
 export async function deleteAnnouncement(id: string) {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     await prisma.announcement.delete({
       where: { id },
     });

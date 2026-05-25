@@ -2,9 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 export async function getCourses() {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const courses = await prisma.course.findMany({
       orderBy: [{ gradeLevel: { order: "asc" } }, { name: "asc" }],
       include: {
@@ -30,6 +34,8 @@ export async function createCourse(data: {
   hoursPerWeek: number;
 }) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const existing = await prisma.course.findUnique({
       where: {
         name_gradeLevelId: {
@@ -69,6 +75,8 @@ export async function updateCourse(
   },
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     if (data.name && data.gradeLevelId) {
       const existing = await prisma.course.findUnique({
         where: {

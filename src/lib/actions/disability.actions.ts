@@ -10,6 +10,8 @@ import { StudentStatus } from "@prisma/client";
 import { calculateStudentStatus } from "@/lib/utils/student-status";
 import { getStudentGrades } from "@/lib/actions/grade.actions";
 import { getAttendanceStats } from "@/lib/actions/attendance.actions";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // ==========================================
 // ACCIONES DE INHABILITACIONES / SUSPENSIONES
@@ -17,6 +19,8 @@ import { getAttendanceStats } from "@/lib/actions/attendance.actions";
 
 export async function getActiveDisabilities(sectionId?: string) {
   try {
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
     const whereClause: any = { active: true };
     if (sectionId) {
       whereClause.enrollment = { sectionId };
@@ -52,6 +56,8 @@ export async function getActiveDisabilities(sectionId?: string) {
 
 export async function getDisabilitiesByEnrollment(enrollmentId: string) {
   try {
+    await requireAuth();
+
     const disabilities = await prisma.disabilityRecord.findMany({
       where: { enrollmentId },
       orderBy: { startDate: "desc" },
@@ -67,6 +73,8 @@ export async function getDisabilitiesByEnrollment(enrollmentId: string) {
 }
 
 export async function createDisability(data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = DisabilitySchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -123,6 +131,8 @@ export async function createDisability(data: unknown) {
 }
 
 export async function resolveDisability(data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = ResolveDisabilitySchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 

@@ -3,6 +3,8 @@
 import { supabaseAdmin, PHOTOS_BUCKET } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -13,6 +15,8 @@ export async function uploadStudentPhoto(
   studentId: string,
   formData: FormData,
 ) {
+  await requireRole(ROLE_GROUPS.ADMISSIONS);
+
   const file = formData.get("file") as File;
   if (!file)
     return { success: false, error: "No se proporcionó ningún archivo" };
@@ -75,6 +79,8 @@ export async function uploadTeacherPhoto(
   teacherId: string,
   formData: FormData,
 ) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const file = formData.get("file") as File;
   if (!file)
     return { success: false, error: "No se proporcionó ningún archivo" };
@@ -130,6 +136,8 @@ export async function uploadTeacherPhoto(
  * Elimina una foto de Supabase Storage.
  */
 export async function deletePhoto(url: string) {
+  await requireRole([...ROLE_GROUPS.ADMISSIONS, "DIRECTOR"]);
+
   if (!url) return { success: true };
 
   try {
