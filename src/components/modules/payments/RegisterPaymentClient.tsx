@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ReceiptModal } from "./ReceiptModal";
@@ -132,6 +133,7 @@ export default function RegisterPaymentClient() {
                     <PendingPaymentsList
                       control={form.control}
                       pendingPayments={pendingPayments}
+                      setValue={form.setValue}
                     />
 
                     {form.watch("paymentId") && (
@@ -144,14 +146,45 @@ export default function RegisterPaymentClient() {
                           setValue={form.setValue}
                         />
 
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">
+                            Monto del abono
+                          </label>
+                          <Input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            max={
+                              selectedPaymentInfo?.balance ??
+                              selectedPaymentInfo?.amount
+                            }
+                            {...form.register("amount", {
+                              valueAsNumber: true,
+                            })}
+                          />
+                          {form.formState.errors.amount?.message && (
+                            <p className="text-sm text-red-600">
+                              {form.formState.errors.amount.message}
+                            </p>
+                          )}
+                          <p className="text-xs text-slate-500">
+                            Saldo pendiente: S/{" "}
+                            {(
+                              selectedPaymentInfo?.balance ??
+                              selectedPaymentInfo?.amount ??
+                              0
+                            ).toFixed(2)}
+                          </p>
+                        </div>
+
                         {/* Summary Block */}
                         <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between">
                           <div>
                             <p className="text-slate-400 text-sm">
-                              Total a cobrar
+                              Abono a cobrar
                             </p>
                             <p className="text-2xl font-bold">
-                              S/ {selectedPaymentInfo?.amount.toFixed(2)}
+                              S/ {(form.watch("amount") || 0).toFixed(2)}
                             </p>
                           </div>
                           <Button

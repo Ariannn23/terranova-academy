@@ -11,6 +11,8 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 
+const roundMoney = (value: number) => Math.round(value * 100) / 100;
+
 // ==========================================
 // ACCIONES PARA CONCEPTOS DE PAGO
 // ==========================================
@@ -86,7 +88,7 @@ export async function getPaymentDashboardStats(month?: number, year?: number) {
     const yearStart = new Date(targetYear, 0, 1);   // 1 Jan del año académico activo
     const yearEnd   = new Date(targetYear, 11, 31, 23, 59, 59, 999); // 31 Dic
 
-    const [statsRows, latestPayments] = await Promise.all([
+    const [statsRows, latestTransactions] = await Promise.all([
       prisma.$queryRaw<
         {
           paid_month: number;
@@ -96,24 +98,25 @@ export async function getPaymentDashboardStats(month?: number, year?: number) {
         }[]
       >`
         SELECT
-          COALESCE(SUM(amount) FILTER (
-            WHERE status = 'PAGADO'
-            AND "paidAt" >= ${startDate} AND "paidAt" <= ${endDate}
+          COALESCE((
+            SELECT SUM(pt.amount)
+            FROM "PaymentTransaction" pt
+            WHERE pt."paidAt" >= ${startDate} AND pt."paidAt" <= ${endDate}
           ), 0)::float AS paid_month,
 
-          COALESCE(SUM(amount) FILTER (
+          COALESCE(SUM(balance) FILTER (
             WHERE status = 'PENDIENTE'
             AND "dueDate" >= ${startDate} AND "dueDate" <= ${endDate}
           ), 0)::float AS pending_month,
 
           -- total_overdue scoped al año académico activo para evitar full table scan
           -- y permitir que el planner use @@index([status, dueDate])
-          COALESCE(SUM(amount) FILTER (
+          COALESCE(SUM(balance) FILTER (
             WHERE status = 'VENCIDO'
             AND "dueDate" >= ${yearStart} AND "dueDate" <= ${yearEnd}
           ), 0)::float AS total_overdue,
 
-          COALESCE(SUM(amount) FILTER (
+          COALESCE(SUM(balance) FILTER (
             WHERE status = 'PENDIENTE'
             AND "dueDate" >= ${weekStart} AND "dueDate" <= ${weekEnd}
           ), 0)::float AS due_week
@@ -126,25 +129,31 @@ export async function getPaymentDashboardStats(month?: number, year?: number) {
       //   porque traía el objeto section completo y luego resolvía gradeLevel
       //   en otro roundtrip.
       // AHORA: select solo los campos de UI que necesita el componente.
-      prisma.payment.findMany({
-        where: { status: PaymentStatus.PAGADO },
+      prisma.paymentTransaction.findMany({
         select: {
           id: true,
           amount: true,
           paidAt: true,
           method: true,
-          reference: true,
-          concept: { select: { name: true, type: true } },
-          enrollment: {
+          payment: {
             select: {
               id: true,
-              student: {
-                select: { firstName: true, lastName: true, dni: true },
-              },
-              section: {
+              balance: true,
+              status: true,
+              reference: true,
+              concept: { select: { name: true, type: true } },
+              enrollment: {
                 select: {
-                  name: true,
-                  gradeLevel: { select: { name: true, level: true } },
+                  id: true,
+                  student: {
+                    select: { firstName: true, lastName: true, dni: true },
+                  },
+                  section: {
+                    select: {
+                      name: true,
+                      gradeLevel: { select: { name: true, level: true } },
+                    },
+                  },
                 },
               },
             },
@@ -154,6 +163,18 @@ export async function getPaymentDashboardStats(month?: number, year?: number) {
         take: 10,
       }),
     ]);
+
+    const latestPayments = latestTransactions.map((transaction) => ({
+      id: transaction.id,
+      amount: transaction.amount,
+      paidAt: transaction.paidAt,
+      method: transaction.method,
+      reference: transaction.payment.reference,
+      balance: transaction.payment.balance,
+      status: transaction.payment.status,
+      concept: transaction.payment.concept,
+      enrollment: transaction.payment.enrollment,
+    }));
 
     const stats = statsRows[0];
 
@@ -240,8 +261,12 @@ export async function getStudentPendingPayments(studentId: string) {
       where: {
         enrollmentId: activeEnrollment.id,
         status: { in: [PaymentStatus.PENDIENTE, PaymentStatus.VENCIDO] },
+        balance: { gt: 0 },
       },
-      include: { concept: true },
+      include: {
+        concept: true,
+        transactions: { orderBy: { paidAt: "desc" } },
+      },
       orderBy: { dueDate: "asc" },
     });
 
@@ -260,6 +285,7 @@ export async function getPaymentsByEnrollment(enrollmentId: string) {
       where: { enrollmentId },
       include: {
         concept: true,
+        transactions: { orderBy: { paidAt: "desc" } },
       },
       orderBy: { dueDate: "asc" },
     });
@@ -292,7 +318,7 @@ async function generateReceiptNumber(tx: any, date: Date): Promise<string> {
 }
 
 export async function registerPayment(data: unknown) {
-  await requireRole(ROLE_GROUPS.FINANCE);
+  const currentUser = await requireRole(ROLE_GROUPS.FINANCE);
 
   const parsed = RegisterPaymentReceiptSchema.safeParse(data);
   if (!parsed.success)
@@ -302,28 +328,62 @@ export async function registerPayment(data: unknown) {
       details: parsed.error.flatten(),
     };
 
-  const { paymentId, method, paidAt, notes } = parsed.data;
+  const { paymentId, amount, method, paidAt, notes } = parsed.data;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
-        include: { enrollment: true },
+        include: {
+          concept: true,
+          enrollment: {
+            include: {
+              student: true,
+              section: { include: { gradeLevel: true } },
+            },
+          },
+        },
       });
 
       if (!payment) throw new Error("Pago no encontrado");
       if (payment.status === PaymentStatus.PAGADO)
         throw new Error("Este registro ya se encuentra pagado");
+      if (payment.status === PaymentStatus.ANULADO)
+        throw new Error("No se puede registrar un abono sobre un pago anulado");
       if (!payment.enrollment.active)
         throw new Error("La matrícula del estudiante no está activa.");
 
+      const currentBalance = roundMoney(payment.balance);
+      const paymentAmount = roundMoney(amount);
+
+      if (paymentAmount <= 0) {
+        throw new Error("El monto del abono debe ser mayor a 0");
+      }
+      if (paymentAmount > currentBalance) {
+        throw new Error("El monto del abono excede el saldo pendiente");
+      }
+
       const receiptNumber = await generateReceiptNumber(tx, paidAt);
+      const newBalance = roundMoney(currentBalance - paymentAmount);
+      const newStatus =
+        newBalance === 0 ? PaymentStatus.PAGADO : payment.status;
+
+      const transaction = await tx.paymentTransaction.create({
+        data: {
+          paymentId,
+          amount: paymentAmount,
+          method,
+          paidAt,
+          createdBy: currentUser.id,
+        },
+      });
 
       const updatedPayment = await tx.payment.update({
         where: { id: paymentId },
         data: {
-          status: PaymentStatus.PAGADO,
-          paidAt: paidAt,
+          balance: newBalance,
+          status: newStatus,
+          paidAt: newStatus === PaymentStatus.PAGADO ? paidAt : payment.paidAt,
           method: method,
           reference: receiptNumber,
           notes: notes
@@ -332,9 +392,27 @@ export async function registerPayment(data: unknown) {
               : notes
             : payment.notes,
         },
+        include: {
+          concept: true,
+          enrollment: {
+            include: {
+              student: true,
+              section: { include: { gradeLevel: true } },
+            },
+          },
+          transactions: { orderBy: { paidAt: "desc" } },
+        },
       });
 
-      return updatedPayment;
+      return {
+        ...updatedPayment,
+        transactionId: transaction.id,
+        amount: transaction.amount,
+        paidAt: transaction.paidAt,
+        method: transaction.method,
+        balance: updatedPayment.balance,
+        originalAmount: updatedPayment.amount,
+      };
     });
 
     revalidatePath("/dashboard/pagos");
@@ -360,6 +438,7 @@ export async function updateOverduePayments() {
     const result = await prisma.payment.updateMany({
       where: {
         status: PaymentStatus.PENDIENTE,
+        balance: { gt: 0 },
         dueDate: { lt: today },
       },
       data: { status: PaymentStatus.VENCIDO },
@@ -378,7 +457,7 @@ export async function getOverduePayments() {
     await requireRole(ROLE_GROUPS.FINANCE);
 
     const payments = await prisma.payment.findMany({
-      where: { status: PaymentStatus.VENCIDO },
+      where: { status: PaymentStatus.VENCIDO, balance: { gt: 0 } },
       include: {
         enrollment: {
           include: {
@@ -410,6 +489,7 @@ export async function getUpcomingPayments(days: number = 7) {
     const payments = await prisma.payment.findMany({
       where: {
         status: PaymentStatus.PENDIENTE,
+        balance: { gt: 0 },
         dueDate: {
           gte: today,
           lte: futureDate,
@@ -439,14 +519,25 @@ export async function getFinancialSummary(month: number, year: number) {
     const startOfMonth = new Date(year, month - 1, 1); // JS dates month is 0-indexed
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const payments = await prisma.payment.findMany({
-      where: {
-        dueDate: {
-          gte: startOfMonth,
-          lte: endOfMonth,
+    const [payments, transactions] = await Promise.all([
+      prisma.payment.findMany({
+        where: {
+          dueDate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
         },
-      },
-    });
+      }),
+      prisma.paymentTransaction.findMany({
+        where: {
+          paidAt: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+        select: { amount: true },
+      }),
+    ]);
 
     let totalBilled = 0;
     let totalPaid = 0;
@@ -455,10 +546,10 @@ export async function getFinancialSummary(month: number, year: number) {
 
     payments.forEach((p: any) => {
       totalBilled += p.amount;
-      if (p.status === PaymentStatus.PAGADO) totalPaid += p.amount;
-      else if (p.status === PaymentStatus.PENDIENTE) totalPending += p.amount;
-      else if (p.status === PaymentStatus.VENCIDO) totalOverdue += p.amount;
+      if (p.status === PaymentStatus.PENDIENTE) totalPending += p.balance;
+      else if (p.status === PaymentStatus.VENCIDO) totalOverdue += p.balance;
     });
+    totalPaid = transactions.reduce((acc, tx) => acc + tx.amount, 0);
 
     return {
       success: true,
@@ -480,27 +571,46 @@ export async function getFinancialReport(year: number) {
     // ⚠️ SCHEMA-COUPLED: Este raw query usa amount, status y dueDate
     // de la tabla Payment. Si renombras alguna de esas columnas en
     // schema.prisma, actualiza este query manualmente también.
-    const rows = await prisma.$queryRaw<
+    const [rows, transactionRows] = await Promise.all([
+      prisma.$queryRaw<
       {
         month: number;
         status: string;
-        total: number;
+        total_billed: number;
+        total_balance: number;
       }[]
     >`
       SELECT
         EXTRACT(MONTH FROM "dueDate")::int AS month,
         status,
-        SUM(amount)::float AS total
+        SUM(amount)::float AS total_billed,
+        SUM(balance)::float AS total_balance
       FROM "Payment"
       WHERE EXTRACT(YEAR FROM "dueDate") = ${year}
       GROUP BY EXTRACT(MONTH FROM "dueDate"), status
       ORDER BY month
-    `;
+    `,
+      prisma.$queryRaw<
+        {
+          month: number;
+          total_paid: number;
+        }[]
+      >`
+        SELECT
+          EXTRACT(MONTH FROM "paidAt")::int AS month,
+          SUM(amount)::float AS total_paid
+        FROM "PaymentTransaction"
+        WHERE EXTRACT(YEAR FROM "paidAt") = ${year}
+        GROUP BY EXTRACT(MONTH FROM "paidAt")
+        ORDER BY month
+      `,
+    ]);
 
     // Construir el reporte mes a mes en memoria (sin más queries)
     const reportList = Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       const monthRows = rows.filter((r) => r.month === m);
+      const paidRows = transactionRows.filter((r) => r.month === m);
 
       let totalBilled = 0;
       let totalPaid = 0;
@@ -508,11 +618,11 @@ export async function getFinancialReport(year: number) {
       let totalOverdue = 0;
 
       for (const r of monthRows) {
-        totalBilled += r.total;
-        if (r.status === PaymentStatus.PAGADO) totalPaid += r.total;
-        else if (r.status === PaymentStatus.PENDIENTE) totalPending += r.total;
-        else if (r.status === PaymentStatus.VENCIDO) totalOverdue += r.total;
+        totalBilled += r.total_billed;
+        if (r.status === PaymentStatus.PENDIENTE) totalPending += r.total_balance;
+        else if (r.status === PaymentStatus.VENCIDO) totalOverdue += r.total_balance;
       }
+      totalPaid = paidRows.reduce((acc, r) => acc + r.total_paid, 0);
 
       return {
         month: m,

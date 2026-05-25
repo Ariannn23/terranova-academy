@@ -88,7 +88,10 @@ export async function getStudentById(id: string) {
               take: 60,
             },
             payments: {
-              include: { concept: true },
+              include: {
+                concept: true,
+                transactions: { orderBy: { paidAt: "desc" } },
+              },
               orderBy: { dueDate: "desc" },
             },
             incidents: {

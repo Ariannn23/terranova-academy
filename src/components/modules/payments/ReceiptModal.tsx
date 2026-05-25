@@ -51,7 +51,8 @@ export function ReceiptModal({
                 TerraNova Academy
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                Recibo Electrónico N° {receipt.id.slice(-6).toUpperCase()}
+                Recibo Electrónico N°{" "}
+                {(receipt.transactionId || receipt.id).slice(-6).toUpperCase()}
               </p>
               <p className="text-xs text-slate-500">
                 {format(
@@ -100,6 +101,12 @@ export function ReceiptModal({
                 <span>Método de Pago</span>
                 <span className="uppercase">{receipt.method}</span>
               </div>
+              {typeof receipt.balance === "number" && (
+                <div className="flex justify-between py-1 text-slate-500">
+                  <span>Saldo pendiente</span>
+                  <span>S/ {receipt.balance.toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center pt-2 text-lg">

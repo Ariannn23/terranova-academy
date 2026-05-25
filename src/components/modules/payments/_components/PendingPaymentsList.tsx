@@ -9,7 +9,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Calendar, CheckCircle2 } from "lucide-react";
 
-export function PendingPaymentsList({ pendingPayments, control }: { pendingPayments: any[], control: any }) {
+export function PendingPaymentsList({
+  pendingPayments,
+  control,
+  setValue,
+}: {
+  pendingPayments: any[];
+  control: any;
+  setValue: any;
+}) {
   return (
     <FormField
       control={control}
@@ -21,11 +29,22 @@ export function PendingPaymentsList({ pendingPayments, control }: { pendingPayme
             {pendingPayments.map((payment) => {
               const isOverdue = new Date(payment.dueDate) < new Date();
               const isSelected = field.value === payment.id;
+              const paidAmount = (payment.transactions || []).reduce(
+                (acc: number, tx: any) => acc + tx.amount,
+                0,
+              );
+              const balance =
+                typeof payment.balance === "number"
+                  ? payment.balance
+                  : payment.amount - paidAmount;
 
               return (
                 <div
                   key={payment.id}
-                  onClick={() => field.onChange(payment.id)}
+                  onClick={() => {
+                    field.onChange(payment.id);
+                    setValue("amount", Math.max(balance, 0));
+                  }}
                   className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
                     isSelected
                       ? "border-blue-600 bg-blue-50 shadow-sm"
@@ -46,8 +65,12 @@ export function PendingPaymentsList({ pendingPayments, control }: { pendingPayme
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-emerald-600" />
                       <span className="font-bold text-emerald-700">
-                        S/ {payment.amount.toFixed(2)}
+                        Saldo: S/ {balance.toFixed(2)}
                       </span>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Total: S/ {payment.amount.toFixed(2)}
+                      {paidAmount > 0 && ` | Abonado: S/ ${paidAmount.toFixed(2)}`}
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />

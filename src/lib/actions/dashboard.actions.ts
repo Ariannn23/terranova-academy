@@ -13,32 +13,41 @@ export async function getFinancialSummary() {
     const currentYear = new Date().getFullYear();
 
     // Todos los pagos del año
-    const payments = await prisma.payment.findMany({
-      where: {
-        dueDate: {
-          gte: new Date(currentYear, 0, 1),
-          lte: new Date(currentYear, 11, 31),
+    const [payments, transactions] = await Promise.all([
+      prisma.payment.findMany({
+        where: {
+          dueDate: {
+            gte: new Date(currentYear, 0, 1),
+            lte: new Date(currentYear, 11, 31),
+          },
         },
-      },
-      select: { amount: true, status: true, dueDate: true },
-    });
+        select: { amount: true, balance: true, status: true, dueDate: true },
+      }),
+      prisma.paymentTransaction.findMany({
+        where: {
+          paidAt: {
+            gte: new Date(currentYear, 0, 1),
+            lte: new Date(currentYear, 11, 31),
+          },
+        },
+        select: { amount: true },
+      }),
+    ]);
 
     let totalCollected = 0;
     let totalPending = 0;
     let totalOverdue = 0;
     const now = new Date();
 
+    totalCollected = transactions.reduce((acc, tx) => acc + tx.amount, 0);
+
     payments.forEach((p) => {
-      // Ingresos reales
-      if (p.status === PaymentStatus.PAGADO) {
-        totalCollected += p.amount;
-      }
       // Pendientes vs Vencidos
       if (p.status === PaymentStatus.PENDIENTE) {
         if (p.dueDate < now) {
-          totalOverdue += p.amount;
+          totalOverdue += p.balance;
         } else {
-          totalPending += p.amount;
+          totalPending += p.balance;
         }
       }
     });

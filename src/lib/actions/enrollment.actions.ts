@@ -123,7 +123,13 @@ export async function getEnrollmentById(id: string) {
         },
         academicYear: true,
         gradeRecords: { include: { course: true } },
-        payments: { include: { concept: true }, orderBy: { dueDate: "asc" } },
+        payments: {
+          include: {
+            concept: true,
+            transactions: { orderBy: { paidAt: "desc" } },
+          },
+          orderBy: { dueDate: "asc" },
+        },
         attendances: { orderBy: { date: "desc" }, take: 30 },
         incidents: { orderBy: { date: "desc" } },
       },
@@ -318,6 +324,7 @@ export async function createEnrollment(data: unknown) {
           enrollmentId: enrollment.id,
           conceptId: enrollmentConcept.id,
           amount: enrollmentConcept.amount,
+          balance: enrollmentConcept.amount,
           dueDate: todayAtNoon, // Vence hoy normalizado
           status: "PENDIENTE" as const,
         });
@@ -340,6 +347,7 @@ export async function createEnrollment(data: unknown) {
             enrollmentId: enrollment.id,
             conceptId: monthlyConcept.id,
             amount: monthlyConcept.amount,
+            balance: monthlyConcept.amount,
             dueDate: new Date(currentDate),
             status: "PENDIENTE" as const,
           });

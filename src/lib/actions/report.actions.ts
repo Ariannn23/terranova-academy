@@ -159,25 +159,48 @@ export async function exportFinancialReport(year: number) {
     await requireRole(ROLE_GROUPS.REPORTS);
 
     // Conseguir todos los conceptos de ese año
-    const payments = await prisma.payment.findMany({
-      where: {
-        dueDate: {
-          gte: new Date(year, 0, 1),
-          lte: new Date(year, 11, 31, 23, 59, 59),
+    const [payments, transactions] = await Promise.all([
+      prisma.payment.findMany({
+        where: {
+          dueDate: {
+            gte: new Date(year, 0, 1),
+            lte: new Date(year, 11, 31, 23, 59, 59),
+          },
         },
-      },
-      include: { concept: true },
-    });
+        include: { concept: true },
+      }),
+      prisma.paymentTransaction.findMany({
+        where: {
+          paidAt: {
+            gte: new Date(year, 0, 1),
+            lte: new Date(year, 11, 31, 23, 59, 59),
+          },
+        },
+        include: {
+          payment: {
+            include: {
+              concept: true,
+              enrollment: {
+                include: {
+                  student: { select: { firstName: true, lastName: true, dni: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { paidAt: "asc" },
+      }),
+    ]);
 
     // Agruparlos por Estado
     let pending = 0;
     let paid = 0;
     let overdue = 0;
 
+    paid = transactions.reduce((acc, tx) => acc + tx.amount, 0);
     payments.forEach((p) => {
-      if (p.status === "PAGADO") paid += p.amount;
-      else if (p.status === "VENCIDO") overdue += p.amount;
-      else if (p.status === "PENDIENTE") pending += p.amount;
+      if (p.status === "VENCIDO") overdue += p.balance;
+      else if (p.status === "PENDIENTE") pending += p.balance;
     });
 
     const rawData = [
@@ -194,12 +217,34 @@ export async function exportFinancialReport(year: number) {
     const titleRow = [[`REPORTE FINANCIERO ANUAL - ${year}`]];
     XLSX.utils.sheet_add_aoa(ws, titleRow, { origin: "A1" });
     XLSX.utils.sheet_add_json(ws, rawData, { origin: "A3" });
+    XLSX.utils.sheet_add_json(
+      ws,
+      transactions.map((tx) => ({
+        Fecha: tx.paidAt,
+        Estudiante: `${tx.payment.enrollment.student.firstName} ${tx.payment.enrollment.student.lastName}`,
+        DNI: tx.payment.enrollment.student.dni,
+        Concepto: tx.payment.concept.name,
+        Metodo: tx.method,
+        "Abono (S/.)": tx.amount,
+      })),
+      { origin: "D3" },
+    );
 
     const wb = XLSX.utils.book_new();
     const sheetName = `Finanzas Anuales - ${year}`;
     XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
 
-    ws["!cols"] = [{ wch: 40 }, { wch: 20 }];
+    ws["!cols"] = [
+      { wch: 40 },
+      { wch: 20 },
+      { wch: 4 },
+      { wch: 18 },
+      { wch: 35 },
+      { wch: 12 },
+      { wch: 25 },
+      { wch: 16 },
+      { wch: 14 },
+    ];
 
     const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };

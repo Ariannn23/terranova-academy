@@ -30,12 +30,12 @@ export default function StudentPaymentHistory({
   const payments = enrollmentData.payments;
 
   const totalPaid = payments
-    .filter((p: any) => p.status === "PAGADO")
+    .flatMap((p: any) => p.transactions || [])
     .reduce((acc: number, curr: any) => acc + curr.amount, 0);
 
   const totalDebt = payments
     .filter((p: any) => ["PENDIENTE", "VENCIDO"].includes(p.status))
-    .reduce((acc: number, curr: any) => acc + curr.amount, 0);
+    .reduce((acc: number, curr: any) => acc + (curr.balance ?? curr.amount), 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-PE", {
@@ -198,6 +198,12 @@ export default function StudentPaymentHistory({
                           <p className="text-xl font-black">
                             {formatCurrency(payment.amount)}
                           </p>
+                          {payment.status !== "PAGADO" &&
+                            typeof payment.balance === "number" && (
+                              <p className="text-xs font-semibold opacity-80">
+                                Saldo: {formatCurrency(payment.balance)}
+                              </p>
+                            )}
                         </div>
 
                         {payment.status !== "PAGADO" && (

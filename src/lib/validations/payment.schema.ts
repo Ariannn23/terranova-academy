@@ -57,6 +57,9 @@ export type CreatePaymentSchemaType = z.infer<typeof CreatePaymentSchema>;
 // Esquema para procesar/registrar el Cobro (cuando el cliente paga)
 export const RegisterPaymentReceiptSchema = z.object({
   paymentId: z.string().min(1, "El ID del pago es requerido"),
+  amount: z.coerce
+    .number()
+    .positive("El monto del abono debe ser mayor a 0"),
   method: z
     .string()
     .min(1, "El método de pago es requerido (Ej. EFECTIVO, TRANSFERENCIA)"),
@@ -83,6 +86,7 @@ export type UpdatePaymentSchemaType = z.infer<typeof UpdatePaymentSchema>;
 
 export const PaymentFormSchema = z.object({
   paymentId: z.string().min(1, "Selecciona una cuota a pagar"),
+  amount: z.coerce.number().positive("Ingresa un monto mayor a 0"),
   method: z.string().min(1, "Selecciona un método de pago"),
   referenceImage: z.any().optional(),
 });

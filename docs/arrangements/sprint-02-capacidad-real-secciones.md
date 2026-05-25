@@ -277,6 +277,25 @@ Tambien puede aplicarse con Prisma cuando el entorno pueda conectarse correctame
 npx.cmd prisma db execute --file prisma\migrations\20260525142000_add_capacity_to_section\migration.sql
 ```
 
+## Confirmacion de aplicacion manual
+
+El cambio fue aplicado manualmente desde Supabase SQL Editor y validado con:
+
+```sql
+SELECT column_name, data_type, column_default, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'Section'
+  AND column_name = 'capacity';
+```
+
+Resultado confirmado:
+
+| column_name | data_type | column_default | is_nullable |
+|---|---|---|---|
+| `capacity` | `integer` | `30` | `NO` |
+
+Con esto, la base de datos real ya contiene el campo requerido por el Sprint 02.
+
 ## Pruebas manuales sugeridas
 
 | Caso | Resultado esperado |
@@ -291,17 +310,16 @@ npx.cmd prisma db execute --file prisma\migrations\20260525142000_add_capacity_t
 
 ## Pendientes
 
-1. Aplicar la migracion manual en la base real si `prisma migrate dev` sigue fallando por el pooler.
-2. Crear o actualizar UI administrativa para editar `capacity` de secciones si aun no existe.
-3. Agregar pruebas automatizadas para:
+1. Crear o actualizar UI administrativa para editar `capacity` de secciones si aun no existe.
+2. Agregar pruebas automatizadas para:
    - Seccion con vacantes.
    - Seccion llena.
    - Carrera entre dos matriculas simultaneas.
    - Denegacion por rol no autorizado.
-4. Revisar si se requiere restriccion adicional a nivel de base de datos o bloqueo transaccional mas fuerte para concurrencia alta.
+3. Revisar si se requiere restriccion adicional a nivel de base de datos o bloqueo transaccional mas fuerte para concurrencia alta.
 
 ## Estado del sprint
 
-Sprint completado a nivel de codigo, esquema, migracion versionada, Prisma Client y validacion TypeScript.
+Sprint completado a nivel de codigo, esquema, migracion versionada, Prisma Client, validacion TypeScript y aplicacion manual en la base real.
 
-La migracion automatica con `prisma migrate dev` no pudo ejecutarse contra la base configurada por error del schema engine, por lo que se dejo SQL versionado para aplicar el cambio de forma controlada.
+La migracion automatica con `prisma migrate dev` no pudo ejecutarse desde este entorno contra la base configurada, pero el SQL fue aplicado manualmente y verificado en Supabase.

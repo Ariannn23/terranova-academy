@@ -274,6 +274,7 @@ model Payment {
   enrollmentId String
   conceptId    String
   amount       Float
+  balance      Float         @default(0)
   dueDate      DateTime
   paidAt       DateTime?
   status       PaymentStatus @default(PENDIENTE)
@@ -282,8 +283,9 @@ model Payment {
   notes        String?
   createdAt    DateTime      @default(now())
 
-  enrollment Enrollment     @relation(fields: [enrollmentId], references: [id])
-  concept    PaymentConcept @relation(fields: [conceptId], references: [id])
+  enrollment   Enrollment           @relation(fields: [enrollmentId], references: [id])
+  concept      PaymentConcept       @relation(fields: [conceptId], references: [id])
+  transactions PaymentTransaction[]
 
   // Índices para acelerar las queries más frecuentes en /dashboard/pagos:
   // - Filtrado por estado (PENDIENTE, VENCIDO, PAGADO)
@@ -294,6 +296,22 @@ model Payment {
   @@index([dueDate])
   @@index([paidAt])
   @@index([status, dueDate])
+}
+
+model PaymentTransaction {
+  id        String   @id @default(cuid())
+  paymentId String
+  amount    Float
+  method    String
+  paidAt    DateTime @default(now())
+  createdBy String
+  createdAt DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@index([paidAt])
+  @@index([createdBy])
 }
 
 model Incident {

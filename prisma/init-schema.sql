@@ -201,6 +201,7 @@ CREATE TABLE "Payment" (
     "enrollmentId" TEXT NOT NULL,
     "conceptId" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
+    "balance" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "dueDate" TIMESTAMP(3) NOT NULL,
     "paidAt" TIMESTAMP(3),
     "status" "PaymentStatus" NOT NULL DEFAULT 'PENDIENTE',
@@ -210,6 +211,19 @@ CREATE TABLE "Payment" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PaymentTransaction" (
+    "id" TEXT NOT NULL,
+    "paymentId" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "method" TEXT NOT NULL,
+    "paidAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PaymentTransaction_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -298,6 +312,27 @@ CREATE UNIQUE INDEX "GradeRecord_enrollmentId_courseId_period_key" ON "GradeReco
 -- CreateIndex
 CREATE UNIQUE INDEX "Attendance_enrollmentId_date_key" ON "Attendance"("enrollmentId", "date");
 
+-- CreateIndex
+CREATE INDEX "Payment_status_idx" ON "Payment"("status");
+
+-- CreateIndex
+CREATE INDEX "Payment_dueDate_idx" ON "Payment"("dueDate");
+
+-- CreateIndex
+CREATE INDEX "Payment_paidAt_idx" ON "Payment"("paidAt");
+
+-- CreateIndex
+CREATE INDEX "Payment_status_dueDate_idx" ON "Payment"("status", "dueDate");
+
+-- CreateIndex
+CREATE INDEX "PaymentTransaction_paymentId_idx" ON "PaymentTransaction"("paymentId");
+
+-- CreateIndex
+CREATE INDEX "PaymentTransaction_paidAt_idx" ON "PaymentTransaction"("paidAt");
+
+-- CreateIndex
+CREATE INDEX "PaymentTransaction_createdBy_idx" ON "PaymentTransaction"("createdBy");
+
 -- AddForeignKey
 ALTER TABLE "Section" ADD CONSTRAINT "Section_gradeLevelId_fkey" FOREIGN KEY ("gradeLevelId") REFERENCES "GradeLevel"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -347,6 +382,9 @@ ALTER TABLE "Payment" ADD CONSTRAINT "Payment_enrollmentId_fkey" FOREIGN KEY ("e
 ALTER TABLE "Payment" ADD CONSTRAINT "Payment_conceptId_fkey" FOREIGN KEY ("conceptId") REFERENCES "PaymentConcept"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PaymentTransaction" ADD CONSTRAINT "PaymentTransaction_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "Payment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Incident" ADD CONSTRAINT "Incident_enrollmentId_fkey" FOREIGN KEY ("enrollmentId") REFERENCES "Enrollment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -354,4 +392,3 @@ ALTER TABLE "DisabilityRecord" ADD CONSTRAINT "DisabilityRecord_enrollmentId_fke
 
 -- AddForeignKey
 ALTER TABLE "CalendarEvent" ADD CONSTRAINT "CalendarEvent_academicYearId_fkey" FOREIGN KEY ("academicYearId") REFERENCES "AcademicYear"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-

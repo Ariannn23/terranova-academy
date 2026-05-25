@@ -21,13 +21,14 @@ export function usePaymentForm() {
     resolver: zodResolver(PaymentFormSchema),
     defaultValues: {
       paymentId: "",
+      amount: 0,
       method: "Efectivo",
     },
   });
 
   const loadStudentPayments = async (studentId: string) => {
     setIsLoadingPayments(true);
-    form.reset({ paymentId: "", method: "Efectivo" });
+    form.reset({ paymentId: "", amount: 0, method: "Efectivo" });
     setPreviewImage(null);
 
     const res = await getStudentPendingPayments(studentId);
@@ -52,6 +53,7 @@ export function usePaymentForm() {
     try {
       const res = await processPayment({
         paymentId: values.paymentId,
+        amount: values.amount,
         method: values.method,
       });
 
@@ -60,10 +62,21 @@ export function usePaymentForm() {
         setLastReceipt(res.data);
         setShowReceipt(true);
 
-        setPendingPayments((prev) =>
-          prev.filter((p) => p.id !== values.paymentId),
-        );
-        form.resetField("paymentId");
+        setPendingPayments((prev) => {
+          const remaining = res.data?.balance ?? 0;
+          if (remaining <= 0) return prev.filter((p) => p.id !== values.paymentId);
+
+          return prev.map((p) =>
+            p.id === values.paymentId
+              ? {
+                  ...p,
+                  balance: remaining,
+                  transactions: res.data?.transactions ?? p.transactions,
+                }
+              : p,
+          );
+        });
+        form.reset({ paymentId: "", amount: 0, method: values.method });
         setPreviewImage(null);
       } else {
         toast.error(res.error || "Ocurrió un error al procesar el pago", {
