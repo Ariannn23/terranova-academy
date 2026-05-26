@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,22 +12,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, Eye, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { DataTable } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useDisabilitiesDirectory } from "./hooks/useDisabilitiesDirectory";
 
 export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
-  const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [reasonFilter, setReasonFilter] = useState("ALL");
-
-  useEffect(() => {
-    toast.dismiss();
-  }, []);
+  const {
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    reasonFilter,
+    setReasonFilter,
+    filteredDisabilities,
+    viewDisability,
+  } = useDisabilitiesDirectory(initialData);
 
   const getReasonBadge = (reason: string) => {
     switch (reason) {
@@ -64,22 +64,6 @@ export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
         );
     }
   };
-
-  const filteredData = initialData.filter((record) => {
-    const studentName =
-      `${record.enrollment.student.firstName} ${record.enrollment.student.lastName}`.toLowerCase();
-    const matchesSearch = studentName.includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "ALL" ||
-      (statusFilter === "ACTIVE" && record.active) ||
-      (statusFilter === "RESOLVED" && !record.active);
-
-    const matchesReason =
-      reasonFilter === "ALL" || record.reason === reasonFilter;
-
-    return matchesSearch && matchesStatus && matchesReason;
-  });
 
   const columns = [
     {
@@ -144,10 +128,7 @@ export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              toast.loading("Cargando detalles...", { id: "view-disability" });
-              router.push(`/dashboard/inhabilitaciones/${row.id}`);
-            }}
+            onClick={() => viewDisability(row.id)}
             title="Ver Detalle"
             className="text-slate-400 hover:text-blue-600 hover:bg-blue-50"
           >
@@ -205,8 +186,8 @@ export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <DataTable data={filteredData} columns={columns} />
-        {filteredData.length === 0 && (
+        <DataTable data={filteredDisabilities} columns={columns} />
+        {filteredDisabilities.length === 0 && (
           <div className="p-8 text-center text-slate-500">
             No se encontraron inhabilitaciones que coincidan con la búsqueda.
           </div>

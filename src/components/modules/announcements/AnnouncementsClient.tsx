@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,43 +15,20 @@ import { AnnouncementModal } from "./AnnouncementModal";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { deleteAnnouncement } from "@/lib/actions/announcement.actions";
-import { useRouter } from "next/navigation";
+import { useAnnouncementsDirectory } from "./hooks/useAnnouncementsDirectory";
 
 export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
-  const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [levelFilter, setLevelFilter] = useState("ALL");
-
-  useEffect(() => {
-    toast.dismiss();
-  }, []);
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este comunicado?"))
-      return;
-
-    toast.loading("Eliminando...", { id: "del-ann" });
-    const res = await deleteAnnouncement(id);
-    if (res.success) {
-      toast.success("Comunicado eliminado.", { id: "del-ann" });
-      router.refresh();
-    } else {
-      toast.error(res.error as string, { id: "del-ann" });
-    }
-  };
-
-  const filteredData = initialData.filter((ann) => {
-    const matchesSearch =
-      ann.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ann.body.toLowerCase().includes(searchTerm.toLowerCase());
-    const annLevel = ann.targetLevel || "ALL";
-    const matchesLevel = levelFilter === "ALL" || annLevel === levelFilter;
-
-    return matchesSearch && matchesLevel;
-  });
+  const {
+    isModalOpen,
+    searchTerm,
+    setSearchTerm,
+    levelFilter,
+    setLevelFilter,
+    filteredAnnouncements,
+    handleDelete,
+    openCreateModal,
+    closeCreateModal,
+  } = useAnnouncementsDirectory(initialData);
 
   const getLevelBadge = (level: string | null) => {
     switch (level) {
@@ -88,10 +64,10 @@ export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
       <div className="print:hidden">
         <PageHeader
           title="Comunicados y Anuncios"
-          description="Gestión de comunicaciones oficiales para estudiantes, apoderados y personal."
+          description="GestiÃ³n de comunicaciones oficiales para estudiantes, apoderados y personal."
           action={
             <Button
-              onClick={() => setIsModalOpen(true)}
+              onClick={openCreateModal}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -102,7 +78,7 @@ export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <Input
-            placeholder="Buscar por título o contenido..."
+            placeholder="Buscar por tÃ­tulo o contenido..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"
@@ -122,8 +98,8 @@ export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredData.length > 0 ? (
-          filteredData.map((ann) => (
+        {filteredAnnouncements.length > 0 ? (
+          filteredAnnouncements.map((ann) => (
             <div
               key={ann.id}
               className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group print:border-none print:shadow-none print:break-inside-avoid"
@@ -193,10 +169,7 @@ export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
         )}
       </div>
 
-      <AnnouncementModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
+      <AnnouncementModal isOpen={isModalOpen} onClose={closeCreateModal} />
     </div>
   );
 }

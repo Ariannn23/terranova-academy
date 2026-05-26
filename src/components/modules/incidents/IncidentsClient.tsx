@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,23 +10,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, AlertTriangle } from "lucide-react";
+import { Plus, Eye } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { DataTable } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useIncidentsDirectory } from "./hooks/useIncidentsDirectory";
 
 export function IncidentsClient({ initialData }: { initialData: any[] }) {
-  const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [severityFilter, setSeverityFilter] = useState("ALL");
-
-  useEffect(() => {
-    toast.dismiss();
-  }, []);
+  const {
+    searchTerm,
+    setSearchTerm,
+    severityFilter,
+    setSeverityFilter,
+    filteredIncidents,
+    viewIncident,
+  } = useIncidentsDirectory(initialData);
 
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
@@ -59,20 +58,6 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
         return <Badge variant="outline">{severity}</Badge>;
     }
   };
-
-  const filteredData = initialData.filter((record) => {
-    const studentName =
-      `${record.enrollment.student.firstName} ${record.enrollment.student.lastName}`.toLowerCase();
-    const studentDni = record.enrollment.student.dni;
-    const matchesSearch =
-      studentName.includes(searchTerm.toLowerCase()) ||
-      studentDni.includes(searchTerm);
-
-    const matchesSeverity =
-      severityFilter === "ALL" || record.severity === severityFilter;
-
-    return matchesSearch && matchesSeverity;
-  });
 
   const columns = [
     {
@@ -134,12 +119,7 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              toast.loading("Cargando perfil del alumno...", {
-                id: "view-profile",
-              });
-              router.push(`/dashboard/incidencias/${row.id}`);
-            }}
+            onClick={() => viewIncident(row.id)}
             title="Ir al Perfil 360"
             className="text-slate-400 hover:text-blue-600 hover:bg-blue-50"
           >
@@ -186,8 +166,8 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <DataTable data={filteredData} columns={columns} />
-        {filteredData.length === 0 && (
+        <DataTable data={filteredIncidents} columns={columns} />
+        {filteredIncidents.length === 0 && (
           <div className="p-8 text-center text-slate-500">
             No se encontraron incidencias que coincidan con la búsqueda.
           </div>

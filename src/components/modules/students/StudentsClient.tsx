@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
@@ -15,32 +14,20 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useStudentsDirectory } from "./hooks/useStudentsDirectory";
 
 export function StudentsClient({ initialData }: { initialData: any[] }) {
-  const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [levelFilter, setLevelFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-
-  const filteredData = initialData.filter((student) => {
-    const matchesSearch =
-      student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.dni.includes(searchTerm);
-
-    const matchesStatus =
-      statusFilter === "ALL" || student.status === statusFilter;
-
-    const activeEnrollment = student.enrollments?.[0];
-    const gradeLevel = activeEnrollment?.section?.gradeLevel;
-
-    const matchesLevel =
-      levelFilter === "ALL" || gradeLevel?.level === levelFilter;
-
-    return matchesSearch && matchesStatus && matchesLevel;
-  });
+  const {
+    searchTerm,
+    setSearchTerm,
+    levelFilter,
+    setLevelFilter,
+    statusFilter,
+    setStatusFilter,
+    filteredStudents,
+    viewStudent,
+    createStudent,
+  } = useStudentsDirectory(initialData);
 
   const columns = [
     {
@@ -127,12 +114,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              toast.loading("Cargando perfil del estudiante...", {
-                id: "view-student",
-              });
-              router.push(`/dashboard/estudiantes/${row.id}`);
-            }}
+            onClick={() => viewStudent(row.id)}
             title="Ver Perfil"
             className="text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
           >
@@ -151,12 +133,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
         action={
           <Button
             className="bg-emerald-700 hover:bg-emerald-800"
-            onClick={() => {
-              toast.loading("Iniciando registro de estudiante...", {
-                id: "nav-new-student",
-              });
-              router.push("/dashboard/estudiantes/nuevo");
-            }}
+            onClick={createStudent}
           >
             <Plus className="mr-2 h-4 w-4" /> Nuevo Estudiante
           </Button>
@@ -196,7 +173,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
         </Select>
       </div>
 
-      <DataTable data={filteredData} columns={columns} />
+      <DataTable data={filteredStudents} columns={columns} />
     </div>
   );
 }

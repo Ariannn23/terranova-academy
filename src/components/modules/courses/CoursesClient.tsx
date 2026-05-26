@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +7,8 @@ import { Plus, Search, Edit2, Archive, ArchiveRestore } from "lucide-react";
 import { CourseForm } from "./CourseForm";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
-import { updateCourse } from "@/lib/actions/course.actions";
-import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useCoursesDirectory } from "./hooks/useCoursesDirectory";
 
 export function CoursesClient({
   initialData,
@@ -19,50 +17,20 @@ export function CoursesClient({
   initialData: any[];
   gradeLevels: any[];
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
-  const [courseToToggle, setCourseToToggle] = useState<any>(null);
-
-  const filteredCourses = initialData.filter((c) =>
-    `${c.name} ${c.gradeLevel.name} ${c.gradeLevel.level}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase()),
-  );
-
-  const handleEdit = (course: any) => {
-    setSelectedCourse(course);
-    setIsFormOpen(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedCourse(null);
-    setIsFormOpen(true);
-  };
-
-  const handleToggleClick = (course: any) => {
-    setCourseToToggle(course);
-  };
-
-  const handleConfirmToggle = async () => {
-    if (!courseToToggle) return;
-    const newStatus = !courseToToggle.active;
-    const loadingToast = toast.loading(
-      newStatus ? "Activando curso..." : "Desactivando curso...",
-    );
-
-    const result = await updateCourse(courseToToggle.id, { active: newStatus });
-
-    toast.dismiss(loadingToast);
-    if (result.success) {
-      toast.success(
-        `Curso ${newStatus ? "activado" : "inhabilitado"} correctamente`,
-      );
-    } else {
-      toast.error(result.error || "Error al cambiar estado del curso");
-    }
-    setCourseToToggle(null);
-  };
+  const {
+    searchTerm,
+    setSearchTerm,
+    filteredCourses,
+    isFormOpen,
+    setIsFormOpen,
+    selectedCourse,
+    courseToToggle,
+    setCourseToToggle,
+    handleEdit,
+    handleCreate,
+    handleToggleClick,
+    handleConfirmToggle,
+  } = useCoursesDirectory(initialData);
 
   const columns = [
     {
