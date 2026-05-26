@@ -10,6 +10,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run src/lib/actions/__tests__",
     "test:coverage": "vitest run --coverage",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
