@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   filterBySearchKeys,
+  getAlignClass,
+  getFilteredTableData,
   getNestedValue,
+  getPageRange,
   getTotalPages,
+  normalizeSearchKeys,
   paginate,
 } from "@/services/table.service";
 
@@ -41,8 +45,28 @@ describe("table.service", () => {
     expect(result).not.toBe(rows);
   });
 
+  it("normaliza searchKey simple y multiple", () => {
+    expect(normalizeSearchKeys("student.dni")).toEqual(["student.dni"]);
+    expect(normalizeSearchKeys(["student.dni", "section.name"])).toEqual([
+      "student.dni",
+      "section.name",
+    ]);
+    expect(normalizeSearchKeys()).toEqual([]);
+  });
+
+  it("obtiene datos filtrados para tabla", () => {
+    expect(getFilteredTableData(rows, "B", ["section.name"])).toEqual([
+      rows[1],
+    ]);
+    expect(getFilteredTableData(rows, "ana", [])).toBe(rows);
+  });
+
   it("pagina primera pagina", () => {
     expect(paginate(rows, 1, 1)).toEqual([rows[0]]);
+  });
+
+  it("pagina intermedia", () => {
+    expect(paginate([1, 2, 3, 4], 2, 2)).toEqual([3, 4]);
   });
 
   it("pagina fuera de rango", () => {
@@ -52,5 +76,19 @@ describe("table.service", () => {
   it("calcula total de paginas", () => {
     expect(getTotalPages(21, 10)).toBe(3);
     expect(getTotalPages(0, 10)).toBe(1);
+    expect(getTotalPages(10, 0)).toBe(1);
+  });
+
+  it("calcula rango visible de pagina", () => {
+    expect(getPageRange(1, 10, 25)).toEqual({ start: 1, end: 10 });
+    expect(getPageRange(3, 10, 25)).toEqual({ start: 21, end: 25 });
+    expect(getPageRange(1, 10, 0)).toEqual({ start: 0, end: 0 });
+  });
+
+  it("resuelve clases de alineacion", () => {
+    expect(getAlignClass("left")).toBe("text-left");
+    expect(getAlignClass("center")).toBe("text-center");
+    expect(getAlignClass("right")).toBe("text-right");
+    expect(getAlignClass()).toBe("text-left");
   });
 });

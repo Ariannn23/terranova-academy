@@ -14,9 +14,12 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import {
-  filterBySearchKeys,
+  getAlignClass,
+  getFilteredTableData,
   getNestedValue,
+  getPageRange,
   getTotalPages,
+  normalizeSearchKeys,
   paginate,
 } from "@/services/table.service";
 
@@ -46,27 +49,19 @@ export function DataTable<T>({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const searchKeys = searchKey
-    ? Array.isArray(searchKey)
-      ? searchKey.map(String)
-      : [String(searchKey)]
-    : [];
-  const filteredData = searchKey
-    ? filterBySearchKeys(data, search, searchKeys)
-    : data;
+  const searchKeys = normalizeSearchKeys(searchKey);
+  const filteredData = getFilteredTableData(data, search, searchKeys);
 
   const totalPages = getTotalPages(filteredData.length, itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
   const currentData = paginate(filteredData, currentPage, itemsPerPage);
+  const pageRange = getPageRange(
+    currentPage,
+    itemsPerPage,
+    filteredData.length,
+  );
 
   const prevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
   const nextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
-
-  const alignClass = (align?: "left" | "center" | "right") => {
-    if (align === "center") return "text-center";
-    if (align === "right") return "text-right";
-    return "text-left";
-  };
 
   return (
     <div className="space-y-4">
@@ -92,7 +87,7 @@ export function DataTable<T>({
               {columns.map((col, i) => (
                 <TableHead
                   key={i}
-                  className={`font-semibold text-slate-600 ${alignClass(col.align)} ${
+                  className={`font-semibold text-slate-600 ${getAlignClass(col.align)} ${
                     col.align === "left" ? "pl-8" : ""
                   }`}
                 >
@@ -112,7 +107,7 @@ export function DataTable<T>({
                   {columns.map((col, colIndex) => (
                     <TableCell
                       key={colIndex}
-                      className={`py-3 ${alignClass(col.align)}`}
+                      className={`py-3 ${getAlignClass(col.align)}`}
                     >
                       {col.cell
                         ? col.cell(item)
@@ -140,9 +135,7 @@ export function DataTable<T>({
 
       <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border border-t-0 rounded-b-md">
         <div className="text-xs text-slate-500 italic">
-          Mostrando {startIndex + 1}-
-          {Math.min(startIndex + itemsPerPage, filteredData.length)} de{" "}
-          {filteredData.length}
+          Mostrando {pageRange.start}-{pageRange.end} de {filteredData.length}
         </div>
         <div className="flex items-center space-x-2">
           <Button
