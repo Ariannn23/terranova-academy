@@ -146,7 +146,7 @@ export async function getHolidayDates(academicYearId: string) {
     for (const h of holidays) {
       if (h.endDate) {
         // Generar cada día en el rango
-        let currentDate = new Date(h.date);
+        const currentDate = new Date(h.date);
         currentDate.setHours(0, 0, 0, 0);
         const limitDate = new Date(h.endDate);
         limitDate.setHours(23, 59, 59, 999);

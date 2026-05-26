@@ -8,8 +8,26 @@ import {
   saveScheduleBlock,
 } from "@/lib/actions/schedule.actions";
 
+type ScheduleCellData = {
+  sectionId: string;
+  dayOfWeek: number;
+  block: {
+    startTime: string;
+    endTime: string;
+  };
+  schedule?: {
+    id?: string;
+    course?: {
+      id?: string;
+    } | null;
+    teacher?: {
+      id?: string;
+    } | null;
+  } | null;
+} | null;
+
 type UseScheduleCellOptions = {
-  data: any;
+  data: ScheduleCellData;
   onClose: () => void;
 };
 

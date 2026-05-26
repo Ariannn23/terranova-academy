@@ -20,8 +20,12 @@ export const courseSchema = z.object({
 
 export type CourseFormValues = z.infer<typeof courseSchema>;
 
+type CourseInitialData = CourseFormValues & {
+  id: string;
+};
+
 type UseCourseFormOptions = {
-  initialData?: any;
+  initialData?: CourseInitialData;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 };

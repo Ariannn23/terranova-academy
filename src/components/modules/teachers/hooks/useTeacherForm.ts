@@ -7,8 +7,12 @@ import { createTeacher, updateTeacher } from "@/lib/actions/teacher.actions";
 import { uploadTeacherPhoto } from "@/lib/actions/upload.actions";
 import { TeacherFormStatus } from "../types";
 
+type TeacherInitialData = TeacherSchemaType & {
+  id: string;
+};
+
 type UseTeacherFormOptions = {
-  initialData?: any;
+  initialData?: TeacherInitialData;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -100,7 +104,7 @@ export function useTeacherForm({
       } else {
         setStatus({ state: "error", message: result.error || "Error al guardar", isUpdate: !!initialData });
       }
-    } catch (error) {
+    } catch {
       setStatus({ state: "error", message: "Error de conexión o servidor", isUpdate: !!initialData });
     }
   }, [initialData, selectedFile]);

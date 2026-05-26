@@ -10,10 +10,13 @@ import { IncidentSchema } from "@/lib/validations/incident.schema";
 import { useStudentSearch } from "@/components/shared/hooks/useStudentSearch";
 import { SearchStudentResult } from "@/lib/actions/payment.actions";
 
+type ActiveEnrollment = NonNullable<SearchStudentResult["enrollments"]>[number];
+
 export function useRegisterIncident() {
   const router = useRouter();
   const searchHook = useStudentSearch();
-  const [activeEnrollment, setActiveEnrollment] = useState<any | null>(null);
+  const [activeEnrollment, setActiveEnrollment] =
+    useState<ActiveEnrollment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof IncidentSchema>>({
@@ -68,7 +71,7 @@ export function useRegisterIncident() {
       } else {
         toast.error(res.error, { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Error de conexión al servidor.", { id: toastId });
     } finally {
       setIsSubmitting(false);

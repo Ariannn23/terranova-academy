@@ -15,8 +15,16 @@ import {
   updateCalendarEvent,
 } from "@/lib/actions/calendar.actions";
 
+type CalendarEventInitialData = Partial<CalendarEventSchemaType> & {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  date?: Date | string;
+  endDate?: Date | string | null;
+};
+
 type UseCalendarFormOptions = {
-  eventToEdit?: any;
+  eventToEdit?: CalendarEventInitialData;
   academicYearId: string;
   onClose: () => void;
 };
@@ -29,14 +37,18 @@ export function useCalendarForm({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<CalendarEventSchemaType>({
+  const form = useForm<
+    CalendarEventSchemaType,
+    unknown,
+    CalendarEventSchemaType
+  >({
     resolver: zodResolver(CalendarEventSchema),
     defaultValues: {
       title: eventToEdit?.title || "",
       description: eventToEdit?.description || "",
-      date: eventToEdit ? new Date(eventToEdit.date) : new Date(),
+      date: eventToEdit?.date ? new Date(eventToEdit.date) : new Date(),
       endDate: eventToEdit?.endDate ? new Date(eventToEdit.endDate) : undefined,
-      type: eventToEdit?.type || "ACTIVIDAD",
+      type: (eventToEdit?.type || "ACTIVIDAD") as CalendarEventSchemaType["type"],
       academicYearId,
     },
   });
