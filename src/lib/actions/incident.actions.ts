@@ -33,7 +33,7 @@ export async function getIncidentById(id: string) {
     if (!incident) return { success: false, error: "Incidencia no encontrada" };
 
     return { success: true, data: incident };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: "Error al obtener el detalle de la incidencia",

@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/card";
 import { ReceiptModal } from "./ReceiptModal";
 import { DataTable } from "@/components/shared/DataTable";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   Select,
   SelectContent,
@@ -37,39 +36,62 @@ import {
 import { formatCurrency } from "@/services/formatting.service";
 
 interface PaymentsDashboardClientProps {
-  initialData: any;
+  initialData: {
+    totalPaid: number;
+    totalPending: number;
+    totalOverdue: number;
+    dueThisWeek: number;
+    latestPayments: PaymentDashboardRow[];
+  };
 }
+
+type PaymentDashboardRow = {
+  id: string;
+  paidAt: Date | string;
+  amount: number;
+  method?: string | null;
+  concept: {
+    name: string;
+  };
+  enrollment: {
+    student: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+};
 
 export default function PaymentsDashboardClient({
   initialData,
 }: PaymentsDashboardClientProps) {
   const router = useRouter();
-  const [data, setData] = useState(initialData);
-  const [selectedReceipt, setSelectedReceipt] = useState<any | null>(null);
+  const [data] = useState(initialData);
+  const [selectedReceipt, setSelectedReceipt] =
+    useState<PaymentDashboardRow | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   const paymentColumns = [
     {
       header: "Fecha de Pago",
       accessorKey: "paidAt",
-      cell: (row: any) =>
+      cell: (row: PaymentDashboardRow) =>
         format(new Date(row.paidAt), "dd MMM yyyy, p", { locale: es }),
     },
     {
       header: "Estudiante",
       accessorKey: "student",
-      cell: (row: any) =>
+      cell: (row: PaymentDashboardRow) =>
         `${row.enrollment.student.firstName} ${row.enrollment.student.lastName}`,
     },
     {
       header: "Concepto",
       accessorKey: "concept",
-      cell: (row: any) => row.concept.name,
+      cell: (row: PaymentDashboardRow) => row.concept.name,
     },
     {
       header: "Método",
       accessorKey: "method",
-      cell: (row: any) => (
+      cell: (row: PaymentDashboardRow) => (
         <div className="flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-muted-foreground" />
           <span className="capitalize">{row.method?.toLowerCase() || "-"}</span>
@@ -79,7 +101,7 @@ export default function PaymentsDashboardClient({
     {
       header: "Monto",
       accessorKey: "amount",
-      cell: (row: any) => (
+      cell: (row: PaymentDashboardRow) => (
         <span className="font-bold text-emerald-600">
           {formatCurrency(row.amount)}
         </span>
@@ -88,7 +110,7 @@ export default function PaymentsDashboardClient({
     {
       header: "Recibo",
       accessorKey: "id",
-      cell: (row: any) => (
+      cell: (row: PaymentDashboardRow) => (
         <button
           onClick={() => {
             setSelectedReceipt(row);

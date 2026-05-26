@@ -1,9 +1,23 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { getAttendanceBySection } from "@/lib/actions/attendance.actions";
 import { toast } from "sonner";
 import { StudentAttendanceInput } from "@/lib/validations/attendance.schema";
 
-export function useAttendanceState(initialStructure: any) {
+type AttendanceSection = { id: string };
+type AttendanceGrade = { sections?: AttendanceSection[] };
+type AttendanceLevel = { grades?: AttendanceGrade[] };
+type AttendanceStructure = { levels?: AttendanceLevel[] };
+type AttendanceGridItem = {
+  enrollmentId: string;
+  studentName: string;
+  studentDni: string;
+  attendance?: {
+    status: StudentAttendanceInput["status"];
+    justification?: string | null;
+  } | null;
+};
+
+export function useAttendanceState(initialStructure: AttendanceStructure) {
   const [selectedLevelIndex, setSelectedLevelIndex] = useState<number | null>(null);
   const [selectedGradeIndex, setSelectedGradeIndex] = useState<number | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");
@@ -31,14 +45,7 @@ export function useAttendanceState(initialStructure: any) {
     setStudents([]);
   }, [selectedGradeIndex]);
 
-  useEffect(() => {
-    setStudents([]);
-    if (selectedSectionId && selectedDate) {
-      loadGrid();
-    }
-  }, [selectedSectionId, selectedDate]);
-
-  const loadGrid = async () => {
+  const loadGrid = useCallback(async () => {
     if (!selectedSectionId || !selectedDate) return;
     setIsLoadingGrid(true);
 
@@ -48,23 +55,30 @@ export function useAttendanceState(initialStructure: any) {
       const result = await getAttendanceBySection(selectedSectionId, localDate);
       if (result.success && result.data) {
         setStudents(
-          result.data.map((item: any) => ({
+          (result.data as AttendanceGridItem[]).map((item) => ({
             enrollmentId: item.enrollmentId,
             studentName: item.studentName,
             studentDni: item.studentDni,
             status: item.attendance ? item.attendance.status : null,
-            justification: item.attendance ? item.attendance.justification : undefined,
+            justification: item.attendance?.justification ?? undefined,
           }))
         );
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar la lista de alumnos");
     } finally {
       setIsLoadingGrid(false);
     }
-  };
+  }, [selectedDate, selectedSectionId]);
+
+  useEffect(() => {
+    setStudents([]);
+    if (selectedSectionId && selectedDate) {
+      loadGrid();
+    }
+  }, [loadGrid, selectedSectionId, selectedDate]);
 
   return {
     selectedLevelIndex, setSelectedLevelIndex,

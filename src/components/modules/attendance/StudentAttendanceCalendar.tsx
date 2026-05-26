@@ -74,7 +74,7 @@ export function StudentAttendanceCalendar({
                 </span>
                 <span className="w-1 h-1 rounded-full bg-slate-300 hidden md:block"></span>
                 <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-sm font-medium">
-                  {section.gradeLevel.name} "{section.name}"
+                  {section.gradeLevel.name} &quot;{section.name}&quot;
                 </span>
               </div>
             </div>

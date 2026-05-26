@@ -92,7 +92,7 @@ export function ProfileAttendanceTab({
               {sortedAttendances.filter((a: any) => a.status !== "PRESENTE")
                 .length === 0 && (
                 <p className="text-slate-500 text-sm text-center italic py-4">
-                  Excelente asistencia. Solo existen registros de "Presente".
+                  Excelente asistencia. Solo existen registros de &quot;Presente&quot;.
                 </p>
               )}
             </div>

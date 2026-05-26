@@ -151,7 +151,7 @@ export function IncidentDetailClient({ incident }: IncidentDetailClientProps) {
                   </p>
                   <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                     <p className="text-blue-900 font-medium italic">
-                      "{action}"
+                      &quot;{action}&quot;
                     </p>
                   </div>
                 </div>

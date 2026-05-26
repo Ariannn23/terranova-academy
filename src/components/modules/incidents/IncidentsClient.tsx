@@ -18,7 +18,27 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useIncidentsDirectory } from "./hooks/useIncidentsDirectory";
 
-export function IncidentsClient({ initialData }: { initialData: any[] }) {
+type IncidentRow = {
+  id: string;
+  date: Date | string;
+  severity: string;
+  description: string;
+  enrollment: {
+    student: {
+      firstName: string;
+      lastName: string;
+      dni: string;
+    };
+    section: {
+      name: string;
+      gradeLevel: {
+        name: string;
+      };
+    };
+  };
+};
+
+export function IncidentsClient({ initialData }: { initialData: IncidentRow[] }) {
   const {
     searchTerm,
     setSearchTerm,
@@ -63,7 +83,7 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Estudiante",
       accessorKey: "student",
-      cell: (row: any) => (
+      cell: (row: IncidentRow) => (
         <div>
           <p className="font-semibold text-slate-800 flex items-center gap-2">
             {row.enrollment.student.firstName} {row.enrollment.student.lastName}
@@ -77,17 +97,17 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Sección",
       accessorKey: "section",
-      cell: (row: any) => (
+      cell: (row: IncidentRow) => (
         <span className="text-slate-600 text-sm">
-          {row.enrollment.section.gradeLevel.name} "
-          {row.enrollment.section.name}"
+          {row.enrollment.section.gradeLevel.name} &quot;
+          {row.enrollment.section.name}&quot;
         </span>
       ),
     },
     {
       header: "Fecha",
       accessorKey: "date",
-      cell: (row: any) => (
+      cell: (row: IncidentRow) => (
         <span className="text-sm text-slate-600">
           {format(new Date(row.date), "dd MMM yyyy", { locale: es })}
         </span>
@@ -96,12 +116,12 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Severidad",
       accessorKey: "severity",
-      cell: (row: any) => getSeverityBadge(row.severity),
+      cell: (row: IncidentRow) => getSeverityBadge(row.severity),
     },
     {
       header: "Descripción",
       accessorKey: "description",
-      cell: (row: any) => (
+      cell: (row: IncidentRow) => (
         <span
           className="text-sm text-slate-600 truncate max-w-[200px] inline-block"
           title={row.description}
@@ -113,7 +133,7 @@ export function IncidentsClient({ initialData }: { initialData: any[] }) {
     {
       header: "Acciones",
       accessorKey: "actions",
-      cell: (row: any) => (
+      cell: (row: IncidentRow) => (
         <div className="flex justify-center gap-2">
           {/* Aquí podríamos abrir un modal para ver el detalle en lugar de una página nueva */}
           <Button

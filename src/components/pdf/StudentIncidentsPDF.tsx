@@ -190,7 +190,7 @@ export const StudentIncidentsPDF = ({ enrollment }: { enrollment: any }) => {
                       lineHeight: 1.4,
                     }}
                   >
-                    "{incident.actionTaken}"
+                    &quot;{incident.actionTaken}&quot;
                   </Text>
                 </View>
               </>

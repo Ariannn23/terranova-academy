@@ -9,7 +9,6 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   Clock,
-  MapPin,
 } from "lucide-react";
 import { CalendarModal } from "./CalendarModal";
 import { format, isSameDay } from "date-fns";

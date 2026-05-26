@@ -19,7 +19,33 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
+type EnrollmentRow = {
+  id: string;
+  enrollDate: Date | string;
+  active: boolean;
+  student: {
+    firstName: string;
+    lastName: string;
+    dni: string;
+    photoUrl?: string | null;
+  };
+  section: {
+    name: string;
+    gradeLevel: {
+      name: string;
+      level: string;
+    };
+  };
+  academicYear: {
+    year: number;
+  };
+};
+
+export function EnrollmentsClient({
+  initialData,
+}: {
+  initialData: EnrollmentRow[];
+}) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
@@ -50,7 +76,7 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       header: "Estudiante",
       accessorKey: "student",
       align: "left" as const,
-      cell: (row: any) => (
+      cell: (row: EnrollmentRow) => (
         <div className="flex items-center space-x-3">
           <StudentAvatar
             name={`${row.student.firstName} ${row.student.lastName}`}
@@ -70,10 +96,10 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       header: "Grado y Sección",
       accessorKey: "section",
       align: "center" as const,
-      cell: (row: any) => (
+      cell: (row: EnrollmentRow) => (
         <div className="flex flex-col items-center">
           <p className="font-medium text-slate-700">
-            {row.section.gradeLevel.name} "{row.section.name}"
+          {row.section.gradeLevel.name} &quot;{row.section.name}&quot;
           </p>
           <p className="text-xs text-slate-500">
             {row.section.gradeLevel.level}
@@ -85,7 +111,7 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       header: "Año Lectivo",
       accessorKey: "year",
       align: "center" as const,
-      cell: (row: any) => (
+      cell: (row: EnrollmentRow) => (
         <span className="text-sm font-medium">{row.academicYear.year}</span>
       ),
     },
@@ -93,7 +119,7 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       header: "Fecha de Alta",
       accessorKey: "date",
       align: "center" as const,
-      cell: (row: any) => (
+      cell: (row: EnrollmentRow) => (
         <span className="text-sm text-slate-600">
           {format(new Date(row.enrollDate), "dd MMM, yyyy")}
         </span>
@@ -103,7 +129,7 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       header: "Estado",
       accessorKey: "active",
       align: "center" as const,
-      cell: (row: any) => (
+      cell: (row: EnrollmentRow) => (
         <Badge
           variant={row.active ? "default" : "destructive"}
           className={
@@ -120,7 +146,7 @@ export function EnrollmentsClient({ initialData }: { initialData: any[] }) {
       header: "Acciones",
       accessorKey: "actions",
       align: "center" as const,
-      cell: (row: any) => (
+      cell: (row: EnrollmentRow) => (
         <Button
           variant="ghost"
           size="sm"

@@ -1,6 +1,3 @@
-import { UseFormReturn } from "react-hook-form";
-import { TeacherSchemaType } from "@/lib/validations/teacher.schema";
-
 export interface TeacherFormStatus {
   state: "idle" | "loading" | "success" | "error";
   message?: string;

@@ -41,7 +41,7 @@ export function EnrollmentHeroCard({ enrollment }: { enrollment: EnrollmentData 
               <span className="w-1 h-1 rounded-full bg-slate-300"></span>
               <span className="flex items-center gap-1 font-medium text-emerald-700">
                 <BookOpen className="h-4 w-4" />
-                {section.gradeLevel.name} "{section.name}"
+                {section.gradeLevel.name} &quot;{section.name}&quot;
               </span>
               <span className="w-1 h-1 rounded-full bg-slate-300"></span>
               <span>{section.gradeLevel.level}</span>

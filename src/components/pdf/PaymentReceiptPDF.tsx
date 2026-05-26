@@ -2,7 +2,6 @@ import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },

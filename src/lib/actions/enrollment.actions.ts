@@ -6,8 +6,8 @@ import {
   EnrollmentSchema,
   SectionTransferSchema,
 } from "@/lib/validations/enrollment.schema";
-import { Prisma, Level, StudentStatus } from "@prisma/client";
-import { addMonths, startOfMonth, format } from "date-fns";
+import { Prisma, Level } from "@prisma/client";
+import { addMonths, format } from "date-fns";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
@@ -522,7 +522,7 @@ export async function importEnrollments(data: any[]) {
           `DNI/ID ${row.studentId}: ${JSON.stringify(res.error)}`,
         );
       }
-    } catch (error) {
+    } catch {
       results.failed++;
       results.errors.push(`Error crítico en fila ${row.studentId}`);
     }

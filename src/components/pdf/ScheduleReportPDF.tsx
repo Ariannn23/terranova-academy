@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 
 const styles = StyleSheet.create({
@@ -180,7 +180,7 @@ export const ScheduleReportPDF = ({ enrollment, schedules }: { enrollment: any; 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Grado y Sección:</Text>
             <Text style={styles.infoValue}>
-              {enrollment.section.gradeLevel.name} - Sección "{enrollment.section.name}" ({enrollment.section.gradeLevel.level})
+              {enrollment.section.gradeLevel.name} - Sección &quot;{enrollment.section.name}&quot; ({enrollment.section.gradeLevel.level})
             </Text>
           </View>
         </View>

@@ -50,7 +50,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleNavigation = (href: string) => {
+  const handleNavigation = () => {
     setIsOpen(false);
   };
 
@@ -110,7 +110,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => handleNavigation(item.href)}
+                onClick={handleNavigation}
                 className={`flex items-center space-x-3 px-3 py-3 rounded-md transition-colors ${
                   isActive
                     ? "bg-slate-800 text-emerald-400 font-medium"

@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -20,8 +19,6 @@ import { PaymentMethodSelect } from "./_components/PaymentMethodSelect";
 import { SearchStudentResult } from "@/lib/actions/payment.actions";
 
 export default function RegisterPaymentClient() {
-  const router = useRouter();
-
   const {
     searchTerm,
     setSearchTerm,

@@ -2,11 +2,9 @@
 
 // lib/actions/attendance.actions.ts — Server Actions para Asistencia
 
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
-  AttendanceRecordSchema,
   SaveAttendanceBatchSchema,
   JustifyAbsenceSchema,
   CriticalAttendanceFilterSchema,

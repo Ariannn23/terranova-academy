@@ -9,7 +9,6 @@ import {
   ScheduleSchema,
   ScheduleSchemaType,
 } from "@/lib/validations/academic.schema";
-import { Prisma } from "@prisma/client";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
@@ -126,7 +125,7 @@ export async function getCoursesByGradeLevel(gradeLevelId: string) {
       orderBy: { name: "asc" },
     });
     return { success: true, data: courses };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener los cursos" };
   }
 }
@@ -151,7 +150,7 @@ export async function createCourse(data: unknown) {
       metadata: { module: "academic", operation: "create_course" },
     });
     return { success: true, data: course };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al crear el curso" };
   }
 }
@@ -178,7 +177,7 @@ export async function updateCourse(id: string, data: unknown) {
       metadata: { module: "academic", operation: "update_course" },
     });
     return { success: true, data: course };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al actualizar el curso" };
   }
 }
@@ -203,7 +202,7 @@ export async function createSection(data: unknown) {
       metadata: { module: "academic", operation: "create_section" },
     });
     return { success: true, data: section };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al crear la sección" };
   }
 }
@@ -236,7 +235,7 @@ export async function assignTeacherToSection(
       metadata: { module: "academic", operation: "assign_teacher_to_section" },
     });
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al asignar el docente" };
   }
 }
@@ -297,7 +296,7 @@ export async function validateScheduleConflicts(
     }
 
     return { success: true, conflicts };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al validar conflictos de horario" };
   }
 }
@@ -382,7 +381,7 @@ export async function getScheduleBySection(sectionId: string) {
     }));
 
     return { success: true, data: schedulesWithTeacher };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener el horario" };
   }
 }
@@ -401,7 +400,7 @@ export async function getScheduleByTeacher(teacherId: string) {
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
     return { success: true, data: schedules };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener el horario del docente" };
   }
 }

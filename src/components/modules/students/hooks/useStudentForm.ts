@@ -149,7 +149,7 @@ export function useStudentForm(initialData?: any) {
           });
           setErrorProp(action.error || "Ocurrió un error inesperado.");
         }
-      } catch (error) {
+      } catch {
         toast.error("Error de conexión o servidor", { id: toastId });
       }
     });

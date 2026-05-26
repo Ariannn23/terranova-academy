@@ -146,8 +146,8 @@ export const AttendanceSheetPDF = ({
           <View>
             <Text style={styles.label}>Nivel/Grado/Sección:</Text>
             <Text style={styles.value}>
-              {section.gradeLevel.level} - {section.gradeLevel.name} "
-              {section.name}"
+              {section.gradeLevel.level} - {section.gradeLevel.name} &quot;
+              {section.name}&quot;
             </Text>
           </View>
           <View>

@@ -80,7 +80,7 @@ export function ConfigYearTab({ activeYear }: ConfigYearTabProps) {
                         {s.gradeLevel?.name}
                       </p>
                       <p className="text-slate-500 text-xs">
-                        Sección "{s.name}"
+                        Sección &quot;{s.name}&quot;
                       </p>
                     </div>
                   ))}

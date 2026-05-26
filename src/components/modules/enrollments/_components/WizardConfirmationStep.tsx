@@ -56,7 +56,7 @@ export function WizardConfirmationStep({
                   Grado y Sección
                 </p>
                 <p className="font-medium text-slate-900">
-                  {selectedSection.grade} "{selectedSection.name}"
+                  {selectedSection.grade} &quot;{selectedSection.name}&quot;
                 </p>
               </div>
               <div>

@@ -1,10 +1,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { PERIOD_LABELS } from "@/lib/utils/student.utils";
 
 interface ProfileGradesTabProps {
-  gradesByCourse: Record<string, { courseName: string; grades: any[] }>;
+  gradesByCourse: Record<
+    string,
+    {
+      courseName: string;
+      grades: Array<{
+        period: string;
+        score: number | null;
+        isConfigured?: boolean;
+      }>;
+    }
+  >;
 }
 
 export function ProfileGradesTab({ gradesByCourse }: ProfileGradesTabProps) {

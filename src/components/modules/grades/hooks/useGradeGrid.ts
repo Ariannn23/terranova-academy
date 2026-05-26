@@ -1,4 +1,4 @@
-import { useState, useEffect, useTransition } from "react";
+import { useCallback, useState, useEffect, useTransition } from "react";
 import { getCoursesByGradeLevel } from "@/lib/actions/academic.actions";
 import { getGradesBySection, saveGrades } from "@/lib/actions/grade.actions";
 import { toast } from "sonner";
@@ -10,7 +10,17 @@ export interface StudentGradeInput {
   score: number | null;
 }
 
-export function useGradeGrid(initialStructure: any) {
+type GradeCourse = { id: string; name: string };
+type GradeSection = { id: string };
+type GradeLevelItem = {
+  id?: string;
+  courses?: GradeCourse[];
+  sections?: GradeSection[];
+};
+type GradeLevelGroup = { grades?: GradeLevelItem[] };
+type GradeStructure = { levels?: GradeLevelGroup[] };
+
+export function useGradeGrid(initialStructure: GradeStructure) {
   const [isPending, startTransition] = useTransition();
 
   const [selectedLevelIndex, setSelectedLevelIndex] = useState<number | null>(null);
@@ -19,7 +29,7 @@ export function useGradeGrid(initialStructure: any) {
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<GradePeriod | "">("");
 
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<GradeCourse[]>([]);
   const [students, setStudents] = useState<StudentGradeInput[]>([]);
   const [isLoadingGrid, setIsLoadingGrid] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,33 +48,16 @@ export function useGradeGrid(initialStructure: any) {
     setStudents([]);
   }, [selectedLevelIndex]);
 
-  useEffect(() => {
-    setSelectedSectionId("");
-    setSelectedCourseId("");
-    setCourses([]);
-    setStudents([]);
-    if (currentGrade?.id) {
-      loadCourses(currentGrade.id);
-    }
-  }, [selectedGradeIndex, currentGrade?.id]);
-
-  useEffect(() => {
-    setStudents([]);
-    if (selectedSectionId && selectedCourseId && selectedPeriod) {
-      loadGrid();
-    }
-  }, [selectedSectionId, selectedCourseId, selectedPeriod]);
-
-  const loadCourses = async (gradeId: string) => {
+  const loadCourses = useCallback((gradeId: string) => {
     startTransition(async () => {
       const result = await getCoursesByGradeLevel(gradeId);
       if (result.success) {
-        setCourses(result.data!);
+        setCourses((result.data ?? []) as GradeCourse[]);
       }
     });
-  };
+  }, []);
 
-  const loadGrid = async () => {
+  const loadGrid = useCallback(async () => {
     if (!selectedSectionId || !selectedCourseId || !selectedPeriod) return;
     setIsLoadingGrid(true);
     try {
@@ -78,12 +71,29 @@ export function useGradeGrid(initialStructure: any) {
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Error al cargar la grilla de alumnos");
     } finally {
       setIsLoadingGrid(false);
     }
-  };
+  }, [selectedCourseId, selectedPeriod, selectedSectionId]);
+
+  useEffect(() => {
+    setSelectedSectionId("");
+    setSelectedCourseId("");
+    setCourses([]);
+    setStudents([]);
+    if (currentGrade?.id) {
+      loadCourses(currentGrade.id);
+    }
+  }, [currentGrade?.id, loadCourses, selectedGradeIndex]);
+
+  useEffect(() => {
+    setStudents([]);
+    if (selectedSectionId && selectedCourseId && selectedPeriod) {
+      loadGrid();
+    }
+  }, [loadGrid, selectedCourseId, selectedPeriod, selectedSectionId]);
 
   const handleScoreChange = (enrollmentId: string, value: string) => {
     const numValue = value === "" ? null : Number(value);
@@ -131,7 +141,7 @@ export function useGradeGrid(initialStructure: any) {
           id: toastId,
         });
       }
-    } catch (error) {
+    } catch {
       toast.error("Ocurrió un error inesperado", { id: toastId });
     } finally {
       setIsSaving(false);

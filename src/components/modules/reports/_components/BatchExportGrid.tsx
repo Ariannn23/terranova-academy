@@ -92,7 +92,7 @@ export function BatchExportGrid({
               <SelectContent>
                 {allSections.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.gradeName} "{s.name}"
+                    {s.gradeName} &quot;{s.name}&quot;
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -149,7 +149,7 @@ export function BatchExportGrid({
               <SelectContent>
                 {allSections.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.gradeName} "{s.name}"
+                    {s.gradeName} &quot;{s.name}&quot;
                   </SelectItem>
                 ))}
               </SelectContent>

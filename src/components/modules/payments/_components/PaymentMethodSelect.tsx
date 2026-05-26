@@ -20,6 +20,7 @@ import {
   Image as ImageIcon,
   Upload,
 } from "lucide-react";
+import Image from "next/image";
 
 interface PaymentMethodSelectProps {
   control: any;
@@ -124,9 +125,11 @@ export function PaymentMethodSelect({
               </label>
             ) : (
               <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-slate-200">
-                <img
+                <Image
                   src={previewImage}
                   alt="Voucher preview"
+                  fill
+                  unoptimized
                   className="object-cover w-full h-full"
                 />
                 <button

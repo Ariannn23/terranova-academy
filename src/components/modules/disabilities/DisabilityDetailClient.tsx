@@ -63,7 +63,7 @@ export function DisabilityDetailClient({ record }: { record: any }) {
       } else {
         toast.error(res.error, { id: "resolve-disab" });
       }
-    } catch (error) {
+    } catch {
       toast.error("Error al procesar la solicitud.", { id: "resolve-disab" });
     } finally {
       setIsSubmitting(false);
@@ -153,8 +153,8 @@ export function DisabilityDetailClient({ record }: { record: any }) {
                 </p>
                 <div className="mt-2 text-sm text-slate-600">
                   <span className="font-medium mr-1">Sección:</span>
-                  {record.enrollment.section.gradeLevel.name} "
-                  {record.enrollment.section.name}"
+                  {record.enrollment.section.gradeLevel.name} &quot;
+                  {record.enrollment.section.name}&quot;
                 </div>
               </div>
             </div>

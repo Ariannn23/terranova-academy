@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, StudentStatus } from "@prisma/client";
 import {
   CreateStudentSchema,
-  StudentSchema,
 } from "@/lib/validations/student.schema";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireRole } from "@/lib/auth";

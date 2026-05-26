@@ -2,11 +2,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { GradePeriod, StudentStatus } from "@prisma/client";
+import { GradePeriod } from "@prisma/client";
 import { BatchGradeSchema } from "@/lib/validations/grade.schema";
 import { calculateFinalScore, isPassing } from "@/lib/utils/grade-calculator";
 import { calculateStudentStatus } from "@/lib/utils/student-status";
-import { MIN_PASSING_SCORE } from "@/lib/constants";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";

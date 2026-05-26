@@ -18,7 +18,31 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useDisabilitiesDirectory } from "./hooks/useDisabilitiesDirectory";
 
-export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
+type DisabilityRow = {
+  id: string;
+  reason: string;
+  startDate: Date | string;
+  active: boolean;
+  enrollment: {
+    student: {
+      firstName: string;
+      lastName: string;
+      dni: string;
+    };
+    section: {
+      name: string;
+      gradeLevel: {
+        name: string;
+      };
+    };
+  };
+};
+
+export function DisabilitiesClient({
+  initialData,
+}: {
+  initialData: DisabilityRow[];
+}) {
   const {
     searchTerm,
     setSearchTerm,
@@ -69,7 +93,7 @@ export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
     {
       header: "Estudiante",
       accessorKey: "student",
-      cell: (row: any) => (
+      cell: (row: DisabilityRow) => (
         <div>
           <p className="font-semibold text-slate-800">
             {row.enrollment.student.firstName} {row.enrollment.student.lastName}
@@ -83,22 +107,22 @@ export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
     {
       header: "Sección",
       accessorKey: "section",
-      cell: (row: any) => (
+      cell: (row: DisabilityRow) => (
         <span className="text-slate-600 text-sm">
-          {row.enrollment.section.gradeLevel.name} "
-          {row.enrollment.section.name}"
+          {row.enrollment.section.gradeLevel.name} &quot;
+          {row.enrollment.section.name}&quot;
         </span>
       ),
     },
     {
       header: "Motivo",
       accessorKey: "reason",
-      cell: (row: any) => getReasonBadge(row.reason),
+      cell: (row: DisabilityRow) => getReasonBadge(row.reason),
     },
     {
       header: "Fecha Inicio",
       accessorKey: "startDate",
-      cell: (row: any) => (
+      cell: (row: DisabilityRow) => (
         <span className="text-sm text-slate-600">
           {format(new Date(row.startDate), "dd MMM yyyy", { locale: es })}
         </span>
@@ -107,7 +131,7 @@ export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
     {
       header: "Estado",
       accessorKey: "status",
-      cell: (row: any) =>
+      cell: (row: DisabilityRow) =>
         row.active ? (
           <div className="flex items-center text-red-600 text-sm font-medium">
             <AlertCircle className="w-4 h-4 mr-1" />
@@ -123,7 +147,7 @@ export function DisabilitiesClient({ initialData }: { initialData: any[] }) {
     {
       header: "Acciones",
       accessorKey: "actions",
-      cell: (row: any) => (
+      cell: (row: DisabilityRow) => (
         <div className="flex justify-center gap-2">
           <Button
             variant="ghost"

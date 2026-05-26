@@ -70,7 +70,7 @@ export function WizardSectionStep({
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="font-bold text-slate-900">
-                            {sec.grade} "{sec.name}"
+                            {sec.grade} &quot;{sec.name}&quot;
                           </p>
                           <p className="text-xs text-slate-500">{sec.level}</p>
                         </div>

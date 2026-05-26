@@ -62,8 +62,8 @@ export const EnrollmentCertificatePDF = ({
       <Text style={styles.content}>A quien corresponda:</Text>
 
       <Text style={styles.content}>
-        La Dirección Académica de la Institución Educativa Privada "TerraNova
-        Academy", hace constar por medio de la presente que el/la estudiante{" "}
+        La Dirección Académica de la Institución Educativa Privada &quot;TerraNova
+        Academy&quot;, hace constar por medio de la presente que el/la estudiante{" "}
         <Text style={styles.boldText}>
           {enrollment.student.firstName} {enrollment.student.lastName}
         </Text>
@@ -83,8 +83,8 @@ export const EnrollmentCertificatePDF = ({
         <Text style={styles.boldText}>
           {enrollment.section.gradeLevel.name}
         </Text>
-        , en la sección "
-        <Text style={styles.boldText}>{enrollment.section.name}</Text>".
+        , en la sección &quot;
+        <Text style={styles.boldText}>{enrollment.section.name}</Text>&quot;.
       </Text>
 
       <Text style={styles.content}>
