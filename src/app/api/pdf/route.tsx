@@ -16,6 +16,7 @@ import { ScheduleReportPDF } from "@/components/pdf/ScheduleReportPDF";
 
 import { auth } from "@/lib/auth";
 import { hasAllowedRole, ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   // Guard: requiere sesión activa
@@ -63,6 +64,27 @@ export async function GET(request: NextRequest) {
     }
 
     let pdfStream;
+    const auditPdf = () =>
+      createAuditLog({
+        action: AuditAction.GENERATE_PDF,
+        entity: AuditEntity.PDF,
+        entityId: id,
+        newValue: {
+          type,
+          id,
+        },
+        metadata: {
+          module: "pdf",
+          query: Object.fromEntries(searchParams.entries()),
+        },
+        userId: session.user?.id ?? null,
+        userEmail: session.user?.email ?? null,
+        userRole: userRole ?? null,
+        userAgent: request.headers.get("user-agent"),
+        ip:
+          request.headers.get("x-forwarded-for") ??
+          request.headers.get("x-real-ip"),
+      });
 
     switch (type) {
       case "attendance": {
@@ -351,6 +373,7 @@ export async function GET(request: NextRequest) {
           <StudentIncidentsPDF enrollment={enrollment} />,
         );
 
+        await auditPdf();
         return new Response(stream as any, {
           headers: {
             "Content-Type": "application/pdf",
@@ -385,6 +408,7 @@ export async function GET(request: NextRequest) {
           <StudentDisabilitiesPDF enrollment={enrollment} />,
         );
 
+        await auditPdf();
         return new Response(stream as any, {
           headers: {
             "Content-Type": "application/pdf",
@@ -425,9 +449,10 @@ export async function GET(request: NextRequest) {
         });
 
         const stream = await renderToStream(
-          <ScheduleReportPDF enrollment={enrollment} schedules={schedules} />
+          <ScheduleReportPDF enrollment={enrollment} schedules={schedules} />,
         );
 
+        await auditPdf();
         return new Response(stream as any, {
           headers: {
             "Content-Type": "application/pdf",
@@ -443,6 +468,7 @@ export async function GET(request: NextRequest) {
         );
     }
 
+    await auditPdf();
     return new Response(pdfStream as any, {
       headers: {
         "Content-Type": "application/pdf",

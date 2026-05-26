@@ -10,6 +10,7 @@ import { PaymentStatus, PaymentType } from "@prisma/client";
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
@@ -51,6 +52,21 @@ export async function createPaymentConcept(data: unknown) {
       data: parsed.data,
     });
     revalidatePath("/dashboard/pagos");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.PAYMENT,
+      entityId: concept.id,
+      newValue: {
+        name: concept.name,
+        type: concept.type,
+        amount: concept.amount,
+        active: concept.active,
+      },
+      metadata: {
+        module: "payments",
+        operation: "create_payment_concept",
+      },
+    });
     return { success: true, data: concept };
   } catch (error) {
     console.error("Error in createPaymentConcept:", error);
@@ -416,6 +432,25 @@ export async function registerPayment(data: unknown) {
     });
 
     revalidatePath("/dashboard/pagos");
+    await createAuditLog({
+      action: AuditAction.REGISTER_PAYMENT,
+      entity: AuditEntity.PAYMENT_TRANSACTION,
+      entityId: result.transactionId,
+      newValue: {
+        paymentId,
+        amount: result.amount,
+        method: result.method,
+        paidAt: result.paidAt,
+        remainingBalance: result.balance,
+        originalAmount: result.originalAmount,
+      },
+      metadata: {
+        module: "payments",
+        paymentStatus: result.status,
+        conceptId: result.conceptId,
+        enrollmentId: result.enrollmentId,
+      },
+    });
     return { success: true, data: result };
   } catch (error: any) {
     console.error("Error in registerPayment:", error);
@@ -445,6 +480,20 @@ export async function updateOverduePayments() {
     });
 
     if (result.count > 0) revalidatePath("/dashboard/pagos");
+    if (result.count > 0) {
+      await createAuditLog({
+        action: AuditAction.CHANGE_STATUS,
+        entity: AuditEntity.PAYMENT,
+        newValue: {
+          status: PaymentStatus.VENCIDO,
+          affectedCount: result.count,
+        },
+        metadata: {
+          module: "payments",
+          operation: "update_overdue_payments",
+        },
+      });
+    }
     return { success: true, count: result.count };
   } catch (error) {
     console.error("Error in updateOverduePayments:", error);

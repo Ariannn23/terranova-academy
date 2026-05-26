@@ -9,6 +9,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 export async function getStudents(
   query?: string,
@@ -170,6 +171,21 @@ export async function createStudent(data: unknown) {
     });
 
     revalidatePath("/dashboard/estudiantes");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.STUDENT,
+      entityId: newStudent.id,
+      newValue: {
+        dni: newStudent.dni,
+        firstName: newStudent.firstName,
+        lastName: newStudent.lastName,
+        status: newStudent.status,
+      },
+      metadata: {
+        module: "students",
+        guardiansCreated: guardians.length,
+      },
+    });
     return { success: true, data: newStudent };
   } catch (error) {
     console.error("Error creating student:", error);
@@ -248,6 +264,28 @@ export async function updateStudent(id: string, data: unknown) {
 
     revalidatePath("/dashboard/estudiantes");
     revalidatePath(`/dashboard/estudiantes/${id}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.STUDENT,
+      entityId: updatedStudent.id,
+      oldValue: existingStudent
+        ? {
+            dni: existingStudent.dni,
+            firstName: existingStudent.firstName,
+            lastName: existingStudent.lastName,
+            status: existingStudent.status,
+          }
+        : null,
+      newValue: {
+        dni: updatedStudent.dni,
+        firstName: updatedStudent.firstName,
+        lastName: updatedStudent.lastName,
+        status: updatedStudent.status,
+      },
+      metadata: {
+        module: "students",
+      },
+    });
     return { success: true, data: updatedStudent };
   } catch (error) {
     console.error("Error updating student:", error);
@@ -270,6 +308,16 @@ export async function toggleStudentStatus(
       data: { status: newStatus },
     });
     revalidatePath("/dashboard/estudiantes");
+    await createAuditLog({
+      action: AuditAction.CHANGE_STATUS,
+      entity: AuditEntity.STUDENT,
+      entityId: updatedStudent.id,
+      newValue: { status: updatedStudent.status },
+      metadata: {
+        module: "students",
+        operation: "toggle_student_status",
+      },
+    });
     return { success: true, data: updatedStudent };
   } catch (error) {
     console.error("Error toggling student status:", error);

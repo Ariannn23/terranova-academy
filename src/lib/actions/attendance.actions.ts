@@ -16,6 +16,7 @@ import { calculateStudentStatus } from "@/lib/utils/student-status";
 import { RISK_ABSENCE_PERCENT } from "@/lib/constants";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 /**
  * Obtener lista de asistencia de una sección en una fecha específica
@@ -256,6 +257,28 @@ export async function saveAttendance(input: unknown) {
     }
 
     revalidatePath("/dashboard/asistencia");
+    const statusCounts = records.reduce<Record<string, number>>((acc, record) => {
+      acc[record.status] = (acc[record.status] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ATTENDANCE,
+      newValue: {
+        records: records.map((record) => ({
+          enrollmentId: record.enrollmentId,
+          date: record.date,
+          status: record.status,
+          hasJustification: !!record.justification,
+        })),
+      },
+      metadata: {
+        module: "attendance",
+        affectedCount: results.length,
+        statusCounts,
+      },
+    });
 
     return {
       success: true,
@@ -312,6 +335,26 @@ export async function justifyAbsence(input: unknown) {
     await updateStudentStatusByEnrollment(attendance.enrollmentId);
 
     revalidatePath("/dashboard/asistencia");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ATTENDANCE,
+      entityId: updated.id,
+      oldValue: {
+        status: attendance.status,
+        justification: attendance.justification,
+        justifiedBy: attendance.justifiedBy,
+      },
+      newValue: {
+        status: updated.status,
+        justification: updated.justification,
+        justifiedBy: updated.justifiedBy,
+      },
+      metadata: {
+        module: "attendance",
+        operation: "justify_absence",
+        enrollmentId: attendance.enrollmentId,
+      },
+    });
 
     return {
       success: true,

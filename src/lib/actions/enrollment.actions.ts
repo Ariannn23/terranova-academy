@@ -10,6 +10,7 @@ import { Prisma, Level, StudentStatus } from "@prisma/client";
 import { addMonths, startOfMonth, format } from "date-fns";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 // ==========================================
 // ACCIONES PARA MATRÍCULAS (ENROLLMENT)
@@ -363,6 +364,21 @@ export async function createEnrollment(data: unknown) {
     });
 
     revalidatePath("/dashboard/matriculas");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: result.id,
+      newValue: {
+        studentId: parsed.data.studentId,
+        sectionId: parsed.data.sectionId,
+        academicYearId: parsed.data.academicYearId,
+        active: result.active,
+      },
+      metadata: {
+        module: "enrollments",
+        reason: "Nueva matricula creada",
+      },
+    });
     return { success: true, data: result };
   } catch (error: any) {
     if (error.message === "ALREADY_ENROLLED") {
@@ -405,6 +421,16 @@ export async function updateEnrollment(id: string, data: unknown) {
 
     revalidatePath("/dashboard/matriculas");
     revalidatePath(`/dashboard/matriculas/${id}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: enrollment.id,
+      newValue: parsed.data,
+      metadata: {
+        module: "enrollments",
+        reason: "Matricula actualizada",
+      },
+    });
     return { success: true, data: enrollment };
   } catch (error) {
     console.error("Error in updateEnrollment:", error);
@@ -448,6 +474,24 @@ export async function transferSection(
     });
 
     revalidatePath(`/dashboard/matriculas/${enrollmentId}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: enrollmentId,
+      oldValue: {
+        sectionId: enrollment.sectionId,
+        notes: enrollment.notes,
+      },
+      newValue: {
+        sectionId: newSectionId,
+        notes: updatedNotes,
+      },
+      metadata: {
+        module: "enrollments",
+        reason,
+        operation: "transfer_section",
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in transferSection:", error);
@@ -568,6 +612,16 @@ export async function toggleEnrollmentStatus(id: string, newStatus: boolean) {
       data: { active: newStatus },
     });
     revalidatePath("/dashboard/matriculas");
+    await createAuditLog({
+      action: AuditAction.CHANGE_STATUS,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: updatedEnrollment.id,
+      newValue: { active: updatedEnrollment.active },
+      metadata: {
+        module: "enrollments",
+        reason: "Cambio de estado de matricula",
+      },
+    });
     return { success: true, data: updatedEnrollment };
   } catch (error) {
     console.error("Error toggling enrollment status:", error);

@@ -39,6 +39,25 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
+CREATE TABLE "AuditLog" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "userEmail" TEXT,
+    "userRole" TEXT,
+    "action" TEXT NOT NULL,
+    "entity" TEXT NOT NULL,
+    "entityId" TEXT,
+    "oldValue" JSONB,
+    "newValue" JSONB,
+    "metadata" JSONB,
+    "ip" TEXT,
+    "userAgent" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AcademicYear" (
     "id" TEXT NOT NULL,
     "year" INTEGER NOT NULL,
@@ -281,6 +300,24 @@ CREATE TABLE "CalendarEvent" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_userId_idx" ON "AuditLog"("userId");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_userEmail_idx" ON "AuditLog"("userEmail");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_action_idx" ON "AuditLog"("action");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_entity_idx" ON "AuditLog"("entity");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_entityId_idx" ON "AuditLog"("entityId");
+
+-- CreateIndex
+CREATE INDEX "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AcademicYear_year_key" ON "AcademicYear"("year");

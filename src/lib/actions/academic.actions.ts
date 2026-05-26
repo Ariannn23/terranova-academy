@@ -12,6 +12,7 @@ import {
 import { Prisma } from "@prisma/client";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 /**
  * Obtener la estructura académica jerárquica
@@ -142,6 +143,13 @@ export async function createCourse(data: unknown) {
   try {
     const course = await prisma.course.create({ data: parsed.data });
     revalidatePath("/dashboard/cursos");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.COURSE,
+      entityId: course.id,
+      newValue: course,
+      metadata: { module: "academic", operation: "create_course" },
+    });
     return { success: true, data: course };
   } catch (error) {
     return { success: false, error: "Error al crear el curso" };
@@ -155,11 +163,20 @@ export async function updateCourse(id: string, data: unknown) {
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
+    const oldCourse = await prisma.course.findUnique({ where: { id } });
     const course = await prisma.course.update({
       where: { id },
       data: parsed.data,
     });
     revalidatePath("/dashboard/cursos");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.COURSE,
+      entityId: course.id,
+      oldValue: oldCourse,
+      newValue: course,
+      metadata: { module: "academic", operation: "update_course" },
+    });
     return { success: true, data: course };
   } catch (error) {
     return { success: false, error: "Error al actualizar el curso" };
@@ -178,6 +195,13 @@ export async function createSection(data: unknown) {
   try {
     const section = await prisma.section.create({ data: parsed.data });
     revalidatePath("/dashboard/secciones");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.SECTION,
+      entityId: section.id,
+      newValue: section,
+      metadata: { module: "academic", operation: "create_section" },
+    });
     return { success: true, data: section };
   } catch (error) {
     return { success: false, error: "Error al crear la sección" };
@@ -194,11 +218,23 @@ export async function assignTeacherToSection(
   try {
     await requireRole(ROLE_GROUPS.ADMINISTRATION);
 
-    await prisma.section.update({
+    const oldSection = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { id: true, teacherId: true },
+    });
+    const section = await prisma.section.update({
       where: { id: sectionId },
       data: { teacherId },
     });
     revalidatePath("/dashboard/secciones");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.SECTION,
+      entityId: sectionId,
+      oldValue: oldSection,
+      newValue: { teacherId: section.teacherId },
+      metadata: { module: "academic", operation: "assign_teacher_to_section" },
+    });
     return { success: true };
   } catch (error) {
     return { success: false, error: "Error al asignar el docente" };
@@ -279,6 +315,18 @@ export async function saveSchedule(sectionId: string, scheduleData: any[]) {
       return { success: false, error: "Datos de horario inválidos" };
 
     // Usar transacción para limpiar y guardar
+    const previousSchedules = await prisma.schedule.findMany({
+      where: { sectionId },
+      select: {
+        id: true,
+        courseId: true,
+        teacherId: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+
     await prisma.$transaction([
       prisma.schedule.deleteMany({ where: { sectionId } }),
       prisma.schedule.createMany({
@@ -287,6 +335,18 @@ export async function saveSchedule(sectionId: string, scheduleData: any[]) {
     ]);
 
     revalidatePath(`/dashboard/horarios/${sectionId}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.SECTION,
+      entityId: sectionId,
+      oldValue: { schedules: previousSchedules },
+      newValue: { schedules: parsedData.data },
+      metadata: {
+        module: "academic",
+        operation: "save_schedule",
+        scheduleCount: parsedData.data.length,
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in saveSchedule:", error);

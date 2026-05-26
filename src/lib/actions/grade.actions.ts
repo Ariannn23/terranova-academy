@@ -9,6 +9,7 @@ import { calculateStudentStatus } from "@/lib/utils/student-status";
 import { MIN_PASSING_SCORE } from "@/lib/constants";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 /**
  * Obtiene las notas de una sección para un curso y periodo específico.
@@ -76,6 +77,21 @@ export async function saveGrades(data: unknown) {
   const { courseId, period, grades } = parsed.data;
 
   try {
+    const oldGrades = await prisma.gradeRecord.findMany({
+      where: {
+        courseId,
+        period,
+        enrollmentId: { in: grades.map((grade) => grade.enrollmentId) },
+      },
+      select: {
+        id: true,
+        enrollmentId: true,
+        courseId: true,
+        period: true,
+        score: true,
+      },
+    });
+
     // ── TRANSACCIÓN REDUCIDA: solo escrituras atómicas ─────────────────────
     // syncStudentStatus se movió FUERA (ver abajo). Esto reduce el tiempo que
     // la transacción mantiene abierta la conexión (y el COMMIT costoso).
@@ -157,6 +173,23 @@ export async function saveGrades(data: unknown) {
     }
 
     revalidatePath("/dashboard/notas");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.GRADE,
+      oldValue: oldGrades,
+      newValue: grades.map((grade) => ({
+        enrollmentId: grade.enrollmentId,
+        courseId,
+        period,
+        score: grade.score,
+      })),
+      metadata: {
+        module: "grades",
+        courseId,
+        period,
+        affectedCount: result.count,
+      },
+    });
     return { success: true, data: result };
   } catch (error) {
     console.error("Error in saveGrades:", error);
@@ -202,6 +235,21 @@ export async function calculateFinalGrade(
 
     const result = await prisma.$transaction(async (tx) => {
       return await internalCalculateFinalGrade(tx, enrollmentId, courseId);
+    });
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.GRADE,
+      entityId: result.id,
+      newValue: {
+        enrollmentId,
+        courseId,
+        period: result.period,
+        score: result.score,
+      },
+      metadata: {
+        module: "grades",
+        operation: "calculate_final_grade",
+      },
     });
     return { success: true, data: result };
   } catch (error) {
@@ -441,6 +489,16 @@ export async function calculateAllFinalGrades(enrollmentId: string) {
     });
 
     revalidatePath("/dashboard/notas");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.GRADE,
+      entityId: enrollmentId,
+      newValue: { enrollmentId },
+      metadata: {
+        module: "grades",
+        operation: "calculate_all_final_grades",
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in calculateAllFinalGrades:", error);

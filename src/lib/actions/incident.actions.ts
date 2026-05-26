@@ -6,6 +6,7 @@ import { IncidentSchema } from "@/lib/validations/incident.schema";
 import { IncidentSeverity } from "@prisma/client";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 // ==========================================
 // ACCIONES DE INCIDENCIAS (Comportamiento)
@@ -145,6 +146,22 @@ export async function createIncident(data: unknown) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.INCIDENT,
+      entityId: incident.id,
+      newValue: {
+        enrollmentId: incident.enrollmentId,
+        date: incident.date,
+        severity: incident.severity,
+        description: incident.description,
+        action: incident.action,
+      },
+      metadata: {
+        module: "incidents",
+        severity: incident.severity,
+      },
+    });
     return { success: true, data: incident };
   } catch (error) {
     console.error("Error in createIncident:", error);
@@ -159,6 +176,18 @@ export async function updateIncident(id: string, data: unknown) {
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
+    const oldIncident = await prisma.incident.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        enrollmentId: true,
+        date: true,
+        severity: true,
+        description: true,
+        action: true,
+      },
+    });
+
     const incident = await prisma.incident.update({
       where: { id },
       data: parsed.data,
@@ -170,6 +199,22 @@ export async function updateIncident(id: string, data: unknown) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.INCIDENT,
+      entityId: incident.id,
+      oldValue: oldIncident,
+      newValue: {
+        enrollmentId: incident.enrollmentId,
+        date: incident.date,
+        severity: incident.severity,
+        description: incident.description,
+        action: incident.action,
+      },
+      metadata: {
+        module: "incidents",
+      },
+    });
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Error in updateIncident:", error);
@@ -191,6 +236,21 @@ export async function deleteIncident(id: string) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.DELETE,
+      entity: AuditEntity.INCIDENT,
+      entityId: incident.id,
+      oldValue: {
+        enrollmentId: incident.enrollmentId,
+        date: incident.date,
+        severity: incident.severity,
+        description: incident.description,
+        action: incident.action,
+      },
+      metadata: {
+        module: "incidents",
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in deleteIncident:", error);

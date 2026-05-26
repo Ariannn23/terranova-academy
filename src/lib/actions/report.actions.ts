@@ -6,6 +6,7 @@ import { getSectionGradeReport } from "@/lib/actions/grade.actions";
 import { getSectionAttendanceReport } from "@/lib/actions/attendance.actions";
 import { requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 // Devuelve un Buffer o string Base64 con el excel.
 // Recomendable devolver base64 para que el FrontEnd arme el Blob con facilidad.
@@ -72,6 +73,20 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
     ];
 
     const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    await createAuditLog({
+      action: AuditAction.EXPORT_REPORT,
+      entity: AuditEntity.REPORT,
+      entityId: sectionId,
+      newValue: {
+        reportType: "grades_excel",
+        sectionId,
+        period,
+        filename: `${sheetName}.xlsx`,
+      },
+      metadata: {
+        module: "reports",
+      },
+    });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
   } catch (error: any) {
     console.error("Error in exportGradesToExcel:", error);
@@ -144,6 +159,21 @@ export async function exportAttendanceReport(
     ];
 
     const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    await createAuditLog({
+      action: AuditAction.EXPORT_REPORT,
+      entity: AuditEntity.REPORT,
+      entityId: sectionId,
+      newValue: {
+        reportType: "attendance_excel",
+        sectionId,
+        month,
+        year,
+        filename: `${sheetName}.xlsx`,
+      },
+      metadata: {
+        module: "reports",
+      },
+    });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
   } catch (error: any) {
     console.error("Error in exportAttendanceReport:", error);
@@ -247,6 +277,19 @@ export async function exportFinancialReport(year: number) {
     ];
 
     const buffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    await createAuditLog({
+      action: AuditAction.EXPORT_REPORT,
+      entity: AuditEntity.REPORT,
+      newValue: {
+        reportType: "financial_excel",
+        year,
+        filename: `${sheetName}.xlsx`,
+        transactionsCount: transactions.length,
+      },
+      metadata: {
+        module: "reports",
+      },
+    });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
   } catch (error: any) {
     console.error("Error in exportFinancialReport:", error);
