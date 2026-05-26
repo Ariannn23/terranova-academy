@@ -114,20 +114,20 @@ No se creo UI en este sprint.
 
 ## Acciones auditadas
 
-| Archivo | Acciones auditadas |
-| --- | --- |
-| `src/lib/actions/enrollment.actions.ts` | `createEnrollment`, `updateEnrollment`, `transferSection`, `toggleEnrollmentStatus` |
-| `src/lib/actions/payment.actions.ts` | `createPaymentConcept`, `registerPayment`, `updateOverduePayments` |
-| `src/lib/actions/grade.actions.ts` | `saveGrades`, `calculateFinalGrade`, `calculateAllFinalGrades` |
-| `src/lib/actions/attendance.actions.ts` | `saveAttendance`, `justifyAbsence` |
-| `src/lib/actions/incident.actions.ts` | `createIncident`, `updateIncident`, `deleteIncident` |
-| `src/lib/actions/disability.actions.ts` | `createDisability`, `resolveDisability` |
-| `src/lib/actions/report.actions.ts` | `exportGradesToExcel`, `exportAttendanceReport`, `exportFinancialReport` |
-| `src/lib/actions/student.actions.ts` | `createStudent`, `updateStudent`, `toggleStudentStatus` |
-| `src/lib/actions/teacher.actions.ts` | `createTeacher`, `updateTeacher`, `toggleTeacherStatus` |
-| `src/lib/actions/course.actions.ts` | `createCourse`, `updateCourse` |
-| `src/lib/actions/academic.actions.ts` | `createCourse`, `updateCourse`, `createSection`, `assignTeacherToSection`, `saveSchedule` |
-| `src/app/api/pdf/route.tsx` | Generacion exitosa de PDFs |
+| Archivo                                 | Acciones auditadas                                                                        |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/lib/actions/enrollment.actions.ts` | `createEnrollment`, `updateEnrollment`, `transferSection`, `toggleEnrollmentStatus`       |
+| `src/lib/actions/payment.actions.ts`    | `createPaymentConcept`, `registerPayment`, `updateOverduePayments`                        |
+| `src/lib/actions/grade.actions.ts`      | `saveGrades`, `calculateFinalGrade`, `calculateAllFinalGrades`                            |
+| `src/lib/actions/attendance.actions.ts` | `saveAttendance`, `justifyAbsence`                                                        |
+| `src/lib/actions/incident.actions.ts`   | `createIncident`, `updateIncident`, `deleteIncident`                                      |
+| `src/lib/actions/disability.actions.ts` | `createDisability`, `resolveDisability`                                                   |
+| `src/lib/actions/report.actions.ts`     | `exportGradesToExcel`, `exportAttendanceReport`, `exportFinancialReport`                  |
+| `src/lib/actions/student.actions.ts`    | `createStudent`, `updateStudent`, `toggleStudentStatus`                                   |
+| `src/lib/actions/teacher.actions.ts`    | `createTeacher`, `updateTeacher`, `toggleTeacherStatus`                                   |
+| `src/lib/actions/course.actions.ts`     | `createCourse`, `updateCourse`                                                            |
+| `src/lib/actions/academic.actions.ts`   | `createCourse`, `updateCourse`, `createSection`, `assignTeacherToSection`, `saveSchedule` |
+| `src/app/api/pdf/route.tsx`             | Generacion exitosa de PDFs                                                                |
 
 ## Datos auditados
 
@@ -150,13 +150,13 @@ No se creo UI en este sprint.
 
 ## Validaciones ejecutadas
 
-| Comando | Resultado |
-| --- | --- |
-| `npx.cmd prisma format` | Correcto |
+| Comando                   | Resultado                                                          |
+| ------------------------- | ------------------------------------------------------------------ |
+| `npx.cmd prisma format`   | Correcto                                                           |
 | `npx.cmd prisma validate` | Correcto, con advertencia existente de `driverAdapters` deprecated |
-| `npx.cmd prisma generate` | Correcto |
-| `npx.cmd tsc --noEmit` | Correcto |
-| `npm.cmd run build` | Compila, pero falla en lint por deuda tecnica existente |
+| `npx.cmd prisma generate` | Correcto                                                           |
+| `npx.cmd tsc --noEmit`    | Correcto                                                           |
+| `npm.cmd run build`       | Compila, pero falla en lint por deuda tecnica existente            |
 
 ## Observacion sobre build
 
@@ -172,20 +172,20 @@ No se corrigieron en este sprint porque el alcance era solo auditoria.
 
 ## Pruebas manuales sugeridas
 
-| Caso | Resultado esperado |
-| --- | --- |
-| Crear matricula | Se crea `AuditLog` con `entity = ENROLLMENT`. |
-| Registrar pago parcial | Se crea `AuditLog` con `entity = PAYMENT_TRANSACTION`. |
-| Registrar pago total | Se audita transaccion y saldo final. |
-| Guardar notas | Se crea `AuditLog` con `entity = GRADE`. |
-| Registrar asistencia | Se crea `AuditLog` con `entity = ATTENDANCE`. |
-| Justificar falta | Se registra cambio anterior/nuevo de asistencia. |
-| Registrar incidencia grave | Se crea `AuditLog` con `entity = INCIDENT`. |
-| Crear inhabilitacion | Se crea `AuditLog` con `entity = DISABILITY`. |
-| Resolver inhabilitacion | Se audita estado anterior/nuevo. |
-| Exportar reporte financiero | Se crea `AuditLog` con `entity = REPORT`, sin guardar archivo. |
-| Generar PDF de recibo | Se crea `AuditLog` con `entity = PDF`, sin guardar contenido del PDF. |
-| Usuario sin permisos intenta accion | RBAC debe denegar; no es obligatorio auditar fallo en este sprint. |
+| Caso                                | Resultado esperado                                                    |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| Crear matricula                     | Se crea `AuditLog` con `entity = ENROLLMENT`.                         |
+| Registrar pago parcial              | Se crea `AuditLog` con `entity = PAYMENT_TRANSACTION`.                |
+| Registrar pago total                | Se audita transaccion y saldo final.                                  |
+| Guardar notas                       | Se crea `AuditLog` con `entity = GRADE`.                              |
+| Registrar asistencia                | Se crea `AuditLog` con `entity = ATTENDANCE`.                         |
+| Justificar falta                    | Se registra cambio anterior/nuevo de asistencia.                      |
+| Registrar incidencia grave          | Se crea `AuditLog` con `entity = INCIDENT`.                           |
+| Crear inhabilitacion                | Se crea `AuditLog` con `entity = DISABILITY`.                         |
+| Resolver inhabilitacion             | Se audita estado anterior/nuevo.                                      |
+| Exportar reporte financiero         | Se crea `AuditLog` con `entity = REPORT`, sin guardar archivo.        |
+| Generar PDF de recibo               | Se crea `AuditLog` con `entity = PDF`, sin guardar contenido del PDF. |
+| Usuario sin permisos intenta accion | RBAC debe denegar; no es obligatorio auditar fallo en este sprint.    |
 
 ## Pendientes futuros
 
@@ -201,4 +201,3 @@ No se corrigieron en este sprint porque el alcance era solo auditoria.
 ```bash
 git commit -m "feat: implementar auditoria de acciones criticas con AuditLog (Sprint 04)"
 ```
-
