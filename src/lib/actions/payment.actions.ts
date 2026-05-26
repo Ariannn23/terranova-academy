@@ -11,6 +11,7 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
+import { REPORT_PERMISSIONS } from "@/lib/report-permissions";
 
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
@@ -612,7 +613,7 @@ export async function getFinancialSummary(month: number, year: number) {
 
 export async function getFinancialReport(year: number) {
   try {
-    await requireRole(ROLE_GROUPS.REPORTS);
+    await requireRole([...REPORT_PERMISSIONS.financial]);
 
     // ── ANTES: 12 queries paralelas (Promise.all de 12 findMany) ─────────────────
     // ── AHORA: 1 sola query con DATE_TRUNC, resolución en memoria ─────────────

@@ -15,8 +15,9 @@ import { StudentDisabilitiesPDF } from "@/components/pdf/StudentDisabilitiesPDF"
 import { ScheduleReportPDF } from "@/components/pdf/ScheduleReportPDF";
 
 import { auth } from "@/lib/auth";
-import { hasAllowedRole, ROLE_GROUPS } from "@/lib/rbac";
+import { hasAllowedRole } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
+import { getReportPermissions } from "@/lib/report-permissions";
 
 export async function GET(request: NextRequest) {
   // Guard: requiere sesión activa
@@ -39,25 +40,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const financialTypes = new Set(["receipt"]);
-    const academicTypes = new Set([
-      "attendance",
-      "grades",
-      "student-attendance",
-      "student-schedule",
-    ]);
-    const disciplineTypes = new Set([
-      "incident",
-      "student-incidents",
-      "student-disabilities",
-    ]);
-    const allowedRoles = financialTypes.has(type)
-      ? ROLE_GROUPS.FINANCE
-      : academicTypes.has(type)
-        ? ROLE_GROUPS.ACADEMIC
-        : disciplineTypes.has(type)
-          ? ROLE_GROUPS.DISCIPLINE
-          : ROLE_GROUPS.REPORTS;
+    const allowedRoles = getReportPermissions(type);
+
+    if (!allowedRoles) {
+      return NextResponse.json(
+        { error: "Tipo de PDF no soportado" },
+        { status: 400 },
+      );
+    }
 
     if (!hasAllowedRole(userRole, allowedRoles)) {
       return new Response("Forbidden", { status: 403 });

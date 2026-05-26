@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { getSectionGradeReport } from "@/lib/actions/grade.actions";
 import { getSectionAttendanceReport } from "@/lib/actions/attendance.actions";
 import { requireRole } from "@/lib/auth";
-import { ROLE_GROUPS } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
+import { REPORT_PERMISSIONS } from "@/lib/report-permissions";
+import { sanitizeStudentForReport } from "@/lib/report-sanitizer";
 
 // Devuelve un Buffer o string Base64 con el excel.
 // Recomendable devolver base64 para que el FrontEnd arme el Blob con facilidad.
@@ -16,7 +17,7 @@ import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 // ==========================================
 export async function exportGradesToExcel(sectionId: string, period: string) {
   try {
-    await requireRole(ROLE_GROUPS.REPORTS);
+    await requireRole([...REPORT_PERMISSIONS.grades]);
 
     const gradesRes = await getSectionGradeReport(sectionId, period as any);
     if (!gradesRes.success || !gradesRes.data)
@@ -28,21 +29,22 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
     });
 
     const rows = gradesRes.data.ranking.map((studentRow: any) => {
+      const safeStudentRow = sanitizeStudentForReport(studentRow);
       const flatObj: Record<string, any> = {
-        DNI: studentRow.studentId || "", // mapping changed from student.dni
-        Estudiante: studentRow.name || "",
+        DNI: safeStudentRow.studentId || "", // mapping changed from student.dni
+        Estudiante: safeStudentRow.name || "",
       };
 
       // Si el JSON viene con la lista total de sus scores en este periodo
-      if (studentRow.grades && Array.isArray(studentRow.grades)) {
-        studentRow.grades.forEach((g: any) => {
+      if (safeStudentRow.grades && Array.isArray(safeStudentRow.grades)) {
+        safeStudentRow.grades.forEach((g: any) => {
           flatObj[g.courseName] = g.score;
         });
       }
 
-      flatObj["Promedio General"] = studentRow.average;
-      flatObj["Cursos Jalados"] = studentRow.failingCount; // was failingCount
-      flatObj["Estatus"] = studentRow.status || "N/A";
+      flatObj["Promedio General"] = safeStudentRow.average;
+      flatObj["Cursos Jalados"] = safeStudentRow.failingCount; // was failingCount
+      flatObj["Estatus"] = safeStudentRow.status || "N/A";
 
       return flatObj;
     });
@@ -103,7 +105,7 @@ export async function exportAttendanceReport(
   year: number,
 ) {
   try {
-    await requireRole(ROLE_GROUPS.REPORTS);
+    await requireRole([...REPORT_PERMISSIONS.attendance]);
 
     const attendanceRes = await getSectionAttendanceReport({
       sectionId,
@@ -186,7 +188,7 @@ export async function exportAttendanceReport(
 // ==========================================
 export async function exportFinancialReport(year: number) {
   try {
-    await requireRole(ROLE_GROUPS.REPORTS);
+    await requireRole([...REPORT_PERMISSIONS.financial]);
 
     // Conseguir todos los conceptos de ese año
     const [payments, transactions] = await Promise.all([
