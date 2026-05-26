@@ -46,10 +46,10 @@ type CreateAuditLogInput = {
 
 const SENSITIVE_KEYS = new Set([
   "password",
-  "passwordHash",
+  "passwordhash",
   "token",
-  "accessToken",
-  "refreshToken",
+  "accesstoken",
+  "refreshtoken",
   "secret",
   "authorization",
   "cookie",
