@@ -40,7 +40,7 @@ export async function getSectionSchedule(sectionId: string) {
     const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
     // Attach teacher to each schedule block (null-safe)
-    const schedulesWithTeacher = section.schedules.map((s: any) => ({
+    const schedulesWithTeacher = section.schedules.map((s) => ({
       ...s,
       teacher: s.teacherId ? (teacherMap.get(s.teacherId) ?? null) : null,
     }));

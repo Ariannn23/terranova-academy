@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { AnnouncementSchema } from "@/lib/validations/incident.schema";
-import { Level } from "@prisma/client";
+import { Level, Prisma } from "@prisma/client";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 
@@ -17,7 +17,7 @@ export async function getAnnouncements(filters?: {
   try {
     await requireAuth();
 
-    const whereClause: any = {};
+    const whereClause: Prisma.AnnouncementWhereInput = {};
 
     if (filters?.targetLevel && filters.targetLevel !== "ALL") {
       whereClause.OR = [
@@ -83,7 +83,7 @@ export async function updateAnnouncement(id: string, data: unknown) {
 
     revalidatePath("/dashboard/comunicados");
     return { success: true, data: announcement };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in updateAnnouncement:", error);
     return { success: false, error: "Error al actualizar comunicado" };
   }

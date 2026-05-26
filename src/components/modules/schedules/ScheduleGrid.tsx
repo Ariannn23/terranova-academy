@@ -8,6 +8,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import type {
+  ScheduleCellData,
+  ScheduleCourseOption,
+  ScheduleRecord,
+  ScheduleSection,
+  ScheduleTeacherOption,
+} from "@/types/schedule";
 
 export const DAYS_OF_WEEK = [
   { id: 1, label: "Lunes" },
@@ -34,12 +41,12 @@ export function ScheduleGrid({
   courses,
   teachers,
 }: {
-  section: any;
-  schedules: any[];
-  courses: any[];
-  teachers: any[];
+  section: ScheduleSection;
+  schedules: ScheduleRecord[];
+  courses: ScheduleCourseOption[];
+  teachers: ScheduleTeacherOption[];
 }) {
-  const [selectedCell, setSelectedCell] = useState<any | null>(null);
+  const [selectedCell, setSelectedCell] = useState<ScheduleCellData>(null);
 
   useEffect(() => {
     toast.dismiss();

@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Prisma, StudentStatus } from "@prisma/client";
+import { Level, Prisma, StudentStatus } from "@prisma/client";
 import {
   CreateStudentSchema,
 } from "@/lib/validations/student.schema";
@@ -38,7 +38,7 @@ export async function getStudents(
           active: true,
           section: {
             gradeLevel: {
-              level: level as any,
+              level: level as Level,
             },
           },
         },

@@ -8,6 +8,37 @@ import { requireRole } from "@/lib/auth";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 import { REPORT_PERMISSIONS } from "@/lib/report-permissions";
 import { sanitizeStudentForReport } from "@/lib/report-sanitizer";
+import { GradePeriod } from "@prisma/client";
+
+type ExcelRow = Record<string, string | number | null | undefined>;
+
+type GradeReportStudentRow = Record<string, unknown> & {
+  studentId?: string;
+  name?: string;
+  grades?: Array<{
+    courseName: string;
+    score: number | null;
+  }>;
+  average?: number | null;
+  failingCount?: number;
+  status?: string | null;
+};
+
+type AttendanceReportRow = {
+  studentDni: string;
+  studentName: string;
+  summary: {
+    total: number;
+    presente: number;
+    tardanza: number;
+    injustificada: number;
+    justificada: number;
+  };
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Error inesperado";
+}
 
 // Devuelve un Buffer o string Base64 con el excel.
 // Recomendable devolver base64 para que el FrontEnd arme el Blob con facilidad.
@@ -19,7 +50,7 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
   try {
     await requireRole([...REPORT_PERMISSIONS.grades]);
 
-    const gradesRes = await getSectionGradeReport(sectionId, period as any);
+    const gradesRes = await getSectionGradeReport(sectionId, period as GradePeriod);
     if (!gradesRes.success || !gradesRes.data)
       throw new Error("No pudimos conseguir las notas de la sección");
 
@@ -28,16 +59,16 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
       include: { gradeLevel: true },
     });
 
-    const rows = gradesRes.data.ranking.map((studentRow: any) => {
+    const rows = gradesRes.data.ranking.map((studentRow: GradeReportStudentRow) => {
       const safeStudentRow = sanitizeStudentForReport(studentRow);
-      const flatObj: Record<string, any> = {
+      const flatObj: ExcelRow = {
         DNI: safeStudentRow.studentId || "", // mapping changed from student.dni
         Estudiante: safeStudentRow.name || "",
       };
 
       // Si el JSON viene con la lista total de sus scores en este periodo
       if (safeStudentRow.grades && Array.isArray(safeStudentRow.grades)) {
-        safeStudentRow.grades.forEach((g: any) => {
+        safeStudentRow.grades.forEach((g) => {
           flatObj[g.courseName] = g.score;
         });
       }
@@ -90,9 +121,9 @@ export async function exportGradesToExcel(sectionId: string, period: string) {
       },
     });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in exportGradesToExcel:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -120,8 +151,8 @@ export async function exportAttendanceReport(
       include: { gradeLevel: true },
     });
 
-    const rows = attendanceRes.data.planilla.map((st: any) => {
-      const flatObj: Record<string, any> = {
+    const rows = attendanceRes.data.planilla.map((st: AttendanceReportRow) => {
+      const flatObj: ExcelRow = {
         DNI: st.studentDni,
         Estudiante: st.studentName,
         "Total Clases Abiertas": st.summary.total,
@@ -177,9 +208,9 @@ export async function exportAttendanceReport(
       },
     });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in exportAttendanceReport:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -293,8 +324,8 @@ export async function exportFinancialReport(year: number) {
       },
     });
     return { success: true, data: buffer, filename: `${sheetName}.xlsx` };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in exportFinancialReport:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: getErrorMessage(error) };
   }
 }

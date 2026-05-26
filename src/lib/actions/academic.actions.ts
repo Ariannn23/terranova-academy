@@ -304,7 +304,10 @@ export async function validateScheduleConflicts(
 /**
  * Guardar Horario de una Sección (Bulk)
  */
-export async function saveSchedule(sectionId: string, scheduleData: any[]) {
+export async function saveSchedule(
+  sectionId: string,
+  scheduleData: ScheduleSchemaType[],
+) {
   try {
     await requireRole(ROLE_GROUPS.ACADEMIC);
 

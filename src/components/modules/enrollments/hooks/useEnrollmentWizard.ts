@@ -2,15 +2,22 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createEnrollment } from "@/lib/actions/enrollment.actions";
+import type {
+  EnrollmentSectionOption,
+  EnrollmentStudentOption,
+  EnrollmentWizardInitialData,
+} from "@/types/enrollment";
 
-export function useEnrollmentWizard(initialData: any) {
+export function useEnrollmentWizard(initialData: EnrollmentWizardInitialData) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isPending, startTransition] = useTransition();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
-  const [selectedSection, setSelectedSection] = useState<any | null>(null);
+  const [selectedStudent, setSelectedStudent] =
+    useState<EnrollmentStudentOption | null>(null);
+  const [selectedSection, setSelectedSection] =
+    useState<EnrollmentSectionOption | null>(null);
   const [errorProp, setErrorProp] = useState("");
 
   useState(() => {
@@ -22,14 +29,14 @@ export function useEnrollmentWizard(initialData: any) {
   const currentYear = academicYears[0];
 
   const filteredStudents = students.filter(
-    (s: any) =>
+    (s) =>
       s.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.dni.includes(searchTerm),
   );
 
   const handleNext = () => {
-    if (step === 2 && selectedSection?.available <= 0) {
+    if (step === 2 && (selectedSection?.available ?? 0) <= 0) {
       const message = "La secciÃ³n seleccionada no tiene vacantes disponibles.";
       setErrorProp(message);
       toast.error(message);

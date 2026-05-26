@@ -9,13 +9,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Search, Check } from "lucide-react";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
+import type { EnrollmentStudentOption } from "@/types/enrollment";
 
 interface WizardStudentStepProps {
   searchTerm: string;
   setSearchTerm: (val: string) => void;
-  filteredStudents: any[];
-  selectedStudent: any | null;
-  setSelectedStudent: (s: any) => void;
+  filteredStudents: EnrollmentStudentOption[];
+  selectedStudent: EnrollmentStudentOption | null;
+  setSelectedStudent: (s: EnrollmentStudentOption) => void;
 }
 
 export function WizardStudentStep({
@@ -46,7 +47,7 @@ export function WizardStudentStep({
 
         <div className="border rounded-md divide-y overflow-y-auto max-h-[250px]">
           {filteredStudents.length > 0 ? (
-            filteredStudents.slice(0, 10).map((s: any) => (
+            filteredStudents.slice(0, 10).map((s) => (
               <div
                 key={s.id}
                 onClick={() => setSelectedStudent(s)}

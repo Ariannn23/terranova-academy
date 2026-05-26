@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { PdfEnrollment } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 50, fontFamily: "Helvetica", color: "#334155" },
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
 export const EnrollmentCertificatePDF = ({
   enrollment,
 }: {
-  enrollment: any;
+  enrollment: PdfEnrollment & { academicYear: { year: number | string } };
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>

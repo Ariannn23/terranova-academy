@@ -14,17 +14,10 @@ import {
   createCalendarEvent,
   updateCalendarEvent,
 } from "@/lib/actions/calendar.actions";
-
-type CalendarEventInitialData = Partial<CalendarEventSchemaType> & {
-  id: string;
-  title?: string | null;
-  description?: string | null;
-  date?: Date | string;
-  endDate?: Date | string | null;
-};
+import type { CalendarEventView } from "@/types/calendar";
 
 type UseCalendarFormOptions = {
-  eventToEdit?: CalendarEventInitialData;
+  eventToEdit?: CalendarEventView;
   academicYearId: string;
   onClose: () => void;
 };

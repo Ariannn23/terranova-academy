@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { IncidentSchema } from "@/lib/validations/incident.schema";
-import { IncidentSeverity } from "@prisma/client";
+import { IncidentSeverity, Prisma } from "@prisma/client";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
@@ -50,17 +50,20 @@ export async function getIncidents(filters?: {
   try {
     await requireRole(ROLE_GROUPS.DISCIPLINE);
 
-    const whereClause: any = {};
+    const whereClause: Prisma.IncidentWhereInput = {};
+
+    const enrollmentWhere: Prisma.EnrollmentWhereInput = {};
 
     if (filters?.sectionId) {
-      whereClause.enrollment = { sectionId: filters.sectionId };
+      enrollmentWhere.sectionId = filters.sectionId;
     }
 
     if (filters?.studentDni) {
-      whereClause.enrollment = {
-        ...whereClause.enrollment,
-        student: { dni: { contains: filters.studentDni } },
-      };
+      enrollmentWhere.student = { dni: { contains: filters.studentDni } };
+    }
+
+    if (filters?.sectionId || filters?.studentDni) {
+      whereClause.enrollment = enrollmentWhere;
     }
 
     if (filters?.severity) {
@@ -216,7 +219,7 @@ export async function updateIncident(id: string, data: unknown) {
       },
     });
     return { success: true, data: incident };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in updateIncident:", error);
     return { success: false, error: "Error al actualizar la incidencia" };
   }

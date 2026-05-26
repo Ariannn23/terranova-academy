@@ -7,11 +7,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
+import type {
+  EnrollmentAcademicYearOption,
+  EnrollmentSectionOption,
+  EnrollmentStudentOption,
+} from "@/types/enrollment";
 
 interface WizardConfirmationStepProps {
-  selectedStudent: any;
-  selectedSection: any;
-  currentYear: any;
+  selectedStudent: EnrollmentStudentOption;
+  selectedSection: EnrollmentSectionOption;
+  currentYear?: EnrollmentAcademicYearOption;
   errorProp: string;
 }
 

@@ -19,6 +19,31 @@ import { hasAllowedRole } from "@/lib/rbac";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 import { getReportPermissions } from "@/lib/report-permissions";
 
+type PdfStream = Awaited<ReturnType<typeof renderToStream>>;
+type PdfResponseBody = ConstructorParameters<typeof Response>[0];
+
+type StudentGradeRecord = {
+  courseId: string;
+  course?: {
+    name?: string | null;
+  } | null;
+  period: string;
+  score: number | null;
+};
+
+type PivotedGrade = {
+  courseName: string;
+  p1: number | null;
+  p2: number | null;
+  p3: number | null;
+  p4: number | null;
+  final: number | null;
+};
+
+function toPdfResponseBody(stream: PdfStream): PdfResponseBody {
+  return stream as unknown as PdfResponseBody;
+}
+
 export async function GET(request: NextRequest) {
   // Guard: requiere sesión activa
   const session = await auth();
@@ -134,7 +159,7 @@ export async function GET(request: NextRequest) {
 
         pdfStream = await renderToStream(
           <AttendanceSheetPDF
-            section={section as any}
+            section={section}
             year={year}
             month={month}
             monthName={monthName}
@@ -212,8 +237,8 @@ export async function GET(request: NextRequest) {
           gradesRes.success && gradesRes.data ? gradesRes.data : [];
 
         // Pivotar la data para que cada curso tenga P1, P2, P3, P4 y Final
-        const courseMap = new Map();
-        rawGrades.forEach((g: any) => {
+        const courseMap = new Map<string, PivotedGrade>();
+        rawGrades.forEach((g: StudentGradeRecord) => {
           if (!courseMap.has(g.courseId)) {
             courseMap.set(g.courseId, {
               courseName: g.course?.name || "Desconocido",
@@ -225,6 +250,7 @@ export async function GET(request: NextRequest) {
             });
           }
           const c = courseMap.get(g.courseId);
+          if (!c) return;
           if (g.period === "P1") c.p1 = g.score;
           if (g.period === "P2") c.p2 = g.score;
           if (g.period === "P3") c.p3 = g.score;
@@ -370,7 +396,7 @@ export async function GET(request: NextRequest) {
         );
 
         await auditPdf();
-        return new Response(stream as any, {
+        return new Response(toPdfResponseBody(stream), {
           headers: {
             "Content-Type": "application/pdf",
             "Content-Disposition": `inline; filename=incidencias-${enrollment?.student?.lastName}.pdf`,
@@ -411,7 +437,7 @@ export async function GET(request: NextRequest) {
         );
 
         await auditPdf();
-        return new Response(stream as any, {
+        return new Response(toPdfResponseBody(stream), {
           headers: {
             "Content-Type": "application/pdf",
             "Content-Disposition": `inline; filename=inhabilitaciones-${enrollment?.student?.lastName}.pdf`,
@@ -455,7 +481,7 @@ export async function GET(request: NextRequest) {
         );
 
         await auditPdf();
-        return new Response(stream as any, {
+        return new Response(toPdfResponseBody(stream), {
           headers: {
             "Content-Type": "application/pdf",
             "Content-Disposition": `inline; filename=horario-${enrollment.student.lastName}.pdf`,
@@ -471,13 +497,13 @@ export async function GET(request: NextRequest) {
     }
 
     await auditPdf();
-    return new Response(pdfStream as any, {
+    return new Response(toPdfResponseBody(pdfStream), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${type}-${id}.pdf"`,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating PDF:", error);
     return NextResponse.json(
       { error: "Error interno al generar PDF" },

@@ -9,8 +9,13 @@ import { useEnrollmentWizard } from "./hooks/useEnrollmentWizard";
 import { WizardStudentStep } from "./_components/WizardStudentStep";
 import { WizardSectionStep } from "./_components/WizardSectionStep";
 import { WizardConfirmationStep } from "./_components/WizardConfirmationStep";
+import type { EnrollmentWizardInitialData } from "@/types/enrollment";
 
-export function EnrollmentWizard({ initialData }: { initialData: any }) {
+export function EnrollmentWizard({
+  initialData,
+}: {
+  initialData: EnrollmentWizardInitialData;
+}) {
   const {
     step,
     isPending,

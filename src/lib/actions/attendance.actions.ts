@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import {
   SaveAttendanceBatchSchema,
   JustifyAbsenceSchema,
@@ -141,7 +142,7 @@ export async function getAttendanceByStudent(
     }
 
     // Construir filtro de fechas
-    let dateFilter: any = {};
+    let dateFilter: Prisma.DateTimeFilter = {};
     if (month && year) {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0, 23, 59, 59);

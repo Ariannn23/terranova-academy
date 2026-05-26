@@ -18,13 +18,18 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2 } from "lucide-react";
 import { useScheduleCell } from "../hooks/useScheduleCell";
+import type {
+  ScheduleCellData,
+  ScheduleCourseOption,
+  ScheduleTeacherOption,
+} from "@/types/schedule";
 
 interface ScheduleCellModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any;
-  courses: any[];
-  teachers: any[];
+  data: ScheduleCellData;
+  courses: ScheduleCourseOption[];
+  teachers: ScheduleTeacherOption[];
 }
 
 export function ScheduleCellModal({

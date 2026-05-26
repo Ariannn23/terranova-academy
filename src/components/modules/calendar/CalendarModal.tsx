@@ -26,11 +26,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCalendarForm } from "./hooks/useCalendarForm";
+import type { CalendarEventView } from "@/types/calendar";
 
 interface CalendarModalProps {
   isOpen: boolean;
   onClose: () => void;
-  eventToEdit?: any;
+  eventToEdit?: CalendarEventView | null;
   academicYearId: string;
 }
 
@@ -41,7 +42,7 @@ export function CalendarModal({
   academicYearId,
 }: CalendarModalProps) {
   const { form, isSubmitting, onSubmit } = useCalendarForm({
-    eventToEdit,
+    eventToEdit: eventToEdit ?? undefined,
     academicYearId,
     onClose,
   });

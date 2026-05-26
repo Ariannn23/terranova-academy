@@ -7,11 +7,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Check, Users } from "lucide-react";
+import type { EnrollmentSectionOption } from "@/types/enrollment";
 
 interface WizardSectionStepProps {
-  sections: any[];
-  selectedSection: any | null;
-  setSelectedSection: (s: any) => void;
+  sections: EnrollmentSectionOption[];
+  selectedSection: EnrollmentSectionOption | null;
+  setSelectedSection: (s: EnrollmentSectionOption) => void;
   errorMessage?: string;
 }
 
@@ -37,7 +38,7 @@ export function WizardSectionStep({
         )}
         {["INICIAL", "PRIMARIA", "SECUNDARIA"].map((levelGroup) => {
           const levelSections = sections.filter(
-            (s: any) => s.level === levelGroup,
+            (s) => s.level === levelGroup,
           );
 
           if (levelSections.length === 0) return null;
@@ -49,7 +50,7 @@ export function WizardSectionStep({
                 Nivel {levelGroup.charAt(0) + levelGroup.slice(1).toLowerCase()}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {levelSections.map((sec: any) => {
+                {levelSections.map((sec) => {
                   const available =
                     typeof sec.available === "number"
                       ? sec.available

@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { CalendarEventSchema } from "@/lib/validations/incident.schema";
-import { EventType } from "@prisma/client";
+import { EventType, Prisma } from "@prisma/client";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
 
@@ -24,7 +24,9 @@ export async function getCalendarEvents(filters?: {
     if (!activeYear)
       return { success: false, error: "No hay año académico activo" };
 
-    const whereClause: any = { academicYearId: activeYear.id };
+    const whereClause: Prisma.CalendarEventWhereInput = {
+      academicYearId: activeYear.id,
+    };
     if (filters?.type && filters.type !== "ALL") {
       whereClause.type = filters.type;
     }
@@ -103,7 +105,7 @@ export async function updateCalendarEvent(id: string, data: unknown) {
 
     revalidatePath("/dashboard/calendario");
     return { success: true, data: event };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in updateCalendarEvent:", error);
     return { success: false, error: "Error al actualizar evento" };
   }

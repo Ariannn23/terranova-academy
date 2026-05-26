@@ -6,7 +6,7 @@ import {
   PaymentConceptSchema,
   RegisterPaymentReceiptSchema,
 } from "@/lib/validations/payment.schema";
-import { PaymentStatus, PaymentType } from "@prisma/client";
+import { PaymentStatus, PaymentType, Prisma } from "@prisma/client";
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { requireAuth, requireRole } from "@/lib/auth";
 import { ROLE_GROUPS } from "@/lib/rbac";
@@ -314,7 +314,10 @@ export async function getPaymentsByEnrollment(enrollmentId: string) {
 }
 
 // Genera un número de recibo correlativo simple: AÑO-MES-XXXX (ej. 2026-03-0001)
-async function generateReceiptNumber(tx: any, date: Date): Promise<string> {
+async function generateReceiptNumber(
+  tx: Prisma.TransactionClient,
+  date: Date,
+): Promise<string> {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const prefix = `${year}-${month}-`;
@@ -453,11 +456,12 @@ export async function registerPayment(data: unknown) {
       },
     });
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in registerPayment:", error);
     return {
       success: false,
-      error: error.message || "Error al registrar el cobro",
+      error:
+        error instanceof Error ? error.message : "Error al registrar el cobro",
     };
   }
 }
@@ -594,7 +598,7 @@ export async function getFinancialSummary(month: number, year: number) {
     let totalPending = 0;
     let totalOverdue = 0;
 
-    payments.forEach((p: any) => {
+    payments.forEach((p) => {
       totalBilled += p.amount;
       if (p.status === PaymentStatus.PENDIENTE) totalPending += p.balance;
       else if (p.status === PaymentStatus.VENCIDO) totalOverdue += p.balance;
