@@ -1,101 +1,180 @@
 import Image from "next/image";
+import Link from "next/link";
+import {
+  BarChart3,
+  BookOpenCheck,
+  GraduationCap,
+  MessageSquareText,
+} from "lucide-react";
 
-export default function Home() {
+const benefits = [
+  {
+    title: "Gestion academica",
+    description:
+      "Organiza cursos, notas, asistencia y seguimiento escolar desde un entorno centralizado.",
+    icon: GraduationCap,
+  },
+  {
+    title: "Matriculas y estudiantes",
+    description:
+      "Acompana el registro, historial y perfil integral de cada estudiante con mayor orden.",
+    icon: BookOpenCheck,
+  },
+  {
+    title: "Pagos y reportes",
+    description:
+      "Consulta informacion financiera, recibos y reportes institucionales de forma clara.",
+    icon: BarChart3,
+  },
+  {
+    title: "Comunicacion escolar",
+    description:
+      "Mantiene conectada a la comunidad educativa con comunicados y gestion administrativa.",
+    icon: MessageSquareText,
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+    <main className="min-h-screen bg-slate-950 text-white">
+      <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white shadow-lg shadow-emerald-900/30">
             <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src="/terranova-icono.png"
+              alt="TerraNova Academy"
+              width={32}
+              height={32}
+              className="object-contain"
+              priority
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+          <div>
+            <p className="text-lg font-bold leading-tight">
+              TerraNova Academy
+            </p>
+            <p className="text-xs font-medium text-emerald-300">
+              Plataforma escolar
+            </p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        <Link
+          href="/login"
+          className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-100"
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          Iniciar sesi&oacute;n
+        </Link>
+      </header>
+
+      <section className="mx-auto grid max-w-7xl gap-12 px-6 pb-16 pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pb-24 lg:pt-20">
+        <div>
+          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.28em] text-emerald-300">
+            Plataforma escolar integral
+          </p>
+          <h1 className="max-w-4xl text-4xl font-bold tracking-tight md:text-6xl">
+            TerraNova Academy
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+            Gestion academica moderna para centralizar estudiantes,
+            matriculas, asistencia, notas, pagos, reportes y comunicacion
+            institucional en una plataforma segura y organizada.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              href="/login"
+              className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-400"
+            >
+              Acceder al sistema
+            </Link>
+            <a
+              href="#beneficios"
+              className="rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-emerald-300 hover:text-emerald-200"
+            >
+              Ver beneficios
+            </a>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-8 shadow-2xl shadow-slate-950/40">
+          <div className="mb-8 flex items-center justify-between border-b border-white/10 pb-6">
+            <div>
+              <p className="text-sm font-medium text-slate-400">
+                Panel institucional
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold">
+                Control escolar inteligente
+              </h2>
+            </div>
+            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-200">
+              Seguro
+            </span>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              ["Asistencia", "Registro diario"],
+              ["Notas", "Seguimiento academico"],
+              ["Pagos", "Control financiero"],
+              ["Reportes", "Informacion exportable"],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-white/10 p-4">
+                <p className="text-sm text-slate-400">{label}</p>
+                <p className="mt-2 text-lg font-semibold">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="beneficios"
+        className="border-y border-white/10 bg-white/[0.03] px-6 py-16"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-300">
+              Gestion conectada
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+              Herramientas para una administracion escolar mas ordenada
+            </h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {benefits.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-2xl border border-white/10 bg-slate-900/80 p-5"
+              >
+                <item.icon className="h-6 w-6 text-emerald-300" />
+                <h3 className="mt-5 text-lg font-semibold">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-6 py-14 md:flex-row md:items-center">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">
+            TerraNova Academy
+          </p>
+          <h2 className="mt-3 text-3xl font-bold">
+            Una plataforma preparada para acompanar la gestion del colegio.
+          </h2>
+        </div>
+        <Link
+          href="/login"
+          className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-100"
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          Ingresar ahora
+        </Link>
+      </section>
+    </main>
   );
 }
