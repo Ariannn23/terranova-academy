@@ -9,13 +9,30 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { useCoursesDirectory } from "./hooks/useCoursesDirectory";
+import type { CourseInitialData } from "./hooks/useCourseForm";
+
+type CourseRow = CourseInitialData & {
+  gradeLevel: {
+    name: string;
+    level: string;
+  };
+  _count?: {
+    schedules?: number;
+  };
+};
+
+type CourseGradeLevelOption = {
+  id: string;
+  name: string;
+  level: string;
+};
 
 export function CoursesClient({
   initialData,
   gradeLevels,
 }: {
-  initialData: any[];
-  gradeLevels: any[];
+  initialData: CourseRow[];
+  gradeLevels: CourseGradeLevelOption[];
 }) {
   const {
     searchTerm,
@@ -36,14 +53,14 @@ export function CoursesClient({
     {
       header: "Curso",
       accessorKey: "name",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="font-medium text-slate-900">{row.name}</div>
       ),
     },
     {
       header: "Nivel Educativo",
       accessorKey: "level",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex flex-col">
           <span className="text-sm font-medium">{row.gradeLevel.name}</span>
           <span className="text-xs text-slate-500">{row.gradeLevel.level}</span>
@@ -53,14 +70,14 @@ export function CoursesClient({
     {
       header: "Horas/Semana",
       accessorKey: "hoursPerWeek",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center w-full">{row.hoursPerWeek} hrs</div>
       ),
     },
     {
       header: "Estado",
       accessorKey: "active",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center">
           <Badge
             variant={row.active ? "default" : "destructive"}
@@ -78,7 +95,7 @@ export function CoursesClient({
     {
       header: "Bloques Asignados",
       accessorKey: "schedules",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center w-full font-medium text-slate-600">
           {row._count?.schedules || 0}
         </div>
@@ -87,7 +104,7 @@ export function CoursesClient({
     {
       header: "Acciones",
       accessorKey: "actions",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center gap-2">
           <Button
             variant="ghost"
@@ -154,7 +171,7 @@ export function CoursesClient({
       <CourseForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        initialData={selectedCourse}
+        initialData={selectedCourse ?? undefined}
         gradeLevels={gradeLevels}
       />
 

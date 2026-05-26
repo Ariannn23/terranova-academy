@@ -152,9 +152,13 @@ export const IncidentReportPDF = ({ incident }: { incident: any }) => {
         {/* ACCIÓN */}
         {action && (
           <>
-            <Text style={styles.sectionTitle}>Medidas Tomadas / Resolución</Text>
+            <Text style={styles.sectionTitle}>
+              Medidas Tomadas / Resolución
+            </Text>
             <View style={styles.actionBox}>
-              <Text style={{ fontSize: 10, color: "#1e3a8a", fontStyle: "italic" }}>
+              <Text
+                style={{ fontSize: 10, color: "#1e3a8a", fontStyle: "italic" }}
+              >
                 &quot;{action}&quot;
               </Text>
             </View>

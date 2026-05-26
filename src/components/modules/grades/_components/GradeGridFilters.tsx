@@ -10,16 +10,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GradePeriod } from "@prisma/client";
+import type {
+  AcademicCourseOption,
+  AcademicGradeOption,
+  AcademicLevelOption,
+  AcademicSectionOption,
+  AcademicStructure,
+} from "@/types/academic";
 
 interface GradeGridFiltersProps {
-  initialStructure: any;
+  initialStructure: AcademicStructure;
   isPending: boolean;
-  levels: any[];
-  currentLevel: any;
-  grades: any[];
-  currentGrade: any;
-  sections: any[];
-  courses: any[];
+  levels: AcademicLevelOption[];
+  currentLevel: AcademicLevelOption | null;
+  grades: AcademicGradeOption[];
+  currentGrade: AcademicGradeOption | null;
+  sections: AcademicSectionOption[];
+  courses: AcademicCourseOption[];
   
   selectedLevelIndex: number | null;
   setSelectedLevelIndex: (val: number | null) => void;
@@ -83,7 +90,7 @@ export function GradeGridFilters({
                 <SelectValue placeholder="Seleccione Nivel" />
               </SelectTrigger>
               <SelectContent>
-                {levels.map((level: any, i: number) => (
+                {levels.map((level, i) => (
                   <SelectItem key={i} value={i.toString()}>
                     {level.name}
                   </SelectItem>
@@ -105,7 +112,7 @@ export function GradeGridFilters({
                 <SelectValue placeholder="Seleccione Grado" />
               </SelectTrigger>
               <SelectContent>
-                {grades.map((grade: any, i: number) => (
+                {grades.map((grade, i) => (
                   <SelectItem key={grade.id} value={i.toString()}>
                     {grade.name}
                   </SelectItem>
@@ -125,8 +132,8 @@ export function GradeGridFilters({
                 <SelectValue placeholder="Seleccione Sección" />
               </SelectTrigger>
               <SelectContent>
-                {sections.map((sec: any) => (
-                  <SelectItem key={sec.id} value={sec.id}>
+                {sections.map((sec) => (
+                  <SelectItem key={sec.id ?? sec.name} value={sec.id ?? ""}>
                     {sec.name}
                   </SelectItem>
                 ))}
@@ -147,7 +154,7 @@ export function GradeGridFilters({
                 />
               </SelectTrigger>
               <SelectContent>
-                {courses.map((course: any) => (
+                {courses.map((course) => (
                   <SelectItem key={course.id} value={course.id}>
                     {course.name}
                   </SelectItem>

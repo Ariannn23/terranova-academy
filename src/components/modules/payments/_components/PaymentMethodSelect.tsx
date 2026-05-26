@@ -21,13 +21,15 @@ import {
   Upload,
 } from "lucide-react";
 import Image from "next/image";
+import type { Control, UseFormSetValue } from "react-hook-form";
+import type { PaymentFormSchemaType } from "@/lib/validations/payment.schema";
 
 interface PaymentMethodSelectProps {
-  control: any;
+  control: Control<PaymentFormSchemaType>;
   methodValue: string;
   previewImage: string | null;
   setPreviewImage: (url: string | null) => void;
-  setValue: (field: any, value: any) => void;
+  setValue: UseFormSetValue<PaymentFormSchemaType>;
 }
 
 export function PaymentMethodSelect({

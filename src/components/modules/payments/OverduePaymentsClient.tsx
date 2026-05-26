@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/services/formatting.service";
 import { useOverduePayments } from "./hooks/useOverduePayments";
+import type { OverduePaymentRow } from "@/types/payment";
 
 interface OverduePaymentsClientProps {
-  initialData: any[];
+  initialData: OverduePaymentRow[];
 }
 
 export default function OverduePaymentsClient({
@@ -27,24 +28,24 @@ export default function OverduePaymentsClient({
     {
       header: "Estudiante",
       accessorKey: "student",
-      cell: (row: any) =>
+      cell: (row: OverduePaymentRow) =>
         `${row.enrollment.student.firstName} ${row.enrollment.student.lastName}`,
     },
     {
       header: "Sección",
       accessorKey: "section",
-      cell: (row: any) =>
+      cell: (row: OverduePaymentRow) =>
         `${row.enrollment.section.gradeLevel.name} - ${row.enrollment.section.name}`,
     },
     {
       header: "Concepto",
       accessorKey: "concept",
-      cell: (row: any) => row.concept.name,
+      cell: (row: OverduePaymentRow) => row.concept.name,
     },
     {
       header: "Monto",
       accessorKey: "amount",
-      cell: (row: any) => (
+      cell: (row: OverduePaymentRow) => (
         <span className="font-bold text-slate-700">
           {formatCurrency(row.amount)}
         </span>
@@ -53,7 +54,7 @@ export default function OverduePaymentsClient({
     {
       header: "Vencimiento",
       accessorKey: "dueDate",
-      cell: (row: any) => (
+      cell: (row: OverduePaymentRow) => (
         <span className="text-slate-600">
           {format(new Date(row.dueDate), "dd MMM yyyy", { locale: es })}
         </span>
@@ -62,7 +63,7 @@ export default function OverduePaymentsClient({
     {
       header: "Días de Retraso",
       accessorKey: "delay",
-      cell: (row: any) => {
+      cell: (row: OverduePaymentRow) => {
         const days = getDaysOverdue(row);
         return (
           <Badge
@@ -77,7 +78,7 @@ export default function OverduePaymentsClient({
     {
       header: "Acción",
       accessorKey: "id",
-      cell: (row: any) => (
+      cell: (row: OverduePaymentRow) => (
         <Button
           size="sm"
           variant="outline"

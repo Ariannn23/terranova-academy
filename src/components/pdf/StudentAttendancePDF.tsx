@@ -10,6 +10,11 @@ import {
   isSameDay,
 } from "date-fns";
 import { es } from "date-fns/locale";
+import type {
+  PdfAttendanceRecord,
+  PdfEnrollment,
+  PdfStudent,
+} from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
@@ -132,12 +137,12 @@ export const StudentAttendancePDF = ({
   enrollment,
   attendances,
 }: {
-  student: any;
-  enrollment: any;
-  attendances: any[];
+  student: PdfStudent;
+  enrollment: PdfEnrollment;
+  attendances: PdfAttendanceRecord[];
 }) => {
   // Group attendances by month
-  const monthsData: Record<string, any[]> = {};
+  const monthsData: Record<string, PdfAttendanceRecord[]> = {};
   attendances.forEach((a) => {
     const monthKey = format(new Date(a.date), "yyyy-MM");
     if (!monthsData[monthKey]) monthsData[monthKey] = [];
@@ -175,7 +180,7 @@ export const StudentAttendancePDF = ({
             const attendance = attendances.find((a) =>
               isSameDay(new Date(a.date), date),
             );
-            const statusStyle = attendance
+            const statusStyle = attendance?.status
               ? STATUS_MAP[attendance.status]
               : null;
 

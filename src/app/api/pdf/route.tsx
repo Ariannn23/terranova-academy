@@ -359,6 +359,12 @@ export async function GET(request: NextRequest) {
           },
         });
 
+        if (!enrollment)
+          return NextResponse.json(
+            { error: "Matrícula no encontrada" },
+            { status: 404 },
+          );
+
         const stream = await renderToStream(
           <StudentIncidentsPDF enrollment={enrollment} />,
         );
@@ -393,6 +399,12 @@ export async function GET(request: NextRequest) {
             },
           },
         });
+
+        if (!enrollment)
+          return NextResponse.json(
+            { error: "Matrícula no encontrada" },
+            { status: 404 },
+          );
 
         const stream = await renderToStream(
           <StudentDisabilitiesPDF enrollment={enrollment} />,

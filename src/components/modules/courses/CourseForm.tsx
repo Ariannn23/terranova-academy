@@ -20,13 +20,19 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
-import { useCourseForm } from "./hooks/useCourseForm";
+import { useCourseForm, type CourseInitialData } from "./hooks/useCourseForm";
+
+type CourseGradeLevelOption = {
+  id: string;
+  name: string;
+  level: string;
+};
 
 interface CourseFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialData?: any;
-  gradeLevels: any[];
+  initialData?: CourseInitialData;
+  gradeLevels: CourseGradeLevelOption[];
   onSuccess?: () => void;
 }
 

@@ -16,7 +16,29 @@ import { Button } from "@/components/ui/button";
 import { Plus, Eye } from "lucide-react";
 import { useStudentsDirectory } from "./hooks/useStudentsDirectory";
 
-export function StudentsClient({ initialData }: { initialData: any[] }) {
+type StudentDirectoryRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dni: string;
+  code?: string | null;
+  photoUrl?: string | null;
+  status: string;
+  enrollments?: Array<{
+    section: {
+      gradeLevel: {
+        name: string;
+        level: string;
+      };
+    };
+  }>;
+};
+
+export function StudentsClient({
+  initialData,
+}: {
+  initialData: StudentDirectoryRow[];
+}) {
   const {
     searchTerm,
     setSearchTerm,
@@ -34,7 +56,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       header: "Estudiante",
       accessorKey: "firstName",
       align: "left" as const,
-      cell: (row: any) => (
+      cell: (row: StudentDirectoryRow) => (
         <div className="flex items-center gap-3 min-w-[220px] pl-4">
           <StudentAvatar
             name={`${row.firstName} ${row.lastName}`}
@@ -60,7 +82,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       header: "Grado y Nivel",
       accessorKey: "grade",
       align: "center" as const,
-      cell: (row: any) => {
+      cell: (row: StudentDirectoryRow) => {
         const enrollment = row.enrollments?.[0];
 
         if (!enrollment)
@@ -98,7 +120,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       header: "Estado",
       accessorKey: "status",
       align: "center" as const,
-      cell: (row: any) => (
+      cell: (row: StudentDirectoryRow) => (
         <div className="flex justify-center">
           <StatusBadge status={row.status} />
         </div>
@@ -109,7 +131,7 @@ export function StudentsClient({ initialData }: { initialData: any[] }) {
       header: "Acciones",
       accessorKey: "actions",
       align: "center" as const,
-      cell: (row: any) => (
+      cell: (row: StudentDirectoryRow) => (
         <div className="flex justify-center">
           <Button
             variant="ghost"

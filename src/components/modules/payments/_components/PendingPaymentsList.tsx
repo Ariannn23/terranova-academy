@@ -11,15 +11,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Calendar, CheckCircle2 } from "lucide-react";
 import { usePendingPayments } from "@/components/modules/payments/hooks/usePendingPayments";
+import type { PendingPaymentRow } from "@/types/payment";
+import type { Control, UseFormSetValue } from "react-hook-form";
+import type { PaymentFormSchemaType } from "@/lib/validations/payment.schema";
 
 export function PendingPaymentsList({
   pendingPayments,
   control,
   setValue,
 }: {
-  pendingPayments: any[];
-  control: any;
-  setValue: any;
+  pendingPayments: PendingPaymentRow[];
+  control: Control<PaymentFormSchemaType>;
+  setValue: UseFormSetValue<PaymentFormSchemaType>;
 }) {
   return (
     <FormField
@@ -49,7 +52,7 @@ function PendingPaymentItems({
   onSelectPayment,
   setAmount,
 }: {
-  pendingPayments: any[];
+  pendingPayments: PendingPaymentRow[];
   selectedPaymentId?: string;
   onSelectPayment: (paymentId: string) => void;
   setAmount: (amount: number) => void;

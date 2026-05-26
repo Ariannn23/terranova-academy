@@ -4,31 +4,13 @@ import {
   getOverdueSeverityClass,
 } from "@/services/payment.service";
 import { buildCsvContent, downloadCsv } from "@/services/export.service";
+import type { OverduePaymentRow } from "@/types/payment";
 
-type OverduePayment = {
-  amount: number;
-  dueDate: Date | string;
-  concept: { name: string };
-  enrollment: {
-    student: {
-      dni: string;
-      firstName: string;
-      lastName: string;
-    };
-    section: {
-      gradeLevel: {
-        level: string;
-        name: string;
-      };
-    };
-  };
-};
-
-export function useOverduePayments(initialData: OverduePayment[]) {
-  const getDaysOverdue = (payment: OverduePayment) =>
+export function useOverduePayments(initialData: OverduePaymentRow[]) {
+  const getDaysOverdue = (payment: OverduePaymentRow) =>
     calculateDaysOverdue(payment);
 
-  const getDelayBadgeClass = (payment: OverduePayment) =>
+  const getDelayBadgeClass = (payment: OverduePaymentRow) =>
     getOverdueSeverityClass(getDaysOverdue(payment));
 
   const exportCsv = () => {

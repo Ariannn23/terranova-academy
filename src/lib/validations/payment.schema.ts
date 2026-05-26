@@ -88,5 +88,7 @@ export const PaymentFormSchema = z.object({
   paymentId: z.string().min(1, "Selecciona una cuota a pagar"),
   amount: z.coerce.number().positive("Ingresa un monto mayor a 0"),
   method: z.string().min(1, "Selecciona un método de pago"),
-  referenceImage: z.any().optional(),
+  referenceImage: z.unknown().optional(),
 });
+
+export type PaymentFormSchemaType = z.infer<typeof PaymentFormSchema>;

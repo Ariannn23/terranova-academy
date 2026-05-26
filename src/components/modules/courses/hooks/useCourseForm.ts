@@ -20,7 +20,7 @@ export const courseSchema = z.object({
 
 export type CourseFormValues = z.infer<typeof courseSchema>;
 
-type CourseInitialData = CourseFormValues & {
+export type CourseInitialData = CourseFormValues & {
   id: string;
 };
 

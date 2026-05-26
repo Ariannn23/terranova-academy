@@ -1,6 +1,11 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
+import type {
+  PdfAttendanceRecord,
+  PdfAttendanceStudent,
+  PdfSection,
+} from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: {
@@ -73,7 +78,7 @@ const styles = StyleSheet.create({
 
 // ── Helper: devuelve "A", "F", "T" o "" para un día dado ─────────────────────
 const getAttendanceStatus = (
-  attendances: any[],
+  attendances: PdfAttendanceRecord[],
   day: number,
   year: number,
   month: number,
@@ -117,18 +122,11 @@ export const AttendanceSheetPDF = ({
   month,
   students,
 }: {
-  section: {
-    name: string;
-    gradeLevel: {
-      level: string;
-      name: string;
-    };
-    [key: string]: any;
-  };
+  section: PdfSection;
   monthName: string;
   year: number;
   month: number;
-  students: any[];
+  students: PdfAttendanceStudent[];
 }) => {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
