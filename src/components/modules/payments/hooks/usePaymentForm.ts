@@ -9,12 +9,18 @@ import {
 } from "@/lib/actions/payment.actions";
 import { PaymentFormSchema } from "@/lib/validations/payment.schema";
 
+type PendingPayment = NonNullable<
+  Awaited<ReturnType<typeof getStudentPendingPayments>>["data"]
+>[number];
+
+type PaymentReceipt = Awaited<ReturnType<typeof processPayment>>["data"];
+
 export function usePaymentForm() {
-  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [lastReceipt, setLastReceipt] = useState<any | null>(null);
+  const [lastReceipt, setLastReceipt] = useState<PaymentReceipt | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof PaymentFormSchema>>({
@@ -39,6 +45,25 @@ export function usePaymentForm() {
       setPendingPayments([]);
     }
     setIsLoadingPayments(false);
+  };
+
+  const selectedPaymentId = form.watch("paymentId");
+  const selectedPayment = pendingPayments.find((p) => p.id === selectedPaymentId);
+
+  const setAmount = (amount: number) => {
+    form.setValue("amount", amount);
+  };
+
+  const setMethod = (method: string) => {
+    form.setValue("method", method);
+  };
+
+  const selectPayment = (paymentId: string) => {
+    form.setValue("paymentId", paymentId);
+  };
+
+  const closeReceipt = () => {
+    setShowReceipt(false);
   };
 
   const onSubmit = async (
@@ -83,7 +108,7 @@ export function usePaymentForm() {
           id: toastId,
         });
       }
-    } catch (error) {
+    } catch {
       toast.error("Error de conexión o servidor", { id: toastId });
     } finally {
       setIsProcessing(false);
@@ -93,14 +118,23 @@ export function usePaymentForm() {
   return {
     form,
     pendingPayments,
+    selectedPayment,
+    selectedPaymentId,
+    amount: form.watch("amount"),
+    method: form.watch("method"),
+    setAmount,
+    setMethod,
+    selectPayment,
     isLoadingPayments,
     isProcessing,
     showReceipt,
     setShowReceipt,
+    closeReceipt,
     lastReceipt,
     previewImage,
     setPreviewImage,
     loadStudentPayments,
     onSubmit,
+    submitPayment: onSubmit,
   };
 }

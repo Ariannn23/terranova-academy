@@ -1,3 +1,5 @@
+"use client";
+
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -8,10 +10,7 @@ import {
 } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Calendar, CheckCircle2 } from "lucide-react";
-import {
-  calculatePaidTotal,
-  calculatePaymentBalance,
-} from "@/services/payment.service";
+import { usePendingPayments } from "@/components/modules/payments/hooks/usePendingPayments";
 
 export function PendingPaymentsList({
   pendingPayments,
@@ -30,18 +29,56 @@ export function PendingPaymentsList({
         <FormItem>
           <FormLabel>Seleccionar Deuda</FormLabel>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1">
-            {pendingPayments.map((payment) => {
-              const isOverdue = new Date(payment.dueDate) < new Date();
-              const isSelected = field.value === payment.id;
-              const paidAmount = calculatePaidTotal(payment.transactions || []);
-              const balance = calculatePaymentBalance(payment);
+            <PendingPaymentItems
+              pendingPayments={pendingPayments}
+              selectedPaymentId={field.value}
+              onSelectPayment={field.onChange}
+              setAmount={(amount) => setValue("amount", amount)}
+            />
+          </div>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
 
+function PendingPaymentItems({
+  pendingPayments,
+  selectedPaymentId,
+  onSelectPayment,
+  setAmount,
+}: {
+  pendingPayments: any[];
+  selectedPaymentId?: string;
+  onSelectPayment: (paymentId: string) => void;
+  setAmount: (amount: number) => void;
+}) {
+  const { paymentItems, selectPayment } = usePendingPayments({
+    pendingPayments,
+    selectedPaymentId,
+    onSelectPayment,
+    setAmount,
+  });
+
+  return (
+    <>
+      {paymentItems.map(
+        ({
+          payment,
+          isOverdue,
+          isSelected,
+          paidAmount,
+          balance,
+          formattedBalance,
+          formattedAmount,
+          formattedPaidAmount,
+        }) => {
               return (
                 <div
                   key={payment.id}
                   onClick={() => {
-                    field.onChange(payment.id);
-                    setValue("amount", Math.max(balance, 0));
+                    selectPayment(payment.id, balance);
                   }}
                   className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
                     isSelected
@@ -56,25 +93,25 @@ export function PendingPaymentsList({
                   )}
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold text-slate-900 pr-6">
-                      {payment.concept.name}
+                      {payment.concept?.name ?? "Concepto sin nombre"}
                     </h4>
                   </div>
                   <div className="space-y-1 text-sm text-slate-600">
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-emerald-600" />
                       <span className="font-bold text-emerald-700">
-                        Saldo: S/ {balance.toFixed(2)}
+                        Saldo: {formattedBalance}
                       </span>
                     </div>
                     <div className="text-xs text-slate-500">
-                      Total: S/ {payment.amount.toFixed(2)}
-                      {paidAmount > 0 && ` | Abonado: S/ ${paidAmount.toFixed(2)}`}
+                      Total: {formattedAmount}
+                      {paidAmount > 0 && ` | Abonado: ${formattedPaidAmount}`}
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
                       <span>
                         Vence:{" "}
-                        {format(new Date(payment.dueDate), "dd MMM yyyy", {
+                        {format(new Date(payment.dueDate ?? new Date()), "dd MMM yyyy", {
                           locale: es,
                         })}
                       </span>
@@ -90,11 +127,8 @@ export function PendingPaymentsList({
                   )}
                 </div>
               );
-            })}
-          </div>
-          <FormMessage />
-        </FormItem>
+            },
       )}
-    />
+    </>
   );
 }

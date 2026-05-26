@@ -35,6 +35,7 @@ export default function RegisterPaymentClient() {
   const {
     form,
     pendingPayments,
+    selectedPayment,
     isLoadingPayments,
     isProcessing,
     showReceipt,
@@ -55,10 +56,6 @@ export default function RegisterPaymentClient() {
     clearSearch();
     loadStudentPayments(student.id);
   };
-
-  const selectedPaymentInfo = pendingPayments.find(
-    (p) => p.id === form.watch("paymentId"),
-  );
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -155,8 +152,8 @@ export default function RegisterPaymentClient() {
                             min="0.01"
                             step="0.01"
                             max={
-                              selectedPaymentInfo?.balance ??
-                              selectedPaymentInfo?.amount
+                              selectedPayment?.balance ??
+                              selectedPayment?.amount
                             }
                             {...form.register("amount", {
                               valueAsNumber: true,
@@ -170,8 +167,8 @@ export default function RegisterPaymentClient() {
                           <p className="text-xs text-slate-500">
                             Saldo pendiente: S/{" "}
                             {(
-                              selectedPaymentInfo?.balance ??
-                              selectedPaymentInfo?.amount ??
+                              selectedPayment?.balance ??
+                              selectedPayment?.amount ??
                               0
                             ).toFixed(2)}
                           </p>

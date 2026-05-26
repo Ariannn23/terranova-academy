@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { FileDown, CalendarClock } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/services/formatting.service";
+import { useOverduePayments } from "./hooks/useOverduePayments";
 
 interface OverduePaymentsClientProps {
   initialData: any[];
@@ -20,6 +20,8 @@ export default function OverduePaymentsClient({
   initialData,
 }: OverduePaymentsClientProps) {
   const router = useRouter();
+  const { getDaysOverdue, getDelayBadgeClass, exportCsv } =
+    useOverduePayments(initialData);
 
   const columns = [
     {
@@ -61,17 +63,11 @@ export default function OverduePaymentsClient({
       header: "Días de Retraso",
       accessorKey: "delay",
       cell: (row: any) => {
-        const days = differenceInDays(new Date(), new Date(row.dueDate));
+        const days = getDaysOverdue(row);
         return (
           <Badge
             variant="destructive"
-            className={`font-mono px-2 py-0.5 ${
-              days > 30
-                ? "bg-red-600"
-                : days > 15
-                  ? "bg-orange-500"
-                  : "bg-amber-500"
-            }`}
+            className={`font-mono px-2 py-0.5 ${getDelayBadgeClass(row)}`}
           >
             {days} días
           </Badge>
@@ -99,47 +95,6 @@ export default function OverduePaymentsClient({
     },
   ];
 
-  const handleExportCSV = () => {
-    // Basic CSV generator
-    const headers = [
-      "DNI",
-      "Estudiante",
-      "Nivel",
-      "Grado",
-      "Concepto",
-      "Monto",
-      "Fecha Vencimiento",
-      "Dias Retraso",
-    ];
-
-    const rows = initialData.map((row) => {
-      const daysDelay = differenceInDays(new Date(), new Date(row.dueDate));
-      return [
-        row.enrollment.student.dni,
-        `${row.enrollment.student.firstName} ${row.enrollment.student.lastName}`,
-        row.enrollment.section.gradeLevel.level,
-        row.enrollment.section.gradeLevel.name,
-        row.concept.name,
-        row.amount.toFixed(2),
-        format(new Date(row.dueDate), "yyyy-MM-dd"),
-        daysDelay.toString(),
-      ].join(",");
-    });
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `reporte-vencidos-${format(new Date(), "yyyy-MM-dd")}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -148,7 +103,7 @@ export default function OverduePaymentsClient({
           description="Monitoreo de deudores y cartera morosa ordenado por urgencia."
         />
         <Button
-          onClick={handleExportCSV}
+          onClick={exportCsv}
           className="bg-slate-900 hover:bg-slate-800 gap-2"
         >
           <FileDown className="w-5 h-5" />

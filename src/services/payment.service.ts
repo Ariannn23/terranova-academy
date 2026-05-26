@@ -1,8 +1,8 @@
-type TransactionLike = {
+export type TransactionLike = {
   amount?: number | null;
 };
 
-type PaymentLike = {
+export type PaymentLike = {
   amount: number;
   balance?: number | null;
   transactions?: TransactionLike[] | null;
@@ -81,4 +81,30 @@ export function isPaymentOverdue(
   normalizedToday.setHours(0, 0, 0, 0);
 
   return normalizedDueDate < normalizedToday;
+}
+
+export function calculateDaysOverdue(
+  payment: Pick<PaymentLike, "dueDate">,
+  today: Date = new Date(),
+): number {
+  if (!payment.dueDate) return 0;
+
+  const dueDate =
+    payment.dueDate instanceof Date ? payment.dueDate : new Date(payment.dueDate);
+
+  if (Number.isNaN(dueDate.getTime())) return 0;
+
+  const normalizedDueDate = new Date(dueDate);
+  normalizedDueDate.setHours(0, 0, 0, 0);
+  const normalizedToday = new Date(today);
+  normalizedToday.setHours(0, 0, 0, 0);
+
+  const diff = normalizedToday.getTime() - normalizedDueDate.getTime();
+  return Math.max(Math.floor(diff / (1000 * 60 * 60 * 24)), 0);
+}
+
+export function getOverdueSeverityClass(daysOverdue: number): string {
+  if (daysOverdue > 30) return "bg-red-600";
+  if (daysOverdue > 15) return "bg-orange-500";
+  return "bg-amber-500";
 }

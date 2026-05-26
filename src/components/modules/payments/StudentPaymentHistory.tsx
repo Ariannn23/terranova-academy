@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   CheckCircle2,
@@ -19,9 +18,9 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/services/formatting.service";
 import {
-  calculateDebtTotal,
-  calculatePaidTotal,
-} from "@/services/payment.service";
+  type StudentPaymentHistoryItem,
+  useStudentPaymentHistory,
+} from "./hooks/useStudentPaymentHistory";
 
 interface StudentPaymentHistoryProps {
   enrollmentData: any;
@@ -31,45 +30,15 @@ export default function StudentPaymentHistory({
   enrollmentData,
 }: StudentPaymentHistoryProps) {
   const router = useRouter();
-  const student = enrollmentData.student;
-  const payments = enrollmentData.payments;
+  const { student, paymentItems, totalPaid, totalDebt } =
+    useStudentPaymentHistory(enrollmentData);
 
-  const totalPaid = calculatePaidTotal(
-    payments.flatMap((p: any) => p.transactions || []),
-  );
-
-  const totalDebt = calculateDebtTotal(payments);
-
-  const getStatusConfig = (status: string, dueDate: Date) => {
-    if (status === "PAGADO") {
-      return {
-        icon: <CheckCircle2 className="w-5 h-5 text-emerald-600" />,
-        badgeCls:
-          "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200",
-        label: "Pagado",
-        colorCls: "text-emerald-700 bg-emerald-50 border-emerald-200",
-      };
-    }
-
-    // Check if actually overdue despite status saying PENDIENTE
-    const isOverdue = new Date(dueDate) < new Date();
-
-    if (status === "VENCIDO" || isOverdue) {
-      return {
-        icon: <AlertTriangle className="w-5 h-5 text-rose-600" />,
-        badgeCls: "bg-rose-100 text-rose-800 hover:bg-rose-200 border-rose-200",
-        label: "Vencido",
-        colorCls: "text-rose-700 bg-rose-50 border-rose-200",
-      };
-    }
-
-    return {
-      icon: <Clock className="w-5 h-5 text-amber-600" />,
-      badgeCls:
-        "bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200",
-      label: "Pendiente",
-      colorCls: "text-amber-700 bg-amber-50 border-amber-200",
-    };
+  const getStatusIcon = (status: string) => {
+    if (status === "PAGADO")
+      return <CheckCircle2 className="w-5 h-5 text-emerald-600" />;
+    if (status === "VENCIDO")
+      return <AlertTriangle className="w-5 h-5 text-rose-600" />;
+    return <Clock className="w-5 h-5 text-amber-600" />;
   };
 
   return (
@@ -143,36 +112,36 @@ export default function StudentPaymentHistory({
         </CardHeader>
         <CardContent>
           <div className="relative border-l-2 border-slate-100 ml-4 md:ml-6 space-y-8 pb-4">
-            {payments.map((payment: any) => {
-              const conf = getStatusConfig(payment.status, payment.dueDate);
+            {paymentItems.map((item: StudentPaymentHistoryItem) => {
+              const { payment, balance, status, statusConfig, badgeClass } = item;
 
               return (
                 <div key={payment.id} className="relative pl-8 md:pl-10">
                   {/* Timeline Dot */}
                   <div className="absolute -left-[17px] top-1 h-8 w-8 rounded-full bg-white border-4 border-slate-100 flex items-center justify-center shadow-sm">
-                    {conf.icon}
+                    {getStatusIcon(status)}
                   </div>
 
                   {/* Content Card */}
                   <div
-                    className={`p-4 rounded-xl border-2 transition-all ${conf.colorCls} hover:shadow-md`}
+                    className={`p-4 rounded-xl border-2 transition-all ${statusConfig.color} hover:shadow-md`}
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       {/* Left info */}
                       <div className="space-y-1">
                         <div className="flex items-center gap-3">
                           <h4 className="font-bold text-lg">
-                            {payment.concept.name}
+                            {payment.concept?.name ?? "Concepto sin nombre"}
                           </h4>
-                          <Badge variant="outline" className={conf.badgeCls}>
-                            {conf.label}
+                          <Badge variant="outline" className={badgeClass}>
+                            {statusConfig.label}
                           </Badge>
                         </div>
 
                         <div className="text-sm font-medium opacity-80 flex flex-wrap gap-4">
                           <span>
                             Vencimiento:{" "}
-                            {format(new Date(payment.dueDate), "dd MMM yyyy", {
+                            {format(new Date(payment.dueDate ?? new Date()), "dd MMM yyyy", {
                               locale: es,
                             })}
                           </span>
@@ -194,10 +163,9 @@ export default function StudentPaymentHistory({
                           <p className="text-xl font-black">
                             {formatCurrency(payment.amount)}
                           </p>
-                          {payment.status !== "PAGADO" &&
-                            typeof payment.balance === "number" && (
+                          {payment.status !== "PAGADO" && (
                               <p className="text-xs font-semibold opacity-80">
-                                Saldo: {formatCurrency(payment.balance)}
+                                Saldo: {formatCurrency(balance)}
                               </p>
                             )}
                         </div>

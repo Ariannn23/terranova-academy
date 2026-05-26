@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateDebtTotal,
+  calculateDaysOverdue,
   calculatePaidTotal,
   calculatePaymentBalance,
+  getOverdueSeverityClass,
   getPaymentStatusConfig,
   isPaymentOverdue,
 } from "@/services/payment.service";
@@ -63,5 +65,20 @@ describe("payment.service", () => {
     expect(getPaymentStatusConfig("PAGADO").label).toBe("Pagado");
     expect(getPaymentStatusConfig("VENCIDO").label).toBe("Vencido");
     expect(getPaymentStatusConfig("OTRO").label).toBe("OTRO");
+  });
+
+  it("calcula dias de atraso", () => {
+    expect(
+      calculateDaysOverdue(
+        { dueDate: "2026-05-20" },
+        new Date("2026-05-26"),
+      ),
+    ).toBe(6);
+  });
+
+  it("devuelve clase visual por severidad de atraso", () => {
+    expect(getOverdueSeverityClass(31)).toBe("bg-red-600");
+    expect(getOverdueSeverityClass(16)).toBe("bg-orange-500");
+    expect(getOverdueSeverityClass(1)).toBe("bg-amber-500");
   });
 });
