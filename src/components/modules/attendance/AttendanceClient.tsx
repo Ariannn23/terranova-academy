@@ -14,9 +14,10 @@ import { useAttendanceMutation } from "./hooks/useAttendanceMutation";
 import { AttendanceLevelFilters } from "./_components/AttendanceLevelFilters";
 import { AttendanceStudentRow } from "./_components/AttendanceStudentRow";
 import { AttendanceSummarySidebar } from "./_components/AttendanceSummarySidebar";
+import type { AcademicStructure } from "@/types/academic";
 
 interface AttendanceClientProps {
-  initialStructure: any;
+  initialStructure: AcademicStructure;
 }
 
 export function AttendanceClient({

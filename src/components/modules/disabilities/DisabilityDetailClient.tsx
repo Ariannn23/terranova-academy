@@ -32,7 +32,34 @@ import Link from "next/link";
 import { resolveDisability } from "@/lib/actions/disability.actions";
 import { ResolveDisabilitySchema } from "@/lib/validations/incident.schema";
 
-export function DisabilityDetailClient({ record }: { record: any }) {
+type DisabilityDetailRecord = {
+  id: string;
+  reason: string;
+  description?: string | null;
+  active: boolean;
+  startDate: Date | string;
+  resolvedNote?: string | null;
+  resolvedAt?: Date | string | null;
+  enrollment: {
+    student: {
+      firstName: string;
+      lastName: string;
+      dni: string;
+    };
+    section: {
+      name: string;
+      gradeLevel: {
+        name: string;
+      };
+    };
+  };
+};
+
+export function DisabilityDetailClient({
+  record,
+}: {
+  record: DisabilityDetailRecord;
+}) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,7 +88,7 @@ export function DisabilityDetailClient({ record }: { record: any }) {
         router.push("/dashboard/inhabilitaciones");
         router.refresh(); // Refrescar el layout para asegurar recarga de datos
       } else {
-        toast.error(res.error, { id: "resolve-disab" });
+        toast.error(String(res.error), { id: "resolve-disab" });
       }
     } catch {
       toast.error("Error al procesar la solicitud.", { id: "resolve-disab" });

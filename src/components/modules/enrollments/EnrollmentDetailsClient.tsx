@@ -15,7 +15,7 @@ import { FinancialSummaryCard } from "./_components/FinancialSummaryCard";
 export function EnrollmentDetailsClient({
   enrollment,
 }: {
-  enrollment: EnrollmentData | any;
+  enrollment: EnrollmentData;
 }) {
   useEffect(() => {
     toast.dismiss();

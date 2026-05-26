@@ -14,7 +14,7 @@ type PaymentHistoryPayment = PaymentLike & {
   paidAt?: Date | string | null;
 };
 
-type StudentPaymentHistoryInput = {
+export type StudentPaymentHistoryInput = {
   student: {
     firstName: string;
     lastName: string;
@@ -22,6 +22,12 @@ type StudentPaymentHistoryInput = {
     code?: string | null;
   };
   payments?: PaymentHistoryPayment[];
+  section?: {
+    name: string;
+    gradeLevel: {
+      name: string;
+    };
+  };
 };
 
 export type StudentPaymentHistoryItem = {

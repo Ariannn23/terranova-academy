@@ -380,20 +380,21 @@ export async function createEnrollment(data: unknown) {
       },
     });
     return { success: true, data: result };
-  } catch (error: any) {
-    if (error.message === "ALREADY_ENROLLED") {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "";
+    if (errorMessage === "ALREADY_ENROLLED") {
       return {
         success: false,
         error: "El estudiante ya está matriculado en este año lectivo",
       };
     }
-    if (error.message === "SECTION_NOT_FOUND") {
+    if (errorMessage === "SECTION_NOT_FOUND") {
       return {
         success: false,
         error: "SecciÃ³n no encontrada",
       };
     }
-    if (error.message === "SECTION_FULL") {
+    if (errorMessage === "SECTION_FULL") {
       return {
         success: false,
         error: "La secciÃ³n seleccionada no tiene vacantes disponibles.",
@@ -502,7 +503,9 @@ export async function transferSection(
 /**
  * Importación masiva de matrículas
  */
-export async function importEnrollments(data: any[]) {
+export async function importEnrollments(
+  data: Array<{ studentId?: string } & Record<string, unknown>>,
+) {
   await requireRole(ROLE_GROUPS.ADMISSIONS);
 
   const results = {

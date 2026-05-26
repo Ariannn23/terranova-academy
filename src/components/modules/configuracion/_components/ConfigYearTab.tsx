@@ -6,8 +6,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+export type ConfigActiveYear = {
+  year: number | string;
+  startDate: Date | string;
+  endDate: Date | string;
+  sections?: Array<{
+    id: string;
+    name: string;
+    gradeLevel?: {
+      name?: string;
+    } | null;
+  }>;
+  _count?: {
+    enrollments?: number;
+  };
+};
+
 interface ConfigYearTabProps {
-  activeYear: any | null;
+  activeYear: ConfigActiveYear | null;
 }
 
 export function ConfigYearTab({ activeYear }: ConfigYearTabProps) {
@@ -71,7 +87,7 @@ export function ConfigYearTab({ activeYear }: ConfigYearTabProps) {
             <CardContent className="pt-4">
               {sections.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {sections.map((s: any) => (
+                  {sections.map((s) => (
                     <div
                       key={s.id}
                       className="text-sm p-3 rounded-lg border border-slate-100 bg-slate-50"

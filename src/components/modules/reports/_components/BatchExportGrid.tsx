@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 
 interface BatchExportGridProps {
-  allSections: any[];
+  allSections: Array<{
+    id: string;
+    name: string;
+    gradeName: string;
+  }>;
   selectedSectionId: string;
   setSelectedSectionId: (val: string) => void;
   selectedPeriod: string;

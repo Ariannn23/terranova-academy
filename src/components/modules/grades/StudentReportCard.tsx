@@ -11,8 +11,8 @@ import { GradesTable } from "./_components/GradesTable";
 import { EnrollmentForGrades, GradeRecord } from "./types";
 
 interface StudentReportCardProps {
-  enrollment: EnrollmentForGrades | any;
-  grades: GradeRecord[] | any;
+  enrollment: EnrollmentForGrades;
+  grades: GradeRecord[];
 }
 
 export function StudentReportCard({

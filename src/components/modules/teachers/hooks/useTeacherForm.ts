@@ -7,8 +7,14 @@ import { createTeacher, updateTeacher } from "@/lib/actions/teacher.actions";
 import { uploadTeacherPhoto } from "@/lib/actions/upload.actions";
 import { TeacherFormStatus } from "../types";
 
-type TeacherInitialData = TeacherSchemaType & {
+export type TeacherInitialData = Omit<
+  TeacherSchemaType,
+  "phone" | "specialty" | "photoUrl"
+> & {
   id: string;
+  phone?: string | null;
+  specialty?: string | null;
+  photoUrl?: string | null;
 };
 
 type UseTeacherFormOptions = {
@@ -29,23 +35,37 @@ export function useTeacherForm({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const toastIdRef = useRef<string | number | undefined>(undefined);
 
-  const form = useForm<TeacherSchemaType>({
+  const defaultValues: TeacherSchemaType = initialData
+    ? {
+        ...initialData,
+        phone: initialData.phone ?? "",
+        specialty: initialData.specialty ?? "",
+        photoUrl: initialData.photoUrl ?? "",
+      }
+    : {
+        dni: "",
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        specialty: "",
+        photoUrl: "",
+        active: true,
+      };
+
+  const form = useForm<TeacherSchemaType, unknown, TeacherSchemaType>({
     resolver: zodResolver(TeacherSchema),
-    defaultValues: initialData || {
-      dni: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      specialty: "",
-      photoUrl: "",
-      active: true,
-    },
+    defaultValues,
   });
 
   useEffect(() => {
     if (initialData) {
-      form.reset(initialData);
+      form.reset({
+        ...initialData,
+        phone: initialData.phone ?? "",
+        specialty: initialData.specialty ?? "",
+        photoUrl: initialData.photoUrl ?? "",
+      });
       setPreviewUrl(initialData.photoUrl || null);
       setStatus({ state: "idle", isUpdate: true });
     } else {

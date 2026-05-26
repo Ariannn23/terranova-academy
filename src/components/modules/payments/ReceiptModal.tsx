@@ -13,10 +13,35 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+type ReceiptModalData = {
+  id?: string;
+  transactionId?: string;
+  paidAt?: Date | string | null;
+  amount?: number | null;
+  method?: string | null;
+  balance?: number | null;
+  concept?: {
+    name?: string | null;
+  } | null;
+  enrollment?: {
+    student?: {
+      firstName?: string | null;
+      lastName?: string | null;
+      dni?: string | null;
+    } | null;
+    section?: {
+      gradeLevel?: {
+        name?: string | null;
+        level?: string | null;
+      } | null;
+    } | null;
+  } | null;
+};
+
 interface ReceiptModalProps {
   isOpen: boolean;
   onClose: (open: boolean) => void;
-  receipt: any | null;
+  receipt?: ReceiptModalData | null;
   onReturn?: () => void;
   successTitle?: string;
 }
@@ -52,7 +77,9 @@ export function ReceiptModal({
               </h2>
               <p className="text-xs text-slate-500 mt-1">
                 Recibo Electrónico N°{" "}
-                {(receipt.transactionId || receipt.id).slice(-6).toUpperCase()}
+                {(receipt.transactionId || receipt.id || "")
+                  .slice(-6)
+                  .toUpperCase()}
               </p>
               <p className="text-xs text-slate-500">
                 {format(

@@ -13,11 +13,12 @@ import { Loader2 } from "lucide-react";
 import { useTeacherForm } from "./hooks/useTeacherForm";
 import { TeacherPhotoUpload } from "./_components/TeacherPhotoUpload";
 import { TeacherFormFields } from "./_components/TeacherFormFields";
+import type { TeacherInitialData } from "./hooks/useTeacherForm";
 
 interface TeacherFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialData?: any;
+  initialData?: TeacherInitialData | null;
   onSuccess?: () => void;
 }
 
@@ -35,7 +36,12 @@ export function TeacherForm({
     handleFileChange,
     removePhoto,
     handleCancelClick,
-  } = useTeacherForm({ initialData, open, onOpenChange, onSuccess });
+  } = useTeacherForm({
+    initialData: initialData ?? undefined,
+    open,
+    onOpenChange,
+    onSuccess,
+  });
 
   const handlers = { handleFileChange, removePhoto };
 

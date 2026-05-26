@@ -19,12 +19,13 @@ import { UseFormReturn } from "react-hook-form";
 import * as z from "zod";
 import { DisabilitySchema } from "@/lib/validations/incident.schema";
 import { Button } from "@/components/ui/button";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 interface DisabilityFormFieldsProps {
   form: UseFormReturn<z.infer<typeof DisabilitySchema>>;
   isSubmitting: boolean;
-  activeEnrollment: any | null;
-  router: any;
+  activeEnrollment: { id: string } | null;
+  router: AppRouterInstance;
 }
 
 export function DisabilityFormFields({

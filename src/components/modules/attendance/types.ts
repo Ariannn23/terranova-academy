@@ -5,18 +5,22 @@ export interface AttendanceRecord {
   enrollmentId: string;
   date: string | Date;
   status: AttendanceStatus;
-  justification?: string;
+  justification?: string | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
 
 export interface AttendanceStats {
-  percentage: string;
+  percentage: string | number;
   totalDays: number;
-  present: number;
-  late: number;
-  justifiedAbsences: number;
-  unjustifiedAbsences: number;
+  present?: number;
+  presente?: number;
+  late?: number;
+  tardanza?: number;
+  justifiedAbsences?: number;
+  justificada?: number;
+  unjustifiedAbsences?: number;
+  injustificada?: number;
 }
 
 export interface CalendarHandlers {

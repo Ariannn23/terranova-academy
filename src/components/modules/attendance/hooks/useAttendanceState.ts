@@ -2,11 +2,8 @@ import { useCallback, useState, useEffect } from "react";
 import { getAttendanceBySection } from "@/lib/actions/attendance.actions";
 import { toast } from "sonner";
 import { StudentAttendanceInput } from "@/lib/validations/attendance.schema";
+import type { AcademicStructure } from "@/types/academic";
 
-type AttendanceSection = { id: string };
-type AttendanceGrade = { sections?: AttendanceSection[] };
-type AttendanceLevel = { grades?: AttendanceGrade[] };
-type AttendanceStructure = { levels?: AttendanceLevel[] };
 type AttendanceGridItem = {
   enrollmentId: string;
   studentName: string;
@@ -17,7 +14,7 @@ type AttendanceGridItem = {
   } | null;
 };
 
-export function useAttendanceState(initialStructure: AttendanceStructure) {
+export function useAttendanceState(initialStructure: AcademicStructure) {
   const [selectedLevelIndex, setSelectedLevelIndex] = useState<number | null>(null);
   const [selectedGradeIndex, setSelectedGradeIndex] = useState<number | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");

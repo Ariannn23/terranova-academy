@@ -65,7 +65,7 @@ export function useRegisterDisability() {
         toast.success("Inhabilitación registrada correctamente.", { id: toastId });
         router.push("/dashboard/inhabilitaciones");
       } else {
-        toast.error(res.error, { id: toastId });
+        toast.error(String(res.error), { id: toastId });
       }
     } catch {
       toast.error("Error de conexión al servidor.", { id: toastId });

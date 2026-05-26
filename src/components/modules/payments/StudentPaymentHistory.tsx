@@ -19,11 +19,12 @@ import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/services/formatting.service";
 import {
   type StudentPaymentHistoryItem,
+  type StudentPaymentHistoryInput,
   useStudentPaymentHistory,
 } from "./hooks/useStudentPaymentHistory";
 
 interface StudentPaymentHistoryProps {
-  enrollmentData: any;
+  enrollmentData?: StudentPaymentHistoryInput;
 }
 
 export default function StudentPaymentHistory({
@@ -31,7 +32,14 @@ export default function StudentPaymentHistory({
 }: StudentPaymentHistoryProps) {
   const router = useRouter();
   const { student, paymentItems, totalPaid, totalDebt } =
-    useStudentPaymentHistory(enrollmentData);
+    useStudentPaymentHistory(
+      enrollmentData ?? {
+        student: { firstName: "", lastName: "" },
+        payments: [],
+      },
+    );
+
+  if (!enrollmentData) return null;
 
   const getStatusIcon = (status: string) => {
     if (status === "PAGADO")
@@ -75,8 +83,8 @@ export default function StudentPaymentHistory({
                 <span>Código: {student.code || "N/A"}</span>
               </div>
               <div className="mt-1 text-emerald-400 text-sm font-medium">
-                Sección: {enrollmentData.section.gradeLevel.name} -{" "}
-                {enrollmentData.section.name}
+                Sección: {enrollmentData.section?.gradeLevel.name ?? "N/A"} -{" "}
+                {enrollmentData.section?.name ?? "N/A"}
               </div>
             </div>
           </CardContent>

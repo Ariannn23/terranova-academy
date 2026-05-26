@@ -17,7 +17,19 @@ import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { useAnnouncementsDirectory } from "./hooks/useAnnouncementsDirectory";
 
-export function AnnouncementsClient({ initialData }: { initialData: any[] }) {
+type AnnouncementRow = {
+  id: string;
+  title: string;
+  body: string;
+  targetLevel: string | null;
+  createdAt: Date | string;
+};
+
+export function AnnouncementsClient({
+  initialData,
+}: {
+  initialData: AnnouncementRow[];
+}) {
   const {
     isModalOpen,
     searchTerm,

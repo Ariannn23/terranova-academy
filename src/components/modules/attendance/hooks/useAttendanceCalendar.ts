@@ -8,14 +8,9 @@ import {
   getDay,
 } from "date-fns";
 import { AttendanceStatus } from "@prisma/client";
-import { CalendarHandlers } from "../types";
+import { AttendanceRecord, CalendarHandlers } from "../types";
 
-type AttendanceHistoryRecord = {
-  date: Date | string;
-  status?: AttendanceStatus;
-};
-
-export function useAttendanceCalendar(history: AttendanceHistoryRecord[]) {
+export function useAttendanceCalendar(history: AttendanceRecord[]) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const recordsMap = useMemo(() => {

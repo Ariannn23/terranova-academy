@@ -18,7 +18,7 @@ interface CalendarGridProps {
   currentDate: Date;
   daysInMonth: Date[];
   previousMonthDays: string[];
-  getDayStatus: (date: Date) => AttendanceRecord | any;
+  getDayStatus: (date: Date) => AttendanceRecord | undefined;
   handlers: CalendarHandlers;
 }
 

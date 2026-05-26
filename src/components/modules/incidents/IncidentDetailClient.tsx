@@ -17,7 +17,28 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 interface IncidentDetailClientProps {
-  incident: any;
+  incident: {
+    id: string;
+    severity: string;
+    date: Date | string;
+    description: string;
+    action?: string | null;
+    createdAt: Date | string;
+    enrollment: {
+      student: {
+        firstName: string;
+        lastName: string;
+        dni: string;
+        status?: string | null;
+      };
+      section: {
+        name: string;
+        gradeLevel: {
+          name: string;
+        };
+      };
+    };
+  };
 }
 
 export function IncidentDetailClient({ incident }: IncidentDetailClientProps) {

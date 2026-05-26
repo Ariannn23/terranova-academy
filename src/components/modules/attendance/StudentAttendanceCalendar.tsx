@@ -10,11 +10,26 @@ import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { useAttendanceCalendar } from "./hooks/useAttendanceCalendar";
 import { CalendarStats } from "./_components/CalendarStats";
 import { CalendarGrid } from "./_components/CalendarGrid";
+import type { AttendanceRecord, AttendanceStats } from "./types";
 
 interface StudentAttendanceCalendarProps {
-  enrollment: any;
-  stats: any;
-  history: any[];
+  enrollment: {
+    student: {
+      firstName: string;
+      lastName: string;
+      photoUrl?: string | null;
+      code?: string | null;
+      dni: string;
+    };
+    section: {
+      name: string;
+      gradeLevel: {
+        name: string;
+      };
+    };
+  };
+  stats?: AttendanceStats | null;
+  history: AttendanceRecord[];
 }
 
 export function StudentAttendanceCalendar({
@@ -84,7 +99,7 @@ export function StudentAttendanceCalendar({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
-          <CalendarStats stats={stats} />
+          <CalendarStats stats={stats ?? null} />
         </div>
 
         <div className="lg:col-span-2">

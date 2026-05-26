@@ -15,7 +15,27 @@ import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { Badge } from "@/components/ui/badge";
 import { useTeachersDirectory } from "./hooks/useTeachersDirectory";
 
-export function TeachersClient({ initialData }: { initialData: any[] }) {
+type TeacherRow = {
+  id: string;
+  dni: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  specialty?: string | null;
+  photoUrl?: string | null;
+  active: boolean;
+  _count?: {
+    sections?: number;
+    schedules?: number;
+  };
+};
+
+export function TeachersClient({
+  initialData,
+}: {
+  initialData: TeacherRow[];
+}) {
   const {
     searchTerm,
     setSearchTerm,
