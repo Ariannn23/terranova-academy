@@ -1,10 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -30,9 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AnnouncementSchema } from "@/lib/validations/incident.schema";
-import { createAnnouncement } from "@/lib/actions/announcement.actions";
-import { useRouter } from "next/navigation";
+import { useAnnouncementForm } from "./hooks/useAnnouncementForm";
 
 interface AnnouncementModalProps {
   isOpen: boolean;
@@ -40,50 +33,7 @@ interface AnnouncementModalProps {
 }
 
 export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const form = useForm<z.infer<typeof AnnouncementSchema>>({
-    resolver: zodResolver(AnnouncementSchema),
-    defaultValues: {
-      title: "",
-      body: "",
-      targetLevel: null,
-    },
-  });
-
-  const onSubmit = async (values: z.infer<typeof AnnouncementSchema>) => {
-    setIsSubmitting(true);
-    toast.loading("Publicando comunicado...", { id: "create-ann" });
-
-    try {
-      // If targetLevel is "ALL" or empty string, convert to null
-      const processedValues = {
-        ...values,
-        targetLevel:
-          (values.targetLevel as string) === "ALL" || !values.targetLevel
-            ? null
-            : values.targetLevel,
-      };
-
-      const res = await createAnnouncement(processedValues);
-
-      if (res.success) {
-        toast.success("Comunicado publicado exitosamente.", {
-          id: "create-ann",
-        });
-        form.reset();
-        onClose();
-        router.refresh();
-      } else {
-        toast.error(res.error as string, { id: "create-ann" });
-      }
-    } catch (error) {
-      toast.error("Error al publicar el comunicado.", { id: "create-ann" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const { form, isSubmitting, onSubmit } = useAnnouncementForm({ onClose });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

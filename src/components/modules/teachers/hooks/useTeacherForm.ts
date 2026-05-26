@@ -1,15 +1,29 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { TeacherSchema, TeacherSchemaType } from "@/lib/validations/teacher.schema";
 import { createTeacher, updateTeacher } from "@/lib/actions/teacher.actions";
 import { uploadTeacherPhoto } from "@/lib/actions/upload.actions";
 import { TeacherFormStatus } from "../types";
 
-export function useTeacherForm(initialData: any) {
+type UseTeacherFormOptions = {
+  initialData?: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+};
+
+export function useTeacherForm({
+  initialData,
+  open,
+  onOpenChange,
+  onSuccess,
+}: UseTeacherFormOptions) {
   const [status, setStatus] = useState<TeacherFormStatus>({ state: "idle", isUpdate: !!initialData });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const toastIdRef = useRef<string | number | undefined>(undefined);
 
   const form = useForm<TeacherSchemaType>({
     resolver: zodResolver(TeacherSchema),
@@ -91,5 +105,41 @@ export function useTeacherForm(initialData: any) {
     }
   }, [initialData, selectedFile]);
 
-  return { form, status, previewUrl, submitForm, handleFileChange, removePhoto, setStatus };
+  useEffect(() => {
+    if (!open) return;
+
+    if (status.state === "loading") {
+      toastIdRef.current = toast.loading(
+        initialData ? "Actualizando docente..." : "Registrando docente...",
+      );
+    } else if (status.state === "success") {
+      if (toastIdRef.current) toast.dismiss(toastIdRef.current);
+      toast.success(status.message);
+      setStatus((prev) => ({ ...prev, state: "idle" }));
+      onSuccess?.();
+      onOpenChange(false);
+    } else if (status.state === "error") {
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+        toast.error(status.message);
+      } else {
+        toast.error(status.message);
+      }
+      setStatus((prev) => ({ ...prev, state: "idle" }));
+    }
+  }, [initialData, onOpenChange, onSuccess, open, status]);
+
+  const handleCancelClick = () => {
+    onOpenChange(false);
+  };
+
+  return {
+    form,
+    loading: status.state === "loading",
+    previewUrl,
+    submitForm,
+    handleFileChange,
+    removePhoto,
+    handleCancelClick,
+  };
 }

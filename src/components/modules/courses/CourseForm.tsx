@@ -1,9 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -22,21 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createCourse, updateCourse } from "@/lib/actions/course.actions";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-const courseSchema = z.object({
-  name: z.string().min(2, "El nombre del curso es obligatorio"),
-  gradeLevelId: z.string().min(1, "Debe seleccionar un nivel/grado"),
-  hoursPerWeek: z.coerce
-    .number()
-    .min(1, "Debe tener al menos 1 hora")
-    .max(40, "Máximo 40 horas"),
-  active: z.boolean().default(true),
-});
-
-type CourseFormValues = z.infer<typeof courseSchema>;
+import { useCourseForm } from "./hooks/useCourseForm";
 
 interface CourseFormProps {
   open: boolean;
@@ -53,69 +37,20 @@ export function CourseForm({
   gradeLevels,
   onSuccess,
 }: CourseFormProps) {
-  const [loading, setLoading] = useState(false);
-
+  const {
+    form,
+    loading,
+    onSubmit,
+    closeForm,
+    isActive,
+    gradeLevelValue,
+  } = useCourseForm({ initialData, onOpenChange, onSuccess });
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
-    reset,
     formState: { errors },
-  } = useForm<CourseFormValues>({
-    resolver: zodResolver(courseSchema),
-    defaultValues: initialData || {
-      name: "",
-      gradeLevelId: "",
-      hoursPerWeek: 2,
-      active: true,
-    },
-  });
-
-  useEffect(() => {
-    if (initialData) {
-      reset(initialData);
-    } else {
-      reset({ hoursPerWeek: 2, active: true });
-    }
-  }, [initialData, reset]);
-
-  const onSubmit = async (data: CourseFormValues) => {
-    setLoading(true);
-
-    const toastId = toast.loading(
-      initialData ? "Actualizando curso..." : "Registrando curso...",
-    );
-
-    try {
-      const result = initialData
-        ? await updateCourse(initialData.id, data)
-        : await createCourse(data);
-
-      if (result.success) {
-        toast.success(
-          initialData
-            ? "Curso actualizado con éxito"
-            : "Curso registrado con éxito",
-          { id: toastId },
-        );
-        onSuccess?.();
-        onOpenChange(false);
-        reset();
-      } else {
-        toast.error(result.error || "Error al guardar el curso", {
-          id: toastId,
-        });
-      }
-    } catch (error) {
-      toast.error("Error de conexión o servidor", { id: toastId });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isActive = watch("active");
-  const gradeLevelValue = watch("gradeLevelId");
+  } = form;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,7 +60,7 @@ export function CourseForm({
             {initialData ? "Editar Curso" : "Registrar Nuevo Curso"}
           </DialogTitle>
           <DialogDescription>
-            Define la currícula y carga horaria para un grado específico.
+            Define la currÃ­cula y carga horaria para un grado especÃ­fico.
           </DialogDescription>
         </DialogHeader>
 
@@ -139,7 +74,7 @@ export function CourseForm({
               <Label htmlFor="name">Nombre del Curso</Label>
               <Input
                 id="name"
-                placeholder="Ej. Comunicación Matemática"
+                placeholder="Ej. ComunicaciÃ³n MatemÃ¡tica"
                 {...register("name")}
               />
               {errors.name && (
@@ -200,11 +135,7 @@ export function CourseForm({
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={closeForm}>
               Cancelar
             </Button>
             <Button

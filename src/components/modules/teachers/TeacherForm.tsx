@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -29,45 +27,17 @@ export function TeacherForm({
   initialData,
   onSuccess,
 }: TeacherFormProps) {
-  const { form, status, previewUrl, submitForm, handleFileChange, removePhoto, setStatus } = useTeacherForm(initialData);
-
-  // Guardar toast reference para evitar duplicados si hay re-renders
-  const toastIdRef = useRef<string | number | undefined>(undefined);
-
-  useEffect(() => {
-    if (!open) return;
-
-    if (status.state === "loading") {
-      toastIdRef.current = toast.loading(
-        initialData ? "Actualizando docente..." : "Registrando docente..."
-      );
-    } else if (status.state === "success") {
-      if(toastIdRef.current) toast.dismiss(toastIdRef.current);
-      toast.success(status.message);
-      
-      // Cleanup status para evitar re-gatillar success infinito
-      setStatus(prev => ({ ...prev, state: "idle" }));
-      
-      onSuccess?.();
-      onOpenChange(false);
-    } else if (status.state === "error") {
-      if(toastIdRef.current) {
-        toast.dismiss(toastIdRef.current);
-        toast.error(status.message);
-      } else {
-        toast.error(status.message);
-      }
-      setStatus(prev => ({ ...prev, state: "idle" }));
-    }
-  }, [status, open, onSuccess, onOpenChange, initialData, setStatus]);
+  const {
+    form,
+    loading,
+    previewUrl,
+    submitForm,
+    handleFileChange,
+    removePhoto,
+    handleCancelClick,
+  } = useTeacherForm({ initialData, open, onOpenChange, onSuccess });
 
   const handlers = { handleFileChange, removePhoto };
-  const loading = status.state === "loading";
-
-  // Al cerrar explicitamente
-  const handleCancelClick = () => {
-     onOpenChange(false);
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
