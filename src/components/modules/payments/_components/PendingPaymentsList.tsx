@@ -8,6 +8,10 @@ import {
 } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Calendar, CheckCircle2 } from "lucide-react";
+import {
+  calculatePaidTotal,
+  calculatePaymentBalance,
+} from "@/services/payment.service";
 
 export function PendingPaymentsList({
   pendingPayments,
@@ -29,14 +33,8 @@ export function PendingPaymentsList({
             {pendingPayments.map((payment) => {
               const isOverdue = new Date(payment.dueDate) < new Date();
               const isSelected = field.value === payment.id;
-              const paidAmount = (payment.transactions || []).reduce(
-                (acc: number, tx: any) => acc + tx.amount,
-                0,
-              );
-              const balance =
-                typeof payment.balance === "number"
-                  ? payment.balance
-                  : payment.amount - paidAmount;
+              const paidAmount = calculatePaidTotal(payment.transactions || []);
+              const balance = calculatePaymentBalance(payment);
 
               return (
                 <div

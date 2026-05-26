@@ -34,17 +34,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency } from "@/services/formatting.service";
 
 interface PaymentsDashboardClientProps {
   initialData: any;
 }
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("es-PE", {
-    style: "currency",
-    currency: "PEN",
-  }).format(amount);
-};
 
 export default function PaymentsDashboardClient({
   initialData,

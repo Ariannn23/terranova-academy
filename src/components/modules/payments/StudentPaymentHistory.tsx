@@ -17,6 +17,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { formatCurrency } from "@/services/formatting.service";
+import {
+  calculateDebtTotal,
+  calculatePaidTotal,
+} from "@/services/payment.service";
 
 interface StudentPaymentHistoryProps {
   enrollmentData: any;
@@ -29,20 +34,11 @@ export default function StudentPaymentHistory({
   const student = enrollmentData.student;
   const payments = enrollmentData.payments;
 
-  const totalPaid = payments
-    .flatMap((p: any) => p.transactions || [])
-    .reduce((acc: number, curr: any) => acc + curr.amount, 0);
+  const totalPaid = calculatePaidTotal(
+    payments.flatMap((p: any) => p.transactions || []),
+  );
 
-  const totalDebt = payments
-    .filter((p: any) => ["PENDIENTE", "VENCIDO"].includes(p.status))
-    .reduce((acc: number, curr: any) => acc + (curr.balance ?? curr.amount), 0);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-PE", {
-      style: "currency",
-      currency: "PEN",
-    }).format(amount);
-  };
+  const totalDebt = calculateDebtTotal(payments);
 
   const getStatusConfig = (status: string, dueDate: Date) => {
     if (status === "PAGADO") {

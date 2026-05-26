@@ -13,6 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { EmptyState } from "./EmptyState";
+import {
+  filterBySearchKeys,
+  getNestedValue,
+  getTotalPages,
+  paginate,
+} from "@/services/table.service";
 
 interface Column<T> {
   header: string;
@@ -40,23 +46,18 @@ export function DataTable<T>({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const filteredData = data.filter((item) => {
-    if (!search || !searchKey) return true;
-    const keys = Array.isArray(searchKey) ? searchKey : [searchKey];
-    return keys.some((key) => {
-      const value = String(key)
-        .split(".")
-        .reduce((obj: any, k) => obj?.[k], item);
-      if (typeof value === "string") {
-        return value.toLowerCase().includes(search.toLowerCase());
-      }
-      return false;
-    });
-  });
+  const searchKeys = searchKey
+    ? Array.isArray(searchKey)
+      ? searchKey.map(String)
+      : [String(searchKey)]
+    : [];
+  const filteredData = searchKey
+    ? filterBySearchKeys(data, search, searchKeys)
+    : data;
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+  const totalPages = getTotalPages(filteredData.length, itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+  const currentData = paginate(filteredData, currentPage, itemsPerPage);
 
   const prevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
   const nextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
@@ -115,7 +116,7 @@ export function DataTable<T>({
                     >
                       {col.cell
                         ? col.cell(item)
-                        : (item as any)[col.accessorKey]}
+                        : getNestedValue(item, String(col.accessorKey))}
                     </TableCell>
                   ))}
                 </TableRow>

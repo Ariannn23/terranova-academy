@@ -10,17 +10,11 @@ import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
+import { formatCurrency } from "@/services/formatting.service";
 
 interface OverduePaymentsClientProps {
   initialData: any[];
 }
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("es-PE", {
-    style: "currency",
-    currency: "PEN",
-  }).format(amount);
-};
 
 export default function OverduePaymentsClient({
   initialData,
