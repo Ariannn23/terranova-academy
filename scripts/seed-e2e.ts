@@ -14,6 +14,25 @@ if (!e2eDatabaseUrl) {
   );
 }
 
+function assertE2eDbIsIsolated() {
+  const runtimeDb = process.env.DATABASE_URL;
+  const migrationDb = process.env.MIGRATION_DATABASE_URL;
+
+  if (runtimeDb && e2eDatabaseUrl === runtimeDb) {
+    throw new Error(
+      "E2E_DATABASE_URL no puede ser igual a DATABASE_URL. Aborta para evitar tocar la base de runtime.",
+    );
+  }
+
+  if (migrationDb && e2eDatabaseUrl === migrationDb) {
+    throw new Error(
+      "E2E_DATABASE_URL no puede ser igual a MIGRATION_DATABASE_URL. Aborta para evitar tocar la base de migraciones.",
+    );
+  }
+}
+
+assertE2eDbIsIsolated();
+
 const pool = new Pool({ connectionString: e2eDatabaseUrl });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });

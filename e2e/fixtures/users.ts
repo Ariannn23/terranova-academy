@@ -5,9 +5,10 @@ export type E2EUser = {
 
 const defaultPassword = process.env.E2E_DEFAULT_PASSWORD ?? "E2ePassword123!";
 const authenticated = process.env.E2E_RUN_AUTHENTICATED === "1";
+const hasE2eDb = !!process.env.E2E_DATABASE_URL;
 
 export const e2eAuth = {
-  enabled: authenticated,
+  enabled: authenticated && hasE2eDb,
 };
 
 export const e2eUsers = {

@@ -6,6 +6,38 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${port}`;
 const rawArgs = process.argv.slice(2);
 const runAuthenticated = rawArgs.includes("--auth");
 const args = rawArgs.filter((arg) => arg !== "--auth");
+
+function assertNonEmpty(value, name) {
+  if (!value || typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${name} es requerido para ejecutar tests E2E autenticados.`);
+  }
+}
+
+function assertE2eDbIsIsolated() {
+  const e2eDb = process.env.E2E_DATABASE_URL;
+  const runtimeDb = process.env.DATABASE_URL;
+  const migrationDb = process.env.MIGRATION_DATABASE_URL;
+
+  assertNonEmpty(e2eDb, "E2E_DATABASE_URL");
+
+  if (runtimeDb && e2eDb === runtimeDb) {
+    throw new Error(
+      "E2E_DATABASE_URL no puede ser igual a DATABASE_URL. Aborta para evitar tocar la base de runtime.",
+    );
+  }
+
+  if (migrationDb && e2eDb === migrationDb) {
+    throw new Error(
+      "E2E_DATABASE_URL no puede ser igual a MIGRATION_DATABASE_URL. Aborta para evitar tocar la base de migraciones.",
+    );
+  }
+}
+
+if (runAuthenticated) {
+  // Fail-fast: evita que la suite autenticada toque la base principal si E2E_DATABASE_URL no está configurada.
+  assertE2eDbIsIsolated();
+}
+
 const e2eEnv = {
   ...process.env,
   ...(process.env.E2E_DATABASE_URL
