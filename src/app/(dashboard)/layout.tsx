@@ -5,6 +5,9 @@ import Header from "./_components/Header";
 import { InitialLoader } from "./_components/InitialLoader";
 import { getAllowedRolesForPath, hasAllowedRole } from "@/lib/rbac";
 import { headers } from "next/headers";
+
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {
