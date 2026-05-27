@@ -12,6 +12,7 @@ export type SafeUser = {
   name: string;
   email: string;
   role: UserRole;
+  active: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
 };

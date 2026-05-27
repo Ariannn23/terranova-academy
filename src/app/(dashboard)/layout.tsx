@@ -5,6 +5,7 @@ import Header from "./_components/Header";
 import { InitialLoader } from "./_components/InitialLoader";
 import { getAllowedRolesForPath, hasAllowedRole } from "@/lib/rbac";
 import { headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,17 @@ export default async function DashboardLayout({
   const session = await auth();
 
   // Proteger la ruta: Si no hay sesión, al login
-  if (!session?.user) {
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  // Validar active contra base de datos en cada request protegido
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { active: true },
+  });
+
+  if (!dbUser || !dbUser.active) {
     redirect("/login");
   }
 

@@ -5,6 +5,7 @@ import {
   updateUserSchema,
   changeUserRoleSchema,
   resetUserPasswordSchema,
+  toggleUserStatusSchema,
 } from "@/lib/validations/user.schema";
 
 describe("createUserSchema", () => {
@@ -157,6 +158,56 @@ describe("resetUserPasswordSchema", () => {
     const result = resetUserPasswordSchema.safeParse({
       userId: "",
       password: "NuevaPass456",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── toggleUserStatusSchema ───────────────────────────────────────────────────
+describe("toggleUserStatusSchema", () => {
+  it("acepta active: true", () => {
+    const result = toggleUserStatusSchema.safeParse({
+      userId: "clabcdef123",
+      active: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.active).toBe(true);
+    }
+  });
+
+  it("acepta active: false", () => {
+    const result = toggleUserStatusSchema.safeParse({
+      userId: "clabcdef123",
+      active: false,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.active).toBe(false);
+    }
+  });
+
+  it("rechaza userId vacío", () => {
+    const result = toggleUserStatusSchema.safeParse({
+      userId: "",
+      active: true,
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.flatten().fieldErrors.userId).toBeDefined();
+  });
+
+  it("rechaza cuando active está ausente", () => {
+    const result = toggleUserStatusSchema.safeParse({
+      userId: "clabcdef123",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.flatten().fieldErrors.active).toBeDefined();
+  });
+
+  it("rechaza active como string en lugar de boolean", () => {
+    const result = toggleUserStatusSchema.safeParse({
+      userId: "clabcdef123",
+      active: "true",
     });
     expect(result.success).toBe(false);
   });

@@ -32,6 +32,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
         if (!valid) return null;
 
+        // Bloquear login de usuarios inactivos.
+        // Devuelve null para dar un mensaje genérico de credenciales inválidas.
+        if (!user.active) return null;
+
         return {
           id: user.id,
           email: user.email,
@@ -71,6 +75,7 @@ export async function getCurrentUser() {
       email: true,
       name: true,
       role: true,
+      active: true,
     },
   });
 }
@@ -80,6 +85,10 @@ export async function requireAuth() {
 
   if (!user) {
     throw new AuthenticationError();
+  }
+
+  if (!user.active) {
+    throw new AuthenticationError("Usuario inactivo. Contacte al administrador.");
   }
 
   return {

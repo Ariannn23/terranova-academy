@@ -43,7 +43,14 @@ export const resetUserPasswordSchema = z.object({
     .max(100, "La contraseña es demasiado larga"),
 });
 
+/** Activar o desactivar un usuario */
+export const toggleUserStatusSchema = z.object({
+  userId: z.string().min(1, "El ID de usuario es obligatorio"),
+  active: z.boolean({ required_error: "El estado activo es obligatorio" }),
+});
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type ChangeUserRoleInput = z.infer<typeof changeUserRoleSchema>;
 export type ResetUserPasswordInput = z.infer<typeof resetUserPasswordSchema>;
+export type ToggleUserStatusInput = z.infer<typeof toggleUserStatusSchema>;

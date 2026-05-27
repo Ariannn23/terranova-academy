@@ -42,6 +42,26 @@ vi.mock("@/lib/audit", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
 vi.mock("bcryptjs", () => ({ default: { hash: bcryptMock.hash } }));
 
+// Helpers
+const makeSafeUser = (overrides: Partial<{
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}> = {}) => ({
+  id: "u1",
+  name: "Test User",
+  email: "test@test.com",
+  role: "DOCENTE",
+  active: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
 // ─── getUsers ────────────────────────────────────────────────────────────────
 describe("getUsers", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -56,20 +76,13 @@ describe("getUsers", () => {
     expect(requireRoleMock).toHaveBeenCalledWith(["ADMIN"]);
   });
 
-  it("no devuelve passwordHash en los usuarios", async () => {
+  it("no devuelve passwordHash y devuelve active en los usuarios", async () => {
     const { getUsers } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
 
-    // El mock devuelve usuarios SIN passwordHash (como lo haría el select seguro)
     prismaMock.user.findMany.mockResolvedValue([
-      {
-        id: "u1",
-        name: "Admin",
-        email: "admin@test.com",
-        role: "ADMIN",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      makeSafeUser({ active: true }),
+      makeSafeUser({ id: "u2", active: false }),
     ]);
 
     const result = await getUsers();
@@ -78,7 +91,10 @@ describe("getUsers", () => {
     if (result.success) {
       result.data.forEach((u) => {
         expect(u).not.toHaveProperty("passwordHash");
+        expect(u).toHaveProperty("active");
       });
+      expect(result.data[0].active).toBe(true);
+      expect(result.data[1].active).toBe(false);
     }
   });
 });
@@ -91,14 +107,7 @@ describe("createUser", () => {
     const { createUser } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
     prismaMock.user.findUnique.mockResolvedValue(null);
-    prismaMock.user.create.mockResolvedValue({
-      id: "u1",
-      name: "Test",
-      email: "test@test.com",
-      role: "DOCENTE",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    prismaMock.user.create.mockResolvedValue(makeSafeUser());
 
     await createUser({
       name: "Test User",
@@ -110,18 +119,11 @@ describe("createUser", () => {
     expect(requireRoleMock).toHaveBeenCalledWith(["ADMIN"]);
   });
 
-  it("hashea la contraseña antes de guardar", async () => {
+  it("hashea la contraseña antes de guardar y crea con active: true", async () => {
     const { createUser } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
     prismaMock.user.findUnique.mockResolvedValue(null);
-    prismaMock.user.create.mockResolvedValue({
-      id: "u1",
-      name: "Test User",
-      email: "test@test.com",
-      role: "DOCENTE",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    prismaMock.user.create.mockResolvedValue(makeSafeUser());
 
     await createUser({
       name: "Test User",
@@ -130,19 +132,16 @@ describe("createUser", () => {
       password: "SecurePass123",
     });
 
-    // bcrypt.hash fue llamado con la contraseña y factor 12
     expect(bcryptMock.hash).toHaveBeenCalledWith("SecurePass123", 12);
-
-    // El create de Prisma NO recibió la contraseña en texto plano
     expect(prismaMock.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           passwordHash: "hashed_password_value",
+          active: true,
         }),
       }),
     );
 
-    // Verificar que data.password nunca llegó a Prisma
     const createCall = prismaMock.user.create.mock.calls[0][0];
     expect(createCall.data).not.toHaveProperty("password");
   });
@@ -150,12 +149,7 @@ describe("createUser", () => {
   it("rechaza email duplicado", async () => {
     const { createUser } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
-
-    // Email ya existe
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: "existing",
-      email: "test@test.com",
-    });
+    prismaMock.user.findUnique.mockResolvedValue({ id: "existing", email: "test@test.com" });
 
     const result = await createUser({
       name: "Test User",
@@ -189,43 +183,22 @@ describe("changeUserRole", () => {
   it("exige rol ADMIN", async () => {
     const { changeUserRole } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: "u1",
-      name: "Director",
-      email: "d@test.com",
-      role: "DIRECTOR",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    prismaMock.user.update.mockResolvedValue({
-      id: "u1",
-      name: "Director",
-      email: "d@test.com",
-      role: "COORDINADOR",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    prismaMock.user.findUnique.mockResolvedValue(makeSafeUser({ role: "DIRECTOR" }));
+    prismaMock.user.update.mockResolvedValue(makeSafeUser({ role: "COORDINADOR" }));
 
     await changeUserRole({ userId: "u1", role: "COORDINADOR" });
 
     expect(requireRoleMock).toHaveBeenCalledWith(["ADMIN"]);
   });
 
-  it("no permite degradar al único ADMIN del sistema", async () => {
+  it("no permite degradar al único ADMIN activo del sistema", async () => {
     const { changeUserRole } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
 
-    // El usuario objetivo es ADMIN
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: "u1",
-      name: "Admin",
-      email: "admin@test.com",
-      role: "ADMIN",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    // Solo hay 1 ADMIN
+    prismaMock.user.findUnique.mockResolvedValue(
+      makeSafeUser({ role: "ADMIN", active: true }),
+    );
+    // Solo 1 ADMIN activo
     prismaMock.user.count.mockResolvedValue(1);
 
     const result = await changeUserRole({ userId: "u1", role: "DIRECTOR" });
@@ -233,7 +206,7 @@ describe("changeUserRole", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(typeof result.error).toBe("string");
-      expect(result.error).toContain("único ADMIN");
+      expect(result.error).toContain("único ADMIN activo");
     }
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
@@ -256,10 +229,7 @@ describe("resetUserPassword", () => {
   it("hashea la nueva contraseña antes de guardar", async () => {
     const { resetUserPassword } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: "u1",
-      email: "user@test.com",
-    });
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", email: "user@test.com" });
     prismaMock.user.update.mockResolvedValue({ id: "u1" });
 
     await resetUserPassword({ userId: "u1", password: "NewPassword123" });
@@ -271,7 +241,6 @@ describe("resetUserPassword", () => {
       }),
     );
 
-    // Confirmar que la contraseña en texto plano no se pasó a Prisma
     const updateCall = prismaMock.user.update.mock.calls[0][0];
     expect(updateCall.data).not.toHaveProperty("password");
   });
@@ -284,5 +253,119 @@ describe("resetUserPassword", () => {
 
     expect(result.success).toBe(false);
     expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+});
+
+// ─── toggleUserStatus ─────────────────────────────────────────────────────────
+describe("toggleUserStatus", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("exige rol ADMIN", async () => {
+    const { toggleUserStatus } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue(makeSafeUser({ active: true }));
+    prismaMock.user.update.mockResolvedValue(makeSafeUser({ active: false }));
+
+    await toggleUserStatus({ userId: "u1", active: false });
+
+    expect(requireRoleMock).toHaveBeenCalledWith(["ADMIN"]);
+  });
+
+  it("activa un usuario inactivo correctamente", async () => {
+    const { toggleUserStatus } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue(makeSafeUser({ active: false, role: "DOCENTE" }));
+    prismaMock.user.update.mockResolvedValue(makeSafeUser({ active: true }));
+
+    const result = await toggleUserStatus({ userId: "u1", active: true });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.message).toContain("activado");
+      expect(result.data.active).toBe(true);
+    }
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "u1" },
+        data: { active: true },
+      }),
+    );
+  });
+
+  it("desactiva un usuario activo correctamente", async () => {
+    const { toggleUserStatus } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue(makeSafeUser({ active: true, role: "DOCENTE" }));
+    prismaMock.user.update.mockResolvedValue(makeSafeUser({ active: false }));
+
+    const result = await toggleUserStatus({ userId: "u1", active: false });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.message).toContain("desactivado");
+    }
+  });
+
+  it("no permite desactivar al único ADMIN activo del sistema", async () => {
+    const { toggleUserStatus } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+
+    // Usuario objetivo es ADMIN activo
+    prismaMock.user.findUnique.mockResolvedValue(
+      makeSafeUser({ role: "ADMIN", active: true }),
+    );
+    // Solo 1 ADMIN activo
+    prismaMock.user.count.mockResolvedValue(1);
+
+    const result = await toggleUserStatus({ userId: "u1", active: false });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(typeof result.error).toBe("string");
+      expect(result.error).toContain("único ADMIN activo");
+    }
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("no devuelve passwordHash en la respuesta", async () => {
+    const { toggleUserStatus } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue(makeSafeUser({ active: true, role: "DOCENTE" }));
+    prismaMock.user.update.mockResolvedValue(makeSafeUser({ active: false }));
+
+    const result = await toggleUserStatus({ userId: "u1", active: false });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("passwordHash");
+    }
+  });
+
+  it("audita el cambio de estado", async () => {
+    const { toggleUserStatus } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue(makeSafeUser({ active: true, role: "DOCENTE" }));
+    prismaMock.user.update.mockResolvedValue(makeSafeUser({ active: false }));
+
+    await toggleUserStatus({ userId: "u1", active: false });
+
+    expect(createAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "CHANGE_STATUS",
+        entity: "USER",
+        entityId: "u1",
+      }),
+    );
+  });
+
+  it("rechaza datos inválidos sin llegar a Prisma", async () => {
+    const { toggleUserStatus } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+
+    // active faltante
+    const result = await toggleUserStatus({ userId: "u1" });
+
+    expect(result.success).toBe(false);
+    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
   });
 });

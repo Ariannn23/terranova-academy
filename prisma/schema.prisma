@@ -86,6 +86,7 @@ model User {
   passwordHash String
   name         String
   role         String   @default("ADMIN")
+  active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

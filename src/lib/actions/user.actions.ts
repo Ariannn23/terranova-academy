@@ -14,6 +14,7 @@ import {
   updateUserSchema,
   changeUserRoleSchema,
   resetUserPasswordSchema,
+  toggleUserStatusSchema,
 } from "@/lib/validations/user.schema";
 import type { SafeUser } from "@/types/user";
 
@@ -23,6 +24,7 @@ const SAFE_USER_SELECT = {
   name: true,
   email: true,
   role: true,
+  active: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -61,6 +63,7 @@ export async function getUsers(): Promise<
 /**
  * Crea un nuevo usuario del sistema.
  * Solo accesible por ADMIN. Hashea la contraseña antes de guardar.
+ * El usuario se crea con active: true por defecto.
  */
 export async function createUser(data: unknown): Promise<
   | { success: true; data: SafeUser }
@@ -88,7 +91,7 @@ export async function createUser(data: unknown): Promise<
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name, email, role, passwordHash },
+      data: { name, email, role, passwordHash, active: true },
       select: SAFE_USER_SELECT,
     });
 
@@ -98,7 +101,7 @@ export async function createUser(data: unknown): Promise<
       action: AuditAction.CREATE,
       entity: AuditEntity.USER,
       entityId: user.id,
-      newValue: { name, email, role },
+      newValue: { name, email, role, active: true },
       metadata: { module: "users", reason: "Nuevo usuario creado por ADMIN" },
     });
 
@@ -188,7 +191,7 @@ export async function updateUser(
 // ─── changeUserRole ───────────────────────────────────────────────────────────
 /**
  * Cambia el rol de un usuario.
- * Protección: no permite degradar al último ADMIN del sistema.
+ * Protección: no permite degradar al último ADMIN activo del sistema.
  */
 export async function changeUserRole(data: unknown): Promise<
   | { success: true; data: SafeUser }
@@ -213,16 +216,16 @@ export async function changeUserRole(data: unknown): Promise<
       return { success: false, error: "Usuario no encontrado" };
     }
 
-    // Protección: no degradar el último ADMIN
+    // Protección: no degradar el último ADMIN activo
     if (target.role === "ADMIN" && role !== "ADMIN") {
-      const adminCount = await prisma.user.count({
-        where: { role: "ADMIN" },
+      const activeAdminCount = await prisma.user.count({
+        where: { role: "ADMIN", active: true },
       });
-      if (adminCount <= 1) {
+      if (activeAdminCount <= 1) {
         return {
           success: false,
           error:
-            "No se puede cambiar el rol del único ADMIN del sistema. Primero asigna el rol ADMIN a otro usuario.",
+            "No se puede cambiar el rol del único ADMIN activo del sistema. Primero asigna el rol ADMIN a otro usuario.",
         };
       }
     }
@@ -320,5 +323,89 @@ export async function resetUserPassword(data: unknown): Promise<
     }
     console.error("[user.actions] Error in resetUserPassword:", error);
     return { success: false, error: "Error al resetear la contraseña" };
+  }
+}
+
+// ─── toggleUserStatus ─────────────────────────────────────────────────────────
+/**
+ * Activa o desactiva un usuario del sistema.
+ * Solo accesible por ADMIN.
+ * Protección: no permite desactivar al último ADMIN activo del sistema.
+ * Un usuario inactivo no puede iniciar sesión.
+ */
+export async function toggleUserStatus(data: unknown): Promise<
+  | { success: true; data: SafeUser; message: string }
+  | { success: false; error: string | object }
+> {
+  try {
+    await requireRole(["ADMIN"]);
+
+    const parsed = toggleUserStatusSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.flatten() };
+    }
+
+    const { userId, active } = parsed.data;
+
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: SAFE_USER_SELECT,
+    });
+
+    if (!target) {
+      return { success: false, error: "Usuario no encontrado" };
+    }
+
+    // Protección: no desactivar al último ADMIN activo
+    if (!active && target.role === "ADMIN") {
+      const activeAdminCount = await prisma.user.count({
+        where: { role: "ADMIN", active: true },
+      });
+      if (activeAdminCount <= 1) {
+        return {
+          success: false,
+          error:
+            "No se puede desactivar al único ADMIN activo del sistema. Primero asigna el rol ADMIN a otro usuario activo.",
+        };
+      }
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { active },
+      select: SAFE_USER_SELECT,
+    });
+
+    revalidatePath("/dashboard/usuarios");
+
+    await createAuditLog({
+      action: AuditAction.CHANGE_STATUS,
+      entity: AuditEntity.USER,
+      entityId: userId,
+      oldValue: { active: target.active },
+      newValue: { active },
+      metadata: {
+        module: "users",
+        reason: active
+          ? `Usuario activado: ${target.email}`
+          : `Usuario desactivado: ${target.email}`,
+      },
+    });
+
+    const message = active
+      ? "Usuario activado correctamente."
+      : "Usuario desactivado correctamente.";
+
+    return { success: true, data: user as SafeUser, message };
+  } catch (error) {
+    const err = error as Error;
+    if (
+      err.name === "AuthenticationError" ||
+      err.name === "AuthorizationError"
+    ) {
+      return { success: false, error: err.message };
+    }
+    console.error("[user.actions] Error in toggleUserStatus:", error);
+    return { success: false, error: "Error al cambiar el estado del usuario" };
   }
 }
