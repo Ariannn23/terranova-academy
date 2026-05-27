@@ -8,6 +8,7 @@ import {
 } from "@/lib/actions/dashboard.actions";
 import { getFinancialReport } from "@/lib/actions/payment.actions";
 
+import { auth } from "@/lib/auth";
 import { KPICard } from "@/components/modules/dashboard/KPICard";
 import { AlertList } from "@/components/modules/dashboard/AlertList";
 import { QuickAccess } from "@/components/modules/dashboard/QuickAccess";
@@ -22,6 +23,8 @@ import {
 import { Users, CalendarCheck, CreditCard } from "lucide-react";
 
 export default async function DashboardPage() {
+  const session = await auth();
+  const userRole = (session?.user as { role?: string })?.role;
   const currentYear = new Date().getFullYear();
 
   const [
@@ -122,7 +125,7 @@ export default async function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[320px] h-auto">
             <AttendanceChart data={attendanceData} />
-            <QuickAccess />
+            <QuickAccess userRole={userRole} />
           </div>
         </div>
 
