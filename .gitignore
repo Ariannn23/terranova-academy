@@ -18,8 +18,10 @@
 # production
 /build
 
-#documentatio
-/docs
+# Documentación interna (guías públicas versionadas en docs/*.md permitidas abajo)
+/docs/*
+!docs/instalacion-proyecto.md
+!docs/guia-testeos.md
 
 # misc
 .DS_Store
