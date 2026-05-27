@@ -2,39 +2,52 @@
 
 import { prisma } from "@/lib/prisma";
 import { PaymentStatus, StudentStatus } from "@prisma/client";
+import { requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // 1. Resumen Financiero: Calcula ingresos vs pendientes del año actual
 export async function getFinancialSummary() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const currentYear = new Date().getFullYear();
 
     // Todos los pagos del año
-    const payments = await prisma.payment.findMany({
-      where: {
-        dueDate: {
-          gte: new Date(currentYear, 0, 1),
-          lte: new Date(currentYear, 11, 31),
+    const [payments, transactions] = await Promise.all([
+      prisma.payment.findMany({
+        where: {
+          dueDate: {
+            gte: new Date(currentYear, 0, 1),
+            lte: new Date(currentYear, 11, 31),
+          },
         },
-      },
-      select: { amount: true, status: true, dueDate: true },
-    });
+        select: { amount: true, balance: true, status: true, dueDate: true },
+      }),
+      prisma.paymentTransaction.findMany({
+        where: {
+          paidAt: {
+            gte: new Date(currentYear, 0, 1),
+            lte: new Date(currentYear, 11, 31),
+          },
+        },
+        select: { amount: true },
+      }),
+    ]);
 
     let totalCollected = 0;
     let totalPending = 0;
     let totalOverdue = 0;
     const now = new Date();
 
+    totalCollected = transactions.reduce((acc, tx) => acc + tx.amount, 0);
+
     payments.forEach((p) => {
-      // Ingresos reales
-      if (p.status === PaymentStatus.PAGADO) {
-        totalCollected += p.amount;
-      }
       // Pendientes vs Vencidos
       if (p.status === PaymentStatus.PENDIENTE) {
         if (p.dueDate < now) {
-          totalOverdue += p.amount;
+          totalOverdue += p.balance;
         } else {
-          totalPending += p.amount;
+          totalPending += p.balance;
         }
       }
     });
@@ -59,6 +72,8 @@ export async function getFinancialSummary() {
 // 2. Estudiantes en Riesgo o con bajas calificaciones
 export async function getStudentsAtRisk() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     // Definimos "En riesgo" como alumnos con status EN_RIESGO, OBSERVADO
     // o aquellos inhabilitados
     const count = await prisma.student.count({
@@ -86,6 +101,8 @@ export async function getStudentsAtRisk() {
 // 3. Asistencia Crítica (Alumnos con menos del 80%)
 export async function getCriticalAttendance() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
@@ -127,6 +144,8 @@ export async function getCriticalAttendance() {
 // 4. Cobros próximos a vencer (Esta semana)
 export async function getUpcomingPayments() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const today = new Date();
     const nextWeek = new Date();
     nextWeek.setDate(today.getDate() + 7);
@@ -165,6 +184,8 @@ export async function getUpcomingPayments() {
 // 5. Alertas Prioritarias Mixtas (Inhabilitados, Incidentes)
 export async function getPriorityAlerts() {
   try {
+    await requireRole(ROLE_GROUPS.REPORTS);
+
     const recentDate = new Date();
     recentDate.setDate(recentDate.getDate() - 15);
 

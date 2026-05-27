@@ -3,7 +3,7 @@
 import { signIn } from "@/lib/auth";
 import { AuthError } from "next-auth";
 
-export async function loginAction(data: any) {
+export async function loginAction(data: Record<string, string>) {
   try {
     await signIn("credentials", {
       ...data,

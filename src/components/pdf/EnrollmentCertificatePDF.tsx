@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { PdfEnrollment } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 50, fontFamily: "Helvetica", color: "#334155" },
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
 export const EnrollmentCertificatePDF = ({
   enrollment,
 }: {
-  enrollment: any;
+  enrollment: PdfEnrollment & { academicYear: { year: number | string } };
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
@@ -62,8 +63,9 @@ export const EnrollmentCertificatePDF = ({
       <Text style={styles.content}>A quien corresponda:</Text>
 
       <Text style={styles.content}>
-        La Dirección Académica de la Institución Educativa Privada "TerraNova
-        Academy", hace constar por medio de la presente que el/la estudiante{" "}
+        La Dirección Académica de la Institución Educativa Privada
+        &quot;TerraNova Academy&quot;, hace constar por medio de la presente que
+        el/la estudiante{" "}
         <Text style={styles.boldText}>
           {enrollment.student.firstName} {enrollment.student.lastName}
         </Text>
@@ -83,8 +85,8 @@ export const EnrollmentCertificatePDF = ({
         <Text style={styles.boldText}>
           {enrollment.section.gradeLevel.name}
         </Text>
-        , en la sección "
-        <Text style={styles.boldText}>{enrollment.section.name}</Text>".
+        , en la sección &quot;
+        <Text style={styles.boldText}>{enrollment.section.name}</Text>&quot;.
       </Text>
 
       <Text style={styles.content}>

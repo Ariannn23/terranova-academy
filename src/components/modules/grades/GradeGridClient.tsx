@@ -9,7 +9,7 @@ import { GradeGridTable } from "./_components/GradeGridTable";
 export function GradeGridClient({
   initialStructure,
 }: {
-  initialStructure: any;
+  initialStructure: Parameters<typeof useGradeGrid>[0];
 }) {
   const {
     isPending,

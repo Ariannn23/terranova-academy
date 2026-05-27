@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
@@ -86,8 +86,32 @@ model User {
   passwordHash String
   name         String
   role         String   @default("ADMIN")
+  active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userEmail String?
+  userRole  String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
 }
 
 model AcademicYear {
@@ -98,27 +122,28 @@ model AcademicYear {
   active    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  sections  Section[]
+  sections    Section[]
   enrollments Enrollment[]
-  events    CalendarEvent[]
+  events      CalendarEvent[]
 }
 
 model GradeLevel {
-  id       String @id @default(cuid())
-  name     String @unique
-  level    Level
-  order    Int
+  id    String @id @default(cuid())
+  name  String @unique
+  level Level
+  order Int
 
   sections Section[]
   courses  Course[]
 }
 
 model Section {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   name           String
   gradeLevelId   String
   academicYearId String
   teacherId      String?
+  capacity       Int     @default(30)
 
   gradeLevel   GradeLevel   @relation(fields: [gradeLevelId], references: [id])
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -179,10 +204,10 @@ model Teacher {
 }
 
 model Course {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String
   gradeLevelId String
-  hoursPerWeek Int    @default(2)
+  hoursPerWeek Int     @default(2)
   active       Boolean @default(true)
 
   gradeLevel   GradeLevel    @relation(fields: [gradeLevelId], references: [id])
@@ -273,6 +298,7 @@ model Payment {
   enrollmentId String
   conceptId    String
   amount       Float
+  balance      Float         @default(0)
   dueDate      DateTime
   paidAt       DateTime?
   status       PaymentStatus @default(PENDIENTE)
@@ -281,8 +307,9 @@ model Payment {
   notes        String?
   createdAt    DateTime      @default(now())
 
-  enrollment Enrollment     @relation(fields: [enrollmentId], references: [id])
-  concept    PaymentConcept @relation(fields: [conceptId], references: [id])
+  enrollment   Enrollment           @relation(fields: [enrollmentId], references: [id])
+  concept      PaymentConcept       @relation(fields: [conceptId], references: [id])
+  transactions PaymentTransaction[]
 
   // Índices para acelerar las queries más frecuentes en /dashboard/pagos:
   // - Filtrado por estado (PENDIENTE, VENCIDO, PAGADO)
@@ -295,6 +322,21 @@ model Payment {
   @@index([status, dueDate])
 }
 
+model PaymentTransaction {
+  id        String   @id @default(cuid())
+  paymentId String
+  amount    Float
+  method    String
+  paidAt    DateTime @default(now())
+  createdBy String
+  createdAt DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@index([paidAt])
+  @@index([createdBy])
+}
 
 model Incident {
   id           String           @id @default(cuid())
@@ -322,12 +364,12 @@ model DisabilityRecord {
 }
 
 model Announcement {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   body        String
   targetLevel Level?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model CalendarEvent {

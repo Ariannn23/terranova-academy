@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { Camera, X } from "lucide-react";
+import Image from "next/image";
 import { TeacherFormHandlers } from "../types";
 
 interface TeacherPhotoUploadProps {
@@ -47,9 +48,11 @@ export function TeacherPhotoUpload({ previewUrl, handlers }: TeacherPhotoUploadP
       >
         {previewUrl ? (
           <div className="relative w-32 h-32 mb-2">
-            <img
+            <Image
               src={previewUrl}
               alt="Preview"
+              fill
+              unoptimized
               className="w-full h-full rounded-full object-cover border-4 border-white shadow-sm"
             />
           </div>

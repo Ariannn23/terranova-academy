@@ -2,9 +2,14 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 export async function getCourses() {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const courses = await prisma.course.findMany({
       orderBy: [{ gradeLevel: { order: "asc" } }, { name: "asc" }],
       include: {
@@ -30,6 +35,8 @@ export async function createCourse(data: {
   hoursPerWeek: number;
 }) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const existing = await prisma.course.findUnique({
       where: {
         name_gradeLevelId: {
@@ -52,6 +59,13 @@ export async function createCourse(data: {
     });
 
     revalidatePath("/dashboard/cursos");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.COURSE,
+      entityId: course.id,
+      newValue: course,
+      metadata: { module: "courses" },
+    });
     return { success: true, data: course };
   } catch (error) {
     console.error("Error creating course:", error);
@@ -69,6 +83,9 @@ export async function updateCourse(
   },
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+    const oldCourse = await prisma.course.findUnique({ where: { id } });
+
     if (data.name && data.gradeLevelId) {
       const existing = await prisma.course.findUnique({
         where: {
@@ -92,6 +109,17 @@ export async function updateCourse(
     });
 
     revalidatePath("/dashboard/cursos");
+    await createAuditLog({
+      action:
+        data.active !== undefined
+          ? AuditAction.CHANGE_STATUS
+          : AuditAction.UPDATE,
+      entity: AuditEntity.COURSE,
+      entityId: course.id,
+      oldValue: oldCourse,
+      newValue: course,
+      metadata: { module: "courses" },
+    });
     return { success: true, data: course };
   } catch (error) {
     console.error("Error updating course:", error);

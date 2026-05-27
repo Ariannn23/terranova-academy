@@ -8,13 +8,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type {
+  AcademicGradeOption,
+  AcademicLevelOption,
+  AcademicSectionOption,
+} from "@/types/academic";
 
 interface AttendanceLevelFiltersProps {
-  levels: any[];
-  currentLevel: any;
-  grades: any[];
-  currentGrade: any;
-  sections: any[];
+  levels: AcademicLevelOption[];
+  currentLevel: AcademicLevelOption | null;
+  grades: AcademicGradeOption[];
+  currentGrade: AcademicGradeOption | null;
+  sections: AcademicSectionOption[];
   selectedLevelIndex: number | null;
   selectedGradeIndex: number | null;
   selectedSectionId: string;
@@ -70,7 +75,7 @@ export function AttendanceLevelFilters({
                 <SelectValue placeholder="Seleccione Nivel" />
               </SelectTrigger>
               <SelectContent>
-                {levels.map((level: any, i: number) => (
+                {levels.map((level, i) => (
                   <SelectItem key={i} value={i.toString()}>
                     {level.name}
                   </SelectItem>
@@ -90,7 +95,7 @@ export function AttendanceLevelFilters({
                 <SelectValue placeholder="Seleccione Grado" />
               </SelectTrigger>
               <SelectContent>
-                {grades.map((grade: any, i: number) => (
+                {grades.map((grade, i) => (
                   <SelectItem key={grade.id} value={i.toString()}>
                     {grade.name}
                   </SelectItem>
@@ -110,8 +115,8 @@ export function AttendanceLevelFilters({
                 <SelectValue placeholder="Seleccione Sección" />
               </SelectTrigger>
               <SelectContent>
-                {sections.map((sec: any) => (
-                  <SelectItem key={sec.id} value={sec.id}>
+                {sections.map((sec) => (
+                  <SelectItem key={sec.id ?? sec.name} value={sec.id ?? ""}>
                     {sec.name}
                   </SelectItem>
                 ))}

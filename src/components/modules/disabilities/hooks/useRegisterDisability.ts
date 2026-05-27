@@ -10,10 +10,13 @@ import { DisabilitySchema } from "@/lib/validations/incident.schema";
 import { useStudentSearch } from "@/components/shared/hooks/useStudentSearch";
 import { SearchStudentResult } from "@/lib/actions/payment.actions";
 
+type ActiveEnrollment = NonNullable<SearchStudentResult["enrollments"]>[number];
+
 export function useRegisterDisability() {
   const router = useRouter();
   const searchHook = useStudentSearch();
-  const [activeEnrollment, setActiveEnrollment] = useState<any | null>(null);
+  const [activeEnrollment, setActiveEnrollment] =
+    useState<ActiveEnrollment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof DisabilitySchema>>({
@@ -62,9 +65,9 @@ export function useRegisterDisability() {
         toast.success("Inhabilitación registrada correctamente.", { id: toastId });
         router.push("/dashboard/inhabilitaciones");
       } else {
-        toast.error(res.error, { id: toastId });
+        toast.error(String(res.error), { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Error de conexión al servidor.", { id: toastId });
     } finally {
       setIsSubmitting(false);

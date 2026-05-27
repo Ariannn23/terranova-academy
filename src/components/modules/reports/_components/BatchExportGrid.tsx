@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 
 interface BatchExportGridProps {
-  allSections: any[];
+  allSections: Array<{
+    id: string;
+    name: string;
+    gradeName: string;
+  }>;
   selectedSectionId: string;
   setSelectedSectionId: (val: string) => void;
   selectedPeriod: string;
@@ -92,7 +96,7 @@ export function BatchExportGrid({
               <SelectContent>
                 {allSections.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.gradeName} "{s.name}"
+                    {s.gradeName} &quot;{s.name}&quot;
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -149,7 +153,7 @@ export function BatchExportGrid({
               <SelectContent>
                 {allSections.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.gradeName} "{s.name}"
+                    {s.gradeName} &quot;{s.name}&quot;
                   </SelectItem>
                 ))}
               </SelectContent>

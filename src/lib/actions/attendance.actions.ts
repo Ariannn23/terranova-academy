@@ -2,11 +2,10 @@
 
 // lib/actions/attendance.actions.ts — Server Actions para Asistencia
 
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import {
-  AttendanceRecordSchema,
   SaveAttendanceBatchSchema,
   JustifyAbsenceSchema,
   CriticalAttendanceFilterSchema,
@@ -14,6 +13,9 @@ import {
 } from "@/lib/validations/attendance.schema";
 import { calculateStudentStatus } from "@/lib/utils/student-status";
 import { RISK_ABSENCE_PERCENT } from "@/lib/constants";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 /**
  * Obtener lista de asistencia de una sección en una fecha específica
@@ -21,6 +23,8 @@ import { RISK_ABSENCE_PERCENT } from "@/lib/constants";
  */
 export async function getAttendanceBySection(sectionId: string, date: Date) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // Validar sectionId
     if (!sectionId || sectionId.trim().length === 0) {
       return { success: false, error: "ID de sección inválido" };
@@ -108,6 +112,8 @@ export async function getAttendanceByStudent(
   year?: number,
 ) {
   try {
+    await requireAuth();
+
     if (!enrollmentId || enrollmentId.trim().length === 0) {
       return { success: false, error: "ID de matrícula inválido" };
     }
@@ -136,7 +142,7 @@ export async function getAttendanceByStudent(
     }
 
     // Construir filtro de fechas
-    let dateFilter: any = {};
+    let dateFilter: Prisma.DateTimeFilter = {};
     if (month && year) {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -185,6 +191,8 @@ export async function getAttendanceByStudent(
  */
 export async function saveAttendance(input: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const parsed = SaveAttendanceBatchSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: parsed.error };
@@ -248,6 +256,28 @@ export async function saveAttendance(input: unknown) {
     }
 
     revalidatePath("/dashboard/asistencia");
+    const statusCounts = records.reduce<Record<string, number>>((acc, record) => {
+      acc[record.status] = (acc[record.status] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ATTENDANCE,
+      newValue: {
+        records: records.map((record) => ({
+          enrollmentId: record.enrollmentId,
+          date: record.date,
+          status: record.status,
+          hasJustification: !!record.justification,
+        })),
+      },
+      metadata: {
+        module: "attendance",
+        affectedCount: results.length,
+        statusCounts,
+      },
+    });
 
     return {
       success: true,
@@ -264,6 +294,8 @@ export async function saveAttendance(input: unknown) {
  */
 export async function justifyAbsence(input: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const parsed = JustifyAbsenceSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: parsed.error };
@@ -302,6 +334,26 @@ export async function justifyAbsence(input: unknown) {
     await updateStudentStatusByEnrollment(attendance.enrollmentId);
 
     revalidatePath("/dashboard/asistencia");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ATTENDANCE,
+      entityId: updated.id,
+      oldValue: {
+        status: attendance.status,
+        justification: attendance.justification,
+        justifiedBy: attendance.justifiedBy,
+      },
+      newValue: {
+        status: updated.status,
+        justification: updated.justification,
+        justifiedBy: updated.justifiedBy,
+      },
+      metadata: {
+        module: "attendance",
+        operation: "justify_absence",
+        enrollmentId: attendance.enrollmentId,
+      },
+    });
 
     return {
       success: true,
@@ -322,6 +374,8 @@ export async function justifyAbsence(input: unknown) {
  */
 export async function getAttendanceStats(enrollmentId: string) {
   try {
+    await requireAuth();
+
     if (!enrollmentId || enrollmentId.trim().length === 0) {
       return { success: false, error: "ID de matrícula inválido" };
     }
@@ -408,6 +462,8 @@ export async function getAttendanceStats(enrollmentId: string) {
  */
 export async function getCriticalAttendance(input?: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     let parsedData: { sectionId?: string } = {};
 
     if (input) {
@@ -533,6 +589,8 @@ export async function getCriticalAttendance(input?: unknown) {
  */
 export async function getSectionAttendanceReport(input: unknown) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const parsed = SectionAttendanceReportSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false, error: parsed.error };

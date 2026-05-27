@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
+import { type AppRole, hasAllowedRole, normalizeRole } from "@/lib/rbac";
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -31,6 +32,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
         if (!valid) return null;
 
+        // Bloquear login de usuarios inactivos.
+        // Devuelve null para dar un mensaje genérico de credenciales inválidas.
+        if (!user.active) return null;
+
         return {
           id: user.id,
           email: user.email,
@@ -42,3 +47,80 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: "jwt" },
 });
+
+export class AuthenticationError extends Error {
+  constructor(message = "No autenticado") {
+    super(message);
+    this.name = "AuthenticationError";
+  }
+}
+
+export class AuthorizationError extends Error {
+  constructor(message = "No autorizado") {
+    super(message);
+    this.name = "AuthorizationError";
+  }
+}
+
+export async function getCurrentUser() {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) return null;
+
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      active: true,
+    },
+  });
+}
+
+export async function requireAuth() {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    throw new AuthenticationError();
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      active: true,
+    },
+  });
+
+  if (!user) {
+    throw new AuthenticationError();
+  }
+
+  if (!user.active) {
+    throw new AuthenticationError("Usuario inactivo. Contacte al administrador.");
+  }
+
+  return {
+    ...user,
+    role: normalizeRole(user.role) ?? user.role,
+  };
+}
+
+export async function requireRole(allowedRoles: AppRole[]) {
+  const user = await requireAuth();
+
+  if (!hasAllowedRole(user.role, allowedRoles)) {
+    throw new AuthorizationError(
+      `El rol ${user.role} no tiene permiso para ejecutar esta accion.`,
+    );
+  }
+
+  return user;
+}

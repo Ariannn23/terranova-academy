@@ -6,8 +6,11 @@ import {
   EnrollmentSchema,
   SectionTransferSchema,
 } from "@/lib/validations/enrollment.schema";
-import { Prisma, Level, StudentStatus } from "@prisma/client";
-import { addMonths, startOfMonth, format } from "date-fns";
+import { Prisma, Level } from "@prisma/client";
+import { addMonths, format } from "date-fns";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 // ==========================================
 // ACCIONES PARA MATRÍCULAS (ENROLLMENT)
@@ -25,6 +28,8 @@ export async function getEnrollments(params: {
   gradeLevelId?: string;
   active?: boolean;
 }) {
+  await requireAuth();
+
   const {
     page = 1,
     limit = 10,
@@ -105,6 +110,8 @@ export async function getEnrollments(params: {
  */
 export async function getEnrollmentById(id: string) {
   try {
+    await requireAuth();
+
     const enrollment = await prisma.enrollment.findUnique({
       where: { id },
       include: {
@@ -117,7 +124,13 @@ export async function getEnrollmentById(id: string) {
         },
         academicYear: true,
         gradeRecords: { include: { course: true } },
-        payments: { include: { concept: true }, orderBy: { dueDate: "asc" } },
+        payments: {
+          include: {
+            concept: true,
+            transactions: { orderBy: { paidAt: "desc" } },
+          },
+          orderBy: { dueDate: "asc" },
+        },
         attendances: { orderBy: { date: "desc" }, take: 30 },
         incidents: { orderBy: { date: "desc" } },
       },
@@ -154,6 +167,8 @@ export async function getEnrollmentById(id: string) {
  */
 export async function getEnrollmentsBySection(sectionId: string) {
   try {
+    await requireAuth();
+
     const enrollments = await prisma.enrollment.findMany({
       where: { sectionId, active: true },
       include: {
@@ -174,15 +189,26 @@ export async function getEnrollmentsBySection(sectionId: string) {
  * Crear Matrícula con generación automática de pagos
  */
 export async function createEnrollment(data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMISSIONS);
+
   const parsed = EnrollmentSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
     // 1. Obtener datos del año académico y conceptos de pago
-    const [academicYear, monthlyConcepts, enrollmentConcepts] =
+    const [academicYear, sectionCapacity, monthlyConcepts, enrollmentConcepts] =
       await Promise.all([
         prisma.academicYear.findUnique({
           where: { id: parsed.data.academicYearId },
+        }),
+        prisma.section.findUnique({
+          where: { id: parsed.data.sectionId },
+          select: {
+            capacity: true,
+            _count: {
+              select: { enrollments: { where: { active: true } } },
+            },
+          },
         }),
         prisma.paymentConcept.findMany({
           where: { type: "MENSUALIDAD", active: true, amount: { gt: 0 } },
@@ -197,6 +223,16 @@ export async function createEnrollment(data: unknown) {
       return { success: false, error: "Año académico no encontrado" };
 
     // 2. Crear la matrícula y los pagos en una transacción
+    if (!sectionCapacity)
+      return { success: false, error: "SecciÃ³n no encontrada" };
+
+    if (sectionCapacity._count.enrollments >= sectionCapacity.capacity) {
+      return {
+        success: false,
+        error: "La secciÃ³n seleccionada no tiene vacantes disponibles.",
+      };
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // A. Validar @@unique([studentId, academicYearId])
       const existing = await tx.enrollment.findUnique({
@@ -209,6 +245,21 @@ export async function createEnrollment(data: unknown) {
       });
 
       if (existing) throw new Error("ALREADY_ENROLLED");
+
+      const selectedSection = await tx.section.findUnique({
+        where: { id: parsed.data.sectionId },
+        select: {
+          capacity: true,
+          _count: {
+            select: { enrollments: { where: { active: true } } },
+          },
+        },
+      });
+
+      if (!selectedSection) throw new Error("SECTION_NOT_FOUND");
+      if (selectedSection._count.enrollments >= selectedSection.capacity) {
+        throw new Error("SECTION_FULL");
+      }
 
       // B. Verificar/Generar código de estudiante si no tiene
       const student = await tx.student.findUnique({
@@ -274,6 +325,7 @@ export async function createEnrollment(data: unknown) {
           enrollmentId: enrollment.id,
           conceptId: enrollmentConcept.id,
           amount: enrollmentConcept.amount,
+          balance: enrollmentConcept.amount,
           dueDate: todayAtNoon, // Vence hoy normalizado
           status: "PENDIENTE" as const,
         });
@@ -296,6 +348,7 @@ export async function createEnrollment(data: unknown) {
             enrollmentId: enrollment.id,
             conceptId: monthlyConcept.id,
             amount: monthlyConcept.amount,
+            balance: monthlyConcept.amount,
             dueDate: new Date(currentDate),
             status: "PENDIENTE" as const,
           });
@@ -311,12 +364,40 @@ export async function createEnrollment(data: unknown) {
     });
 
     revalidatePath("/dashboard/matriculas");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: result.id,
+      newValue: {
+        studentId: parsed.data.studentId,
+        sectionId: parsed.data.sectionId,
+        academicYearId: parsed.data.academicYearId,
+        active: result.active,
+      },
+      metadata: {
+        module: "enrollments",
+        reason: "Nueva matricula creada",
+      },
+    });
     return { success: true, data: result };
-  } catch (error: any) {
-    if (error.message === "ALREADY_ENROLLED") {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "";
+    if (errorMessage === "ALREADY_ENROLLED") {
       return {
         success: false,
         error: "El estudiante ya está matriculado en este año lectivo",
+      };
+    }
+    if (errorMessage === "SECTION_NOT_FOUND") {
+      return {
+        success: false,
+        error: "SecciÃ³n no encontrada",
+      };
+    }
+    if (errorMessage === "SECTION_FULL") {
+      return {
+        success: false,
+        error: "La secciÃ³n seleccionada no tiene vacantes disponibles.",
       };
     }
     console.error("Error in createEnrollment:", error);
@@ -328,6 +409,8 @@ export async function createEnrollment(data: unknown) {
  * Actualizar Matrícula
  */
 export async function updateEnrollment(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMISSIONS);
+
   const parsed = EnrollmentSchema.partial().safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -339,6 +422,16 @@ export async function updateEnrollment(id: string, data: unknown) {
 
     revalidatePath("/dashboard/matriculas");
     revalidatePath(`/dashboard/matriculas/${id}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: enrollment.id,
+      newValue: parsed.data,
+      metadata: {
+        module: "enrollments",
+        reason: "Matricula actualizada",
+      },
+    });
     return { success: true, data: enrollment };
   } catch (error) {
     console.error("Error in updateEnrollment:", error);
@@ -354,6 +447,8 @@ export async function transferSection(
   newSectionId: string,
   reason: string,
 ) {
+  await requireRole(ROLE_GROUPS.ADMISSIONS);
+
   const parsed = SectionTransferSchema.safeParse({
     enrollmentId,
     newSectionId,
@@ -380,6 +475,24 @@ export async function transferSection(
     });
 
     revalidatePath(`/dashboard/matriculas/${enrollmentId}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: enrollmentId,
+      oldValue: {
+        sectionId: enrollment.sectionId,
+        notes: enrollment.notes,
+      },
+      newValue: {
+        sectionId: newSectionId,
+        notes: updatedNotes,
+      },
+      metadata: {
+        module: "enrollments",
+        reason,
+        operation: "transfer_section",
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in transferSection:", error);
@@ -390,7 +503,11 @@ export async function transferSection(
 /**
  * Importación masiva de matrículas
  */
-export async function importEnrollments(data: any[]) {
+export async function importEnrollments(
+  data: Array<{ studentId?: string } & Record<string, unknown>>,
+) {
+  await requireRole(ROLE_GROUPS.ADMISSIONS);
+
   const results = {
     created: 0,
     failed: 0,
@@ -408,7 +525,7 @@ export async function importEnrollments(data: any[]) {
           `DNI/ID ${row.studentId}: ${JSON.stringify(res.error)}`,
         );
       }
-    } catch (error) {
+    } catch {
       results.failed++;
       results.errors.push(`Error crítico en fila ${row.studentId}`);
     }
@@ -422,6 +539,8 @@ export async function importEnrollments(data: any[]) {
  */
 export async function getWizardData() {
   try {
+    await requireRole(ROLE_GROUPS.ADMISSIONS);
+
     const students = await prisma.student.findMany({
       where: { status: "ACTIVO" },
       orderBy: { lastName: "asc" },
@@ -462,8 +581,9 @@ export async function getWizardData() {
     const mappedSections = sections.map((s) => ({
       id: s.id,
       name: s.name,
-      capacity: 30, // Defecto si no existe en BD
+      capacity: s.capacity,
       occupied: s._count.enrollments,
+      available: Math.max(s.capacity - s._count.enrollments, 0),
       gradeLevelId: s.gradeLevelId,
       grade: s.gradeLevel.name,
       level: s.gradeLevel.level,
@@ -488,11 +608,23 @@ export async function getWizardData() {
  */
 export async function toggleEnrollmentStatus(id: string, newStatus: boolean) {
   try {
+    await requireRole(ROLE_GROUPS.ADMISSIONS);
+
     const updatedEnrollment = await prisma.enrollment.update({
       where: { id },
       data: { active: newStatus },
     });
     revalidatePath("/dashboard/matriculas");
+    await createAuditLog({
+      action: AuditAction.CHANGE_STATUS,
+      entity: AuditEntity.ENROLLMENT,
+      entityId: updatedEnrollment.id,
+      newValue: { active: updatedEnrollment.active },
+      metadata: {
+        module: "enrollments",
+        reason: "Cambio de estado de matricula",
+      },
+    });
     return { success: true, data: updatedEnrollment };
   } catch (error) {
     console.error("Error toggling enrollment status:", error);

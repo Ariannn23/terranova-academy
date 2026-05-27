@@ -3,7 +3,9 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { CalendarEventSchema } from "@/lib/validations/incident.schema";
-import { EventType } from "@prisma/client";
+import { EventType, Prisma } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 // ==========================================
 // ACCIONES PARA EL CALENDARIO ACADÉMICO
@@ -13,6 +15,8 @@ export async function getCalendarEvents(filters?: {
   type?: EventType | "ALL";
 }) {
   try {
+    await requireAuth();
+
     const activeYear = await prisma.academicYear.findFirst({
       where: { active: true },
     });
@@ -20,7 +24,9 @@ export async function getCalendarEvents(filters?: {
     if (!activeYear)
       return { success: false, error: "No hay año académico activo" };
 
-    const whereClause: any = { academicYearId: activeYear.id };
+    const whereClause: Prisma.CalendarEventWhereInput = {
+      academicYearId: activeYear.id,
+    };
     if (filters?.type && filters.type !== "ALL") {
       whereClause.type = filters.type;
     }
@@ -43,6 +49,8 @@ export async function getEventsByMonth(
   academicYearId: string,
 ) {
   try {
+    await requireAuth();
+
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
@@ -65,6 +73,8 @@ export async function getEventsByMonth(
 }
 
 export async function createCalendarEvent(data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = CalendarEventSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -82,6 +92,8 @@ export async function createCalendarEvent(data: unknown) {
 }
 
 export async function updateCalendarEvent(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = CalendarEventSchema.partial().safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -93,7 +105,7 @@ export async function updateCalendarEvent(id: string, data: unknown) {
 
     revalidatePath("/dashboard/calendario");
     return { success: true, data: event };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in updateCalendarEvent:", error);
     return { success: false, error: "Error al actualizar evento" };
   }
@@ -101,6 +113,8 @@ export async function updateCalendarEvent(id: string, data: unknown) {
 
 export async function deleteCalendarEvent(id: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     await prisma.calendarEvent.delete({
       where: { id },
     });
@@ -116,6 +130,8 @@ export async function deleteCalendarEvent(id: string) {
 // Devuelve solo las FECHAS puras de todos los feriados del año, para usarse en validaciones iterativas
 export async function getHolidayDates(academicYearId: string) {
   try {
+    await requireAuth();
+
     const holidays = await prisma.calendarEvent.findMany({
       where: {
         academicYearId,
@@ -132,7 +148,7 @@ export async function getHolidayDates(academicYearId: string) {
     for (const h of holidays) {
       if (h.endDate) {
         // Generar cada día en el rango
-        let currentDate = new Date(h.date);
+        const currentDate = new Date(h.date);
         currentDate.setHours(0, 0, 0, 0);
         const limitDate = new Date(h.endDate);
         limitDate.setHours(23, 59, 59, 999);

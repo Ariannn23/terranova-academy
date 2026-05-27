@@ -10,8 +10,9 @@ import {
   CreateStudentSchema,
   CreateStudentSchemaType as StudentFormValues,
 } from "@/lib/validations/student.schema";
+import type { StudentFormInitialData } from "@/types/student";
 
-export function useStudentForm(initialData?: any) {
+export function useStudentForm(initialData?: StudentFormInitialData) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [errorProp, setErrorProp] = useState("");
@@ -26,7 +27,7 @@ export function useStudentForm(initialData?: any) {
       firstName: "",
       lastName: "",
       dni: "",
-      birthDate: "" as any,
+      birthDate: "" as unknown as Date,
       gender: "M",
       address: "",
       photoUrl: "",
@@ -58,7 +59,7 @@ export function useStudentForm(initialData?: any) {
         firstName: initialData.firstName || "",
         lastName: initialData.lastName || "",
         dni: initialData.dni || "",
-        birthDate: birthDateString as any,
+        birthDate: birthDateString as unknown as Date,
         gender: initialData.gender || "M",
         address: initialData.address || "",
         photoUrl: initialData.photoUrl || "",
@@ -149,7 +150,7 @@ export function useStudentForm(initialData?: any) {
           });
           setErrorProp(action.error || "Ocurrió un error inesperado.");
         }
-      } catch (error) {
+      } catch {
         toast.error("Error de conexión o servidor", { id: toastId });
       }
     });

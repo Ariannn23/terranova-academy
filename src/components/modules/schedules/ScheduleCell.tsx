@@ -1,10 +1,12 @@
 "use client";
 
+import type { ScheduleRecord } from "@/types/schedule";
+
 export function ScheduleCell({
   schedule,
   onClick,
 }: {
-  schedule?: any;
+  schedule?: ScheduleRecord;
   onClick: () => void;
 }) {
   return (
@@ -23,7 +25,7 @@ export function ScheduleCell({
             {schedule.course.name}
           </span>
           <span className="text-xs text-slate-500 line-clamp-1 mt-1">
-            Prof. {schedule.teacher.lastName}
+            Prof. {schedule.teacher?.lastName}
           </span>
         </>
       ) : (

@@ -2,7 +2,7 @@ import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import type { PdfPaymentReceipt } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
@@ -96,7 +96,11 @@ const styles = StyleSheet.create({
   },
 });
 
-export const PaymentReceiptPDF = ({ payment }: { payment: any }) => (
+export const PaymentReceiptPDF = ({
+  payment,
+}: {
+  payment: PdfPaymentReceipt;
+}) => (
   <Document>
     <Page size="A5" orientation="landscape" style={styles.page}>
       <View style={styles.header}>

@@ -1,12 +1,16 @@
 import { useMemo } from "react";
 import { StudentProfileResult } from "@/lib/actions/student.actions";
+import type {
+  StudentCourseGradesView,
+  StudentPaymentView,
+} from "@/types/student";
 
 export function useStudentProfile(student: StudentProfileResult) {
   const currentEnrollment = student.enrollments?.[0];
   const gradeLevel = currentEnrollment?.section?.gradeLevel;
 
   const gradesByCourse = useMemo(() => {
-    const acc: Record<string, { courseName: string; grades: any[] }> = {};
+    const acc: Record<string, StudentCourseGradesView> = {};
     if (currentEnrollment?.gradeRecords) {
       for (const gr of currentEnrollment.gradeRecords) {
         if (!acc[gr.courseId]) {
@@ -18,7 +22,7 @@ export function useStudentProfile(student: StudentProfileResult) {
         acc[gr.courseId].grades.push({
           period: gr.period,
           score: gr.score !== null ? Number(gr.score) : null,
-          isConfigured: (gr as any).gradeConfig?.active ?? false,
+          isConfigured: false,
         });
       }
     }
@@ -43,7 +47,7 @@ export function useStudentProfile(student: StudentProfileResult) {
   }, [currentEnrollment?.attendances]);
 
   const sortedPayments = useMemo(() => {
-    return (currentEnrollment?.payments || []).sort((a: any, b: any) => {
+    return ([...(currentEnrollment?.payments || [])] as StudentPaymentView[]).sort((a, b) => {
       if (a.status === "PENDIENTE" && b.status !== "PENDIENTE") return -1;
       if (a.status !== "PENDIENTE" && b.status === "PENDIENTE") return 1;
       return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();

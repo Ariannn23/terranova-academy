@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { PdfDisabilityEnrollment } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
@@ -74,7 +75,11 @@ const styles = StyleSheet.create({
   },
 });
 
-export const StudentDisabilitiesPDF = ({ enrollment }: { enrollment: any }) => {
+export const StudentDisabilitiesPDF = ({
+  enrollment,
+}: {
+  enrollment: PdfDisabilityEnrollment;
+}) => {
   const { student, section, disabilities } = enrollment;
 
   return (
@@ -110,7 +115,9 @@ export const StudentDisabilitiesPDF = ({ enrollment }: { enrollment: any }) => {
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Año lectivo:</Text>
-            <Text style={styles.value}>{section.academicYear.year}</Text>
+          <Text style={styles.value}>
+            {section.academicYear?.year || "No registrado"}
+          </Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Total de registros:</Text>
@@ -121,7 +128,7 @@ export const StudentDisabilitiesPDF = ({ enrollment }: { enrollment: any }) => {
         {/* REGISTROS */}
         <Text style={styles.sectionTitle}>Registro cronológico</Text>
 
-        {disabilities.map((d: any, idx: number) => (
+        {disabilities.map((d, idx: number) => (
           <View key={idx} style={styles.recordBox} wrap={false}>
             <View style={styles.row}>
               <Text style={styles.label}>Motivo:</Text>

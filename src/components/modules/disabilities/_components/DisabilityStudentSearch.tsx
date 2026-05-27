@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, X } from "lucide-react";
 import { SearchStudentResult } from "@/lib/actions/payment.actions";
@@ -13,7 +12,7 @@ interface DisabilityStudentSearchProps {
   searchResults: SearchStudentResult[];
   isSearching: boolean;
   selectedStudent: SearchStudentResult | null;
-  activeEnrollment: any | null;
+  activeEnrollment: NonNullable<SearchStudentResult["enrollments"]>[number] | null;
   handleSelectStudent: (student: SearchStudentResult) => void;
   removeSelectedStudent: () => void;
 }
@@ -93,8 +92,8 @@ export function DisabilityStudentSearch({
                     variant="secondary"
                     className="bg-white border-red-200 text-red-700 text-[10px]"
                   >
-                    {activeEnrollment.section.gradeLevel.name} "
-                    {activeEnrollment.section.name}"
+                    {activeEnrollment.section.gradeLevel.name} &quot;
+                    {activeEnrollment.section.name}&quot;
                   </Badge>
                 ) : (
                   <Badge variant="destructive" className="text-[10px]">

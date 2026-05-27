@@ -3,58 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import {
-  LayoutDashboard,
-  Users,
-  GraduationCap,
-  CalendarCheck,
-  CreditCard,
-  AlertTriangle,
-  CalendarDays,
-  FileText,
-  Menu,
-  X,
-  Briefcase,
-  BookOpen,
-  Clock,
-  ShieldAlert,
-  Megaphone,
-  Settings,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { navItems, filterNavigationByRole } from "@/lib/navigation";
 
-const modules = [
-  { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Matrículas", href: "/dashboard/matriculas", icon: FileText },
-  { name: "Estudiantes", href: "/dashboard/estudiantes", icon: Users },
-  { name: "Docentes", href: "/dashboard/docentes", icon: Briefcase },
-  { name: "Cursos", href: "/dashboard/cursos", icon: BookOpen },
-  { name: "Horarios", href: "/dashboard/horarios", icon: Clock },
-  { name: "Calificaciones", href: "/dashboard/notas", icon: GraduationCap },
-  { name: "Asistencia", href: "/dashboard/asistencia", icon: CalendarCheck },
-  { name: "Finanzas", href: "/dashboard/pagos", icon: CreditCard },
-  { name: "Calendario", href: "/dashboard/calendar", icon: CalendarDays },
-  { name: "Comunicados", href: "/dashboard/comunicados", icon: Megaphone },
-  {
-    name: "Inhabilitaciones",
-    href: "/dashboard/inhabilitaciones",
-    icon: ShieldAlert,
-  },
-  { name: "Incidencias", href: "/dashboard/incidencias", icon: AlertTriangle },
-  { name: "Reportes", href: "/dashboard/reportes", icon: FileText },
-  { name: "Configuración", href: "/dashboard/configuracion", icon: Settings },
-];
-
-export default function Sidebar() {
+export default function Sidebar({ userRole }: { userRole?: string }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleNavigation = (href: string) => {
+  // NOTA DE SEGURIDAD: Este filtrado visual mejora la UX al no mostrar enlaces a los que el rol no tiene permiso,
+  // pero la protección real se ejecuta en el middleware, layout y Server Actions (requireRole).
+  const visibleModules = filterNavigationByRole(navItems, userRole);
+
+  const handleNavigation = () => {
     setIsOpen(false);
   };
 
-  // Todo esto aplica el responsive design con Tailwind
   return (
     <>
       {/* Opacidad oscura para el móvil cuando está abierto */}
@@ -104,13 +69,13 @@ export default function Sidebar() {
           <div className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Módulos Principales
           </div>
-          {modules.map((item) => {
+          {visibleModules.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => handleNavigation(item.href)}
+                onClick={handleNavigation}
                 className={`flex items-center space-x-3 px-3 py-3 rounded-md transition-colors ${
                   isActive
                     ? "bg-slate-800 text-emerald-400 font-medium"

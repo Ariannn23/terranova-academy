@@ -1,10 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  saveScheduleBlock,
-  deleteScheduleBlock,
-} from "@/lib/actions/schedule.actions";
 import {
   Dialog,
   DialogContent,
@@ -21,15 +16,20 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
+import { useScheduleCell } from "../hooks/useScheduleCell";
+import type {
+  ScheduleCellData,
+  ScheduleCourseOption,
+  ScheduleTeacherOption,
+} from "@/types/schedule";
 
 interface ScheduleCellModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any;
-  courses: any[];
-  teachers: any[];
+  data: ScheduleCellData;
+  courses: ScheduleCourseOption[];
+  teachers: ScheduleTeacherOption[];
 }
 
 export function ScheduleCellModal({
@@ -39,63 +39,16 @@ export function ScheduleCellModal({
   courses,
   teachers,
 }: ScheduleCellModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const [courseId, setCourseId] = useState("");
-  const [teacherId, setTeacherId] = useState("");
-
-  useEffect(() => {
-    if (data?.schedule) {
-      setCourseId(data.schedule.course?.id || "");
-      setTeacherId(data.schedule.teacher?.id || "");
-    } else {
-      setCourseId("");
-      setTeacherId("");
-    }
-  }, [data]);
-
-  const handleSave = async () => {
-    if (!data) return;
-    if (!courseId || !teacherId) {
-      toast.error("Debe seleccionar un curso y un docente.");
-      return;
-    }
-
-    setLoading(true);
-    const result = await saveScheduleBlock({
-      id: data.schedule?.id,
-      sectionId: data.sectionId,
-      courseId,
-      teacherId,
-      dayOfWeek: data.dayOfWeek,
-      startTime: data.block.startTime,
-      endTime: data.block.endTime,
-    });
-
-    if (result.success) {
-      toast.success("Horario guardado correctamente.");
-      onClose();
-    } else {
-      toast.error(result.error);
-    }
-    setLoading(false);
-  };
-
-  const handleDelete = async () => {
-    if (!data?.schedule?.id) return;
-    setDeleting(true);
-    const result = await deleteScheduleBlock(data.schedule.id, data.sectionId);
-    if (result.success) {
-      toast.success("Bloque liberado.");
-      setCourseId("");
-      setTeacherId("");
-      onClose();
-    } else {
-      toast.error(result.error);
-    }
-    setDeleting(false);
-  };
+  const {
+    loading,
+    deleting,
+    courseId,
+    setCourseId,
+    teacherId,
+    setTeacherId,
+    handleSave,
+    handleDelete,
+  } = useScheduleCell({ data, onClose });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

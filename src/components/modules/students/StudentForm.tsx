@@ -16,8 +16,13 @@ import { useStudentForm } from "./hooks/useStudentForm";
 import { StudentPhotoUpload } from "./_components/StudentPhotoUpload";
 import { StudentPersonalFields } from "./_components/StudentPersonalFields";
 import { StudentGuardianFields } from "./_components/StudentGuardianFields";
+import type { StudentFormInitialData } from "@/types/student";
 
-export function StudentForm({ initialData }: { initialData?: any }) {
+export function StudentForm({
+  initialData,
+}: {
+  initialData?: StudentFormInitialData;
+}) {
   const {
     form,
     isPending,

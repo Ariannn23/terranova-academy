@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { PdfStudentInfo } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
   value: { fontSize: 10, color: "#0f172a", fontWeight: "bold", flex: 1 },
 });
 
-export const StudentInfoPDF = ({ student }: { student: any }) => {
+export const StudentInfoPDF = ({ student }: { student: PdfStudentInfo }) => {
   const currentEnrollment = student.enrollments?.[0];
 
   return (
@@ -87,9 +88,11 @@ export const StudentInfoPDF = ({ student }: { student: any }) => {
           <View style={styles.row}>
             <Text style={styles.label}>Fecha Nacimiento:</Text>
             <Text style={styles.value}>
-              {format(new Date(student.birthDate), "dd 'de' MMMM 'de' yyyy", {
-                locale: es,
-              })}
+              {student.birthDate
+                ? format(new Date(student.birthDate), "dd 'de' MMMM 'de' yyyy", {
+                    locale: es,
+                  })
+                : "No registrado"}
             </Text>
           </View>
           <View style={styles.row}>
@@ -145,7 +148,7 @@ export const StudentInfoPDF = ({ student }: { student: any }) => {
 
         <Text style={styles.sectionTitle}>Datos de Apoderados</Text>
         {student.guardians && student.guardians.length > 0 ? (
-          student.guardians.map((g: any, idx: number) => (
+          student.guardians.map((g, idx: number) => (
             <View key={idx} style={[styles.infoBox, { marginBottom: 10 }]}>
               <View style={styles.row}>
                 <Text style={styles.label}>Nombre:</Text>

@@ -10,11 +10,12 @@ import { useConfiguracion } from "./hooks/useConfiguracion";
 import { ConfigGeneralTab } from "./_components/ConfigGeneralTab";
 import { ConfigYearTab } from "./_components/ConfigYearTab";
 import { ConfigRulesTab } from "./_components/ConfigRulesTab";
+import type { ConfigActiveYear } from "./_components/ConfigYearTab";
 
 export default function ConfiguracionClient({
   activeYear,
 }: {
-  activeYear: any | null;
+  activeYear: ConfigActiveYear | null;
 }) {
   const { config, saved, status, handleChange, handleSave } = useConfiguracion();
 

@@ -7,9 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run src/lib/actions/__tests__",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:auth": "node scripts/run-e2e.mjs --auth",
+    "test:e2e:ui": "node scripts/run-e2e.mjs --ui",
+    "test:e2e:headed": "node scripts/run-e2e.mjs --headed",
+    "test:e2e:report": "playwright show-report",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "seed": "tsx prisma/seed.ts",
+    "seed:e2e": "tsx scripts/seed-e2e.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -50,19 +62,27 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@prisma/config": "^7.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vitest/coverage-v8": "^4.1.7",
     "dotenv": "^17.3.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "jsdom": "^29.1.1",
     "postcss": "^8",
     "prisma": "^7.4.1",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.7"
   }
 }

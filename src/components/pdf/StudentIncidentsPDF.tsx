@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { PdfEnrollment, PdfIncidentRecord } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
@@ -83,7 +84,11 @@ const styles = StyleSheet.create({
   },
 });
 
-export const StudentIncidentsPDF = ({ enrollment }: { enrollment: any }) => {
+export const StudentIncidentsPDF = ({
+  enrollment,
+}: {
+  enrollment: PdfEnrollment & { incidents: PdfIncidentRecord[] };
+}) => {
   const { student, section, incidents } = enrollment;
 
   return (
@@ -119,7 +124,7 @@ export const StudentIncidentsPDF = ({ enrollment }: { enrollment: any }) => {
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Año lectivo:</Text>
-            <Text style={styles.value}>{section.academicYear.year}</Text>
+            <Text style={styles.value}>{section.academicYear?.year}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Total de incidencias:</Text>
@@ -130,7 +135,7 @@ export const StudentIncidentsPDF = ({ enrollment }: { enrollment: any }) => {
         {/* INCIDENCIAS */}
         <Text style={styles.sectionTitle}>Registro cronológico</Text>
 
-        {incidents.map((incident: any, idx: number) => (
+        {incidents.map((incident, idx) => (
           <View key={idx} style={styles.incidentBox} wrap={false}>
             <View style={styles.row}>
               <Text style={styles.label}>Fecha del suceso:</Text>
@@ -190,7 +195,7 @@ export const StudentIncidentsPDF = ({ enrollment }: { enrollment: any }) => {
                       lineHeight: 1.4,
                     }}
                   >
-                    "{incident.actionTaken}"
+                    &quot;{incident.actionTaken}&quot;
                   </Text>
                 </View>
               </>

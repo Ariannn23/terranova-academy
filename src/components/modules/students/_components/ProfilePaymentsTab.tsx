@@ -5,10 +5,12 @@ import { Receipt, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PAYMENT_STATUS } from "@/lib/utils/student.utils";
+import type { StudentPaymentView } from "@/types/student";
+import type { ReceiptData } from "@/lib/actions/payment.actions";
 
 interface ProfilePaymentsTabProps {
-  sortedPayments: any[];
-  onReceiptClick: (receipt: any) => void;
+  sortedPayments: StudentPaymentView[];
+  onReceiptClick: (receipt: ReceiptData) => void;
 }
 
 export function ProfilePaymentsTab({
@@ -27,7 +29,7 @@ export function ProfilePaymentsTab({
     <Card>
       <CardContent className="pt-6">
         <div className="space-y-4">
-          {sortedPayments.map((payment: any) => {
+          {sortedPayments.map((payment) => {
             const statusConfig = PAYMENT_STATUS[payment.status];
             const isPending = payment.status === "PENDIENTE";
 
@@ -89,7 +91,9 @@ export function ProfilePaymentsTab({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onReceiptClick(payment.receipt)}
+                      onClick={() => {
+                        if (payment.receipt) onReceiptClick(payment.receipt);
+                      }}
                       className="text-blue-600 border-blue-200 hover:bg-blue-50"
                     >
                       <Receipt className="h-4 w-4 mr-2" />

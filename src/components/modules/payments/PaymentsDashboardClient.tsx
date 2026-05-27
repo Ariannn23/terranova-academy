@@ -12,9 +12,11 @@ import {
   CreditCard,
   FileCheck2,
   Plus,
+  AlertTriangle,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KPICard } from "@/components/modules/dashboard/KPICard";
 import {
@@ -26,7 +28,6 @@ import {
 } from "@/components/ui/card";
 import { ReceiptModal } from "./ReceiptModal";
 import { DataTable } from "@/components/shared/DataTable";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   Select,
   SelectContent,
@@ -34,48 +35,65 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency } from "@/services/formatting.service";
 
 interface PaymentsDashboardClientProps {
-  initialData: any;
+  initialData: {
+    totalPaid: number;
+    totalPending: number;
+    totalOverdue: number;
+    dueThisWeek: number;
+    latestPayments: PaymentDashboardRow[];
+  };
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("es-PE", {
-    style: "currency",
-    currency: "PEN",
-  }).format(amount);
+type PaymentDashboardRow = {
+  id: string;
+  paidAt: Date | string;
+  amount: number;
+  method?: string | null;
+  concept: {
+    name: string;
+  };
+  enrollment: {
+    student: {
+      firstName: string;
+      lastName: string;
+    };
+  };
 };
 
 export default function PaymentsDashboardClient({
   initialData,
 }: PaymentsDashboardClientProps) {
   const router = useRouter();
-  const [data, setData] = useState(initialData);
-  const [selectedReceipt, setSelectedReceipt] = useState<any | null>(null);
+  const [data] = useState(initialData);
+  const [selectedReceipt, setSelectedReceipt] =
+    useState<PaymentDashboardRow | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   const paymentColumns = [
     {
       header: "Fecha de Pago",
       accessorKey: "paidAt",
-      cell: (row: any) =>
+      cell: (row: PaymentDashboardRow) =>
         format(new Date(row.paidAt), "dd MMM yyyy, p", { locale: es }),
     },
     {
       header: "Estudiante",
       accessorKey: "student",
-      cell: (row: any) =>
+      cell: (row: PaymentDashboardRow) =>
         `${row.enrollment.student.firstName} ${row.enrollment.student.lastName}`,
     },
     {
       header: "Concepto",
       accessorKey: "concept",
-      cell: (row: any) => row.concept.name,
+      cell: (row: PaymentDashboardRow) => row.concept.name,
     },
     {
       header: "Método",
       accessorKey: "method",
-      cell: (row: any) => (
+      cell: (row: PaymentDashboardRow) => (
         <div className="flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-muted-foreground" />
           <span className="capitalize">{row.method?.toLowerCase() || "-"}</span>
@@ -85,7 +103,7 @@ export default function PaymentsDashboardClient({
     {
       header: "Monto",
       accessorKey: "amount",
-      cell: (row: any) => (
+      cell: (row: PaymentDashboardRow) => (
         <span className="font-bold text-emerald-600">
           {formatCurrency(row.amount)}
         </span>
@@ -94,7 +112,7 @@ export default function PaymentsDashboardClient({
     {
       header: "Recibo",
       accessorKey: "id",
-      cell: (row: any) => (
+      cell: (row: PaymentDashboardRow) => (
         <button
           onClick={() => {
             setSelectedReceipt(row);
@@ -128,6 +146,17 @@ export default function PaymentsDashboardClient({
           >
             <Plus className="w-4 h-4 mr-2" />
             Registrar Pago
+          </Button>
+          {/* Enlace a reporte de pagos vencidos */}
+          <Button
+            variant="outline"
+            className="border-rose-200 text-rose-700 hover:bg-rose-50 shadow-sm"
+            asChild
+          >
+            <Link href="/dashboard/pagos/vencidos">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Ver Vencidos
+            </Link>
           </Button>
           {/* Aquí irían los filtros por mes si decidimos que el KPI debe cambiar */}
           <Select defaultValue={new Date().getMonth().toString()}>

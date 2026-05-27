@@ -2,7 +2,6 @@
 -- Run this in the Supabase SQL Editor
 
 -- 1. Create Admin User
--- Password is: Admin1234!
 INSERT INTO "User" ("id", "email", "passwordHash", "name", "role", "updatedAt")
 VALUES (
     'admin_user_01', 

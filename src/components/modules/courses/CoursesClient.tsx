@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,74 +7,60 @@ import { Plus, Search, Edit2, Archive, ArchiveRestore } from "lucide-react";
 import { CourseForm } from "./CourseForm";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/shared/DataTable";
-import { updateCourse } from "@/lib/actions/course.actions";
-import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useCoursesDirectory } from "./hooks/useCoursesDirectory";
+import type { CourseInitialData } from "./hooks/useCourseForm";
+
+type CourseRow = CourseInitialData & {
+  gradeLevel: {
+    name: string;
+    level: string;
+  };
+  _count?: {
+    schedules?: number;
+  };
+};
+
+type CourseGradeLevelOption = {
+  id: string;
+  name: string;
+  level: string;
+};
 
 export function CoursesClient({
   initialData,
   gradeLevels,
 }: {
-  initialData: any[];
-  gradeLevels: any[];
+  initialData: CourseRow[];
+  gradeLevels: CourseGradeLevelOption[];
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
-  const [courseToToggle, setCourseToToggle] = useState<any>(null);
-
-  const filteredCourses = initialData.filter((c) =>
-    `${c.name} ${c.gradeLevel.name} ${c.gradeLevel.level}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase()),
-  );
-
-  const handleEdit = (course: any) => {
-    setSelectedCourse(course);
-    setIsFormOpen(true);
-  };
-
-  const handleCreate = () => {
-    setSelectedCourse(null);
-    setIsFormOpen(true);
-  };
-
-  const handleToggleClick = (course: any) => {
-    setCourseToToggle(course);
-  };
-
-  const handleConfirmToggle = async () => {
-    if (!courseToToggle) return;
-    const newStatus = !courseToToggle.active;
-    const loadingToast = toast.loading(
-      newStatus ? "Activando curso..." : "Desactivando curso...",
-    );
-
-    const result = await updateCourse(courseToToggle.id, { active: newStatus });
-
-    toast.dismiss(loadingToast);
-    if (result.success) {
-      toast.success(
-        `Curso ${newStatus ? "activado" : "inhabilitado"} correctamente`,
-      );
-    } else {
-      toast.error(result.error || "Error al cambiar estado del curso");
-    }
-    setCourseToToggle(null);
-  };
+  const {
+    searchTerm,
+    setSearchTerm,
+    filteredCourses,
+    isFormOpen,
+    setIsFormOpen,
+    selectedCourse,
+    courseToToggle,
+    setCourseToToggle,
+    handleEdit,
+    handleCreate,
+    handleToggleClick,
+    handleConfirmToggle,
+  } = useCoursesDirectory(initialData);
 
   const columns = [
     {
       header: "Curso",
       accessorKey: "name",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="font-medium text-slate-900">{row.name}</div>
       ),
     },
     {
       header: "Nivel Educativo",
       accessorKey: "level",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex flex-col">
           <span className="text-sm font-medium">{row.gradeLevel.name}</span>
           <span className="text-xs text-slate-500">{row.gradeLevel.level}</span>
@@ -85,14 +70,14 @@ export function CoursesClient({
     {
       header: "Horas/Semana",
       accessorKey: "hoursPerWeek",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center w-full">{row.hoursPerWeek} hrs</div>
       ),
     },
     {
       header: "Estado",
       accessorKey: "active",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center">
           <Badge
             variant={row.active ? "default" : "destructive"}
@@ -110,7 +95,7 @@ export function CoursesClient({
     {
       header: "Bloques Asignados",
       accessorKey: "schedules",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center w-full font-medium text-slate-600">
           {row._count?.schedules || 0}
         </div>
@@ -119,7 +104,7 @@ export function CoursesClient({
     {
       header: "Acciones",
       accessorKey: "actions",
-      cell: (row: any) => (
+      cell: (row: CourseRow) => (
         <div className="flex justify-center gap-2">
           <Button
             variant="ghost"
@@ -186,7 +171,7 @@ export function CoursesClient({
       <CourseForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        initialData={selectedCourse}
+        initialData={selectedCourse ?? undefined}
         gradeLevels={gradeLevels}
       />
 
