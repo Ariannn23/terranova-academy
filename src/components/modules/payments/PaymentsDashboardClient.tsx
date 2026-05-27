@@ -12,9 +12,11 @@ import {
   CreditCard,
   FileCheck2,
   Plus,
+  AlertTriangle,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { KPICard } from "@/components/modules/dashboard/KPICard";
 import {
@@ -144,6 +146,17 @@ export default function PaymentsDashboardClient({
           >
             <Plus className="w-4 h-4 mr-2" />
             Registrar Pago
+          </Button>
+          {/* Enlace a reporte de pagos vencidos */}
+          <Button
+            variant="outline"
+            className="border-rose-200 text-rose-700 hover:bg-rose-50 shadow-sm"
+            asChild
+          >
+            <Link href="/dashboard/pagos/vencidos">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Ver Vencidos
+            </Link>
           </Button>
           {/* Aquí irían los filtros por mes si decidimos que el KPI debe cambiar */}
           <Select defaultValue={new Date().getMonth().toString()}>

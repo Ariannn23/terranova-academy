@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ArrowLeft, GraduationCap, CalendarCheck } from "lucide-react";
+import { ArrowLeft, GraduationCap, CalendarCheck, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 
@@ -43,6 +43,12 @@ export function EnrollmentDetailsClient({
               <Link href={`/dashboard/asistencia/${enrollment.id}`}>
                 <CalendarCheck className="h-4 w-4 mr-2" />
                 Ver Asistencias
+              </Link>
+            </Button>
+            <Button variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50" asChild>
+              <Link href={`/dashboard/pagos/${enrollment.id}`}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Historial de Pagos
               </Link>
             </Button>
           </div>
