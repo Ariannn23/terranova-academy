@@ -28,8 +28,8 @@ test.describe("autenticacion y proteccion", () => {
     page,
   }) => {
     test.skip(
-      !e2eAuth.hasAdmin,
-      "Login autenticado omitido: define E2E_RUN_AUTHENTICATED=1 o E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD contra una base E2E.",
+      !e2eAuth.enabled,
+      "Login autenticado omitido: ejecuta seed:e2e y test:e2e:auth contra una base E2E.",
     );
 
     await login(page, e2eUsers.admin);

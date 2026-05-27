@@ -5,11 +5,11 @@ import { login } from "./utils/login";
 test.describe("rutas basicas de pagos", () => {
   test("admin puede abrir finanzas y pagos vencidos", async ({ page }) => {
     test.skip(
-      !e2eAuth.hasAdmin,
-      "Rutas autenticadas de pagos omitidas: requieren credenciales ADMIN contra una base E2E.",
+      !e2eAuth.enabled,
+      "Rutas autenticadas de pagos omitidas: ejecuta seed:e2e y test:e2e:auth contra una base E2E.",
     );
 
-    await login(page, e2eUsers.admin);
+    await login(page, e2eUsers.caja);
 
     await page.goto("/dashboard/pagos");
     await expect(page).toHaveURL(/\/dashboard\/pagos/);
@@ -17,15 +17,28 @@ test.describe("rutas basicas de pagos", () => {
       page.getByRole("heading", { name: /cobros y pagos/i }),
     ).toBeVisible();
 
-    await page.goto("/dashboard/pagos/vencidos");
+    await page.getByRole("link", { name: /ver vencidos/i }).click();
     await expect(page).toHaveURL(/\/dashboard\/pagos\/vencidos/);
     await expect(page.getByText(/pagos vencidos/i).first()).toBeVisible();
   });
 
-  test("historial de pagos por matricula requiere dato E2E estable", async () => {
+  test("admin navega al historial de pagos desde una matricula seed", async ({
+    page,
+  }) => {
     test.skip(
-      true,
-      "Pendiente para Sprint 16: requiere matricula seed estable y estrategia de setup/teardown.",
+      !e2eAuth.enabled,
+      "Historial de pagos omitido: ejecuta seed:e2e y test:e2e:auth contra una base E2E.",
     );
+
+    await login(page, e2eUsers.admin);
+
+    await page.goto("/dashboard/matriculas");
+    await expect(page.getByText(/e2e/i).first()).toBeVisible();
+    await page.getByTitle(/ver detalle/i).first().click();
+
+    await expect(page).toHaveURL(/\/dashboard\/matriculas\/.+/);
+    await page.getByRole("link", { name: /historial de pagos/i }).click();
+    await expect(page).toHaveURL(/\/dashboard\/pagos\/.+/);
+    await expect(page.getByText(/cronograma|historial|pagos/i).first()).toBeVisible();
   });
 });

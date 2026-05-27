@@ -13,12 +13,14 @@
     "test:integration": "vitest run src/lib/actions/__tests__",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:auth": "node scripts/run-e2e.mjs --auth",
     "test:e2e:ui": "node scripts/run-e2e.mjs --ui",
     "test:e2e:headed": "node scripts/run-e2e.mjs --headed",
     "test:e2e:report": "playwright show-report",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "seed": "tsx prisma/seed.ts",
+    "seed:e2e": "tsx scripts/seed-e2e.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

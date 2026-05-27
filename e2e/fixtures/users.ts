@@ -3,26 +3,25 @@ export type E2EUser = {
   password: string;
 };
 
+const defaultPassword = process.env.E2E_DEFAULT_PASSWORD ?? "E2ePassword123!";
+const authenticated = process.env.E2E_RUN_AUTHENTICATED === "1";
+
 export const e2eAuth = {
-  hasAdmin:
-    process.env.E2E_RUN_AUTHENTICATED === "1" ||
-    Boolean(process.env.E2E_ADMIN_EMAIL && process.env.E2E_ADMIN_PASSWORD),
+  enabled: authenticated,
 };
 
 export const e2eUsers = {
-  admin: {
-    email: process.env.E2E_ADMIN_EMAIL ?? "director@terranova.edu.pe",
-    password: process.env.E2E_ADMIN_PASSWORD ?? "Admin1234!",
-  },
-  recepcion: fromEnv("RECEPCION"),
-  caja: fromEnv("CAJA"),
-  docente: fromEnv("DOCENTE"),
-  coordinador: fromEnv("COORDINADOR"),
+  admin: fromEnv("ADMIN", "admin.e2e@terranova.test"),
+  director: fromEnv("DIRECTOR", "director.e2e@terranova.test"),
+  recepcion: fromEnv("RECEPCION", "recepcion.e2e@terranova.test"),
+  caja: fromEnv("CAJA", "caja.e2e@terranova.test"),
+  docente: fromEnv("DOCENTE", "docente.e2e@terranova.test"),
+  coordinador: fromEnv("COORDINADOR", "coordinador.e2e@terranova.test"),
 };
 
-function fromEnv(role: string): E2EUser | null {
-  const email = process.env[`E2E_${role}_EMAIL`];
-  const password = process.env[`E2E_${role}_PASSWORD`];
+function fromEnv(role: string, fallbackEmail: string): E2EUser {
+  const email = process.env[`E2E_${role}_EMAIL`] ?? fallbackEmail;
+  const password = process.env[`E2E_${role}_PASSWORD`] ?? defaultPassword;
 
-  return email && password ? { email, password } : null;
+  return { email, password };
 }

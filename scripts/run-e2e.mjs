@@ -3,12 +3,22 @@ import http from "node:http";
 
 const port = 3000;
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${port}`;
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const runAuthenticated = rawArgs.includes("--auth");
+const args = rawArgs.filter((arg) => arg !== "--auth");
+const e2eEnv = {
+  ...process.env,
+  ...(process.env.E2E_DATABASE_URL
+    ? { DATABASE_URL: process.env.E2E_DATABASE_URL }
+    : {}),
+  ...(runAuthenticated ? { E2E_RUN_AUTHENTICATED: "1" } : {}),
+};
 
 const server = spawn(
   process.execPath,
   ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
   {
+    env: e2eEnv,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
   },
@@ -70,7 +80,7 @@ try {
     ["node_modules/@playwright/test/cli.js", "test", ...args],
     {
       env: {
-        ...process.env,
+        ...e2eEnv,
         E2E_BASE_URL: baseURL,
         E2E_SKIP_WEBSERVER: "1",
       },
