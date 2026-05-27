@@ -1,5 +1,12 @@
--- prisma/seed.sql — Seeding for TerraNova Academy
--- Run this in the Supabase SQL Editor
+-- LEGACY / REFERENCIAL - NO USAR COMO FLUJO OPERATIVO
+-- Este archivo se mantiene solo con fines historicos y de auditoria tecnica.
+-- El flujo oficial de onboarding es:
+-- 1) Prisma migrations (deploy/status con MIGRATION_DATABASE_URL cuando aplique)
+-- 2) npm run seed (prisma/seed.ts, sin usuarios reales)
+-- 3) npm run bootstrap:admin (creacion del primer ADMIN real)
+--
+-- prisma/seed.sql — Seeding historico de TerraNova Academy
+-- No ejecutar en produccion ni como instalacion principal.
 
 -- 1. Create Admin User
 INSERT INTO "User" ("id", "email", "passwordHash", "name", "role", "updatedAt")

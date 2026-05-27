@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
+/**
+ * LEGACY / ONE-OFF SCRIPT
+ * Script puntual de saneamiento historico.
+ * No forma parte del flujo operativo ni del onboarding oficial.
+ */
 const prisma = new PrismaClient();
 
 async function cleanup() {
