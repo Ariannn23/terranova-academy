@@ -8,16 +8,16 @@ Sistema administrativo escolar construido con Next.js App Router, Prisma ORM y P
 
 El estado funcional integrado hasta Sprint 17F es estable. Las validaciones recientes confirman:
 
-| Validación | Resultado |
-|---|---|
-| `prisma validate` | ✅ OK |
-| `prisma generate` | ✅ OK |
-| `lint` | ✅ OK |
-| `tsc --noEmit` | ✅ OK |
-| `test:run` | ✅ 188/188 |
-| `test:integration` | ✅ 45/45 |
-| `test:e2e base` | ✅ 7 passed / 11 skipped (esperado) |
-| `build` | ✅ OK |
+| Validación         | Resultado                           |
+| ------------------ | ----------------------------------- |
+| `prisma validate`  | ✅ OK                               |
+| `prisma generate`  | ✅ OK                               |
+| `lint`             | ✅ OK                               |
+| `tsc --noEmit`     | ✅ OK                               |
+| `test:run`         | ✅ 188/188                          |
+| `test:integration` | ✅ 45/45                            |
+| `test:e2e base`    | ✅ 7 passed / 11 skipped (esperado) |
+| `build`            | ✅ OK                               |
 
 > Los **11 skipped de E2E** son esperados. Los escenarios autenticados requieren configurar `E2E_DATABASE_URL` y ejecutar `npm run seed:e2e` en una base aislada. No se deben considerar como fallo hasta completar ese sprint.
 
@@ -31,7 +31,7 @@ El estado funcional integrado hasta Sprint 17F es estable. Las validaciones reci
 - **Zod** + **React Hook Form**
 - **Vitest** (unit/integration) + **Playwright** (E2E)
 - **Supabase Storage** (subida de archivos)
-- **Resend** (correos transaccionales)
+- **Resend** (pendiente para correos transaccionales)
 
 ---
 
@@ -73,20 +73,20 @@ terranova-academy/
 
 Copiar `.env.example` a `.env.local` y completar los valores:
 
-| Variable | Descripción |
-|---|---|
-| `DATABASE_URL` | URL de runtime (puede usar pooler `:6543` en Supabase) |
-| `MIGRATION_DATABASE_URL` | URL directa para migraciones Prisma (usar `:5432` en Supabase) |
-| `E2E_DATABASE_URL` | Base aislada para E2E autenticado (vacío si no aplica) |
-| `DEFAULT_NEW_USER_PASSWORD` | Contraseña temporal por defecto al crear usuarios |
-| `INSTITUTIONAL_EMAIL_DOMAIN` | Dominio institucional permitido (ej: `terranova.edu.pe`) |
-| `BOOTSTRAP_ADMIN_EMAIL` | Email del primer ADMIN |
-| `BOOTSTRAP_ADMIN_PASSWORD` | Contraseña del primer ADMIN |
-| `BOOTSTRAP_ADMIN_NAME` | Nombre del primer ADMIN |
-| `BOOTSTRAP_CONFIRM` | Debe ser `true` para ejecutar bootstrap |
-| `AUTH_SECRET` | Secret de NextAuth (genera con `openssl rand -hex 32`) |
-| `E2E_RUN_AUTHENTICATED` | `1` para habilitar tests autenticados en E2E |
-| `E2E_ADMIN_EMAIL / PASSWORD` | Credenciales de ADMIN para E2E autenticado |
+| Variable                     | Descripción                                                    |
+| ---------------------------- | -------------------------------------------------------------- |
+| `DATABASE_URL`               | URL de runtime (puede usar pooler `:6543` en Supabase)         |
+| `MIGRATION_DATABASE_URL`     | URL directa para migraciones Prisma (usar `:5432` en Supabase) |
+| `E2E_DATABASE_URL`           | Base aislada para E2E autenticado (vacío si no aplica)         |
+| `DEFAULT_NEW_USER_PASSWORD`  | Contraseña temporal por defecto al crear usuarios              |
+| `INSTITUTIONAL_EMAIL_DOMAIN` | Dominio institucional permitido (ej: `terranova.edu.pe`)       |
+| `BOOTSTRAP_ADMIN_EMAIL`      | Email del primer ADMIN                                         |
+| `BOOTSTRAP_ADMIN_PASSWORD`   | Contraseña del primer ADMIN                                    |
+| `BOOTSTRAP_ADMIN_NAME`       | Nombre del primer ADMIN                                        |
+| `BOOTSTRAP_CONFIRM`          | Debe ser `true` para ejecutar bootstrap                        |
+| `AUTH_SECRET`                | Secret de NextAuth (genera con `openssl rand -hex 32`)         |
+| `E2E_RUN_AUTHENTICATED`      | `1` para habilitar tests autenticados en E2E                   |
+| `E2E_ADMIN_EMAIL / PASSWORD` | Credenciales de ADMIN para E2E autenticado                     |
 
 ---
 
@@ -255,15 +255,15 @@ Existe un baseline (`20260524000000_baseline_existing_database`) creado para com
 
 ## Tests y calidad
 
-| Comando | Descripción |
-|---|---|
-| `npm run lint` | ESLint sobre el proyecto |
-| `npx.cmd tsc --noEmit` | Verificación de tipos TypeScript |
-| `npm run test:run` | Tests unitarios e integración (Vitest) |
-| `npm run test:integration` | Solo tests de Server Actions |
-| `npm run test:e2e -- --reporter=list` | E2E base (sin autenticación) |
+| Comando                                    | Descripción                                              |
+| ------------------------------------------ | -------------------------------------------------------- |
+| `npm run lint`                             | ESLint sobre el proyecto                                 |
+| `npx.cmd tsc --noEmit`                     | Verificación de tipos TypeScript                         |
+| `npm run test:run`                         | Tests unitarios e integración (Vitest)                   |
+| `npm run test:integration`                 | Solo tests de Server Actions                             |
+| `npm run test:e2e -- --reporter=list`      | E2E base (sin autenticación)                             |
 | `npm run test:e2e:auth -- --reporter=list` | E2E autenticado (requiere `E2E_DATABASE_URL` + seed E2E) |
-| `npm run build` | Build de producción |
+| `npm run build`                            | Build de producción                                      |
 
 > Algunos tests validan escenarios negativos controlados (errores esperados, rechazos de autorización). Si el output contiene `stderr` pero el resultado final es `passed`, **no es un fallo**.
 
@@ -317,10 +317,13 @@ Los tests E2E autenticados requieren una base de datos aislada:
 La caché de compilación está corrompida.
 
 **Git Bash:**
+
 ```bash
 rm -rf .next && npm run dev
 ```
+
 **PowerShell:**
+
 ```powershell
 Remove-Item -Recurse -Force .next
 npm run dev
@@ -332,7 +335,7 @@ npm run dev
 
 **Causa probable:** `DATABASE_URL` apunta al Transaction Pooler (puerto `6543`) que no admite conexiones DDL.
 
-**Solución:** Usar `MIGRATION_DATABASE_URL` con puerto `5432`. Ver sección *Comandos Prisma por terminal*.
+**Solución:** Usar `MIGRATION_DATABASE_URL` con puerto `5432`. Ver sección _Comandos Prisma por terminal_.
 
 ---
 
@@ -358,6 +361,7 @@ npx.cmd prisma migrate deploy --schema prisma/schema.prisma
 Un servidor local sigue ejecutándose. Cerrar el proceso en el puerto 3000:
 
 **PowerShell:**
+
 ```powershell
 Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess -Force
 ```
@@ -411,6 +415,7 @@ npm run build
 ```
 
 **Reglas:**
+
 - No mezclar refactor masivo, migraciones y nuevas features en un mismo sprint.
 - No subir `.env.local` bajo ninguna circunstancia.
 - Crear un documento en `docs/arrangements/` por cada sprint con bitácora técnica.
@@ -422,7 +427,7 @@ npm run build
 - `README.md` — guía pública principal del proyecto.
 - `docs/arrangements/` — bitácora técnica por sprint (ignorada por git, agregar con `git add -f`).
 - No crear archivos `.md` sueltos en `docs/` sin justificación técnica documentada.
-- Documentos históricos o privados deben permanecer dentro de `docs/arrangements/`.
+- Documentos históricos o privados no deben versionarse. Si se conservan localmente, mantenerlos fuera del tracking de Git. `docs/arrangements/` debe usarse solo para bitácoras técnicas que sí puedan compartirse.
 
 ---
 
