@@ -1,3 +1,8 @@
+-- LEGACY / REFERENCIAL - NO USAR COMO FLUJO OPERATIVO
+-- Snapshot SQL historico para referencia.
+-- El flujo principal de instalacion usa prisma/schema.prisma + prisma/migrations + prisma/seed.ts.
+-- No usar este archivo como fuente unica de verdad para nuevas instalaciones.
+
 -- CreateEnum
 CREATE TYPE "Level" AS ENUM ('INICIAL', 'PRIMARIA', 'SECUNDARIA');
 
