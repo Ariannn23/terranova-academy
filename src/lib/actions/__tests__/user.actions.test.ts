@@ -146,6 +146,23 @@ describe("createUser", () => {
     expect(createCall.data).not.toHaveProperty("password");
   });
 
+  it("usa la contraseña enviada y no fuerza Admin1234!", async () => {
+    const { createUser } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    prismaMock.user.create.mockResolvedValue(makeSafeUser());
+
+    await createUser({
+      name: "Caja Test",
+      email: "caja@test.com",
+      role: "CAJA",
+      password: "Terranova2026!",
+    });
+
+    expect(bcryptMock.hash).toHaveBeenCalledWith("Terranova2026!", 12);
+    expect(bcryptMock.hash).not.toHaveBeenCalledWith("Admin1234!", 12);
+  });
+
   it("rechaza email duplicado", async () => {
     const { createUser } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
@@ -243,6 +260,20 @@ describe("resetUserPassword", () => {
 
     const updateCall = prismaMock.user.update.mock.calls[0][0];
     expect(updateCall.data).not.toHaveProperty("password");
+  });
+
+  it("actualiza passwordHash en la tabla User", async () => {
+    const { resetUserPassword } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", email: "user@test.com" });
+    prismaMock.user.update.mockResolvedValue({ id: "u1" });
+
+    await resetUserPassword({ userId: "u1", password: "NuevaCaja2026!" });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "u1" },
+      data: { passwordHash: "hashed_password_value" },
+    });
   });
 
   it("rechaza contraseña menor a 8 caracteres", async () => {

@@ -9,6 +9,16 @@ import {
 } from "@/lib/validations/user.schema";
 
 describe("createUserSchema", () => {
+  it("acepta Terranova2026! como contraseña temporal sugerida", () => {
+    const result = createUserSchema.safeParse({
+      name: "Usuario Temporal",
+      email: "temporal@terranova.edu.pe",
+      role: "CAJA",
+      password: "Terranova2026!",
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("acepta datos válidos para crear un usuario", () => {
     const result = createUserSchema.safeParse({
       name: "Ana García",
@@ -47,6 +57,17 @@ describe("createUserSchema", () => {
       email: "ana@terranova.edu.pe",
       role: "DOCENTE",
       password: "corta",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.flatten().fieldErrors.password).toBeDefined();
+  });
+
+  it("rechaza contraseña vacía", () => {
+    const result = createUserSchema.safeParse({
+      name: "Ana García",
+      email: "ana@terranova.edu.pe",
+      role: "DOCENTE",
+      password: "",
     });
     expect(result.success).toBe(false);
     expect(result.error?.flatten().fieldErrors.password).toBeDefined();
@@ -137,6 +158,14 @@ describe("changeUserRoleSchema", () => {
 });
 
 describe("resetUserPasswordSchema", () => {
+  it("acepta Terranova2026! para reset", () => {
+    const result = resetUserPasswordSchema.safeParse({
+      userId: "clabcdef123",
+      password: "Terranova2026!",
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("acepta contraseña válida para reset", () => {
     const result = resetUserPasswordSchema.safeParse({
       userId: "clabcdef123",
@@ -149,6 +178,15 @@ describe("resetUserPasswordSchema", () => {
     const result = resetUserPasswordSchema.safeParse({
       userId: "clabcdef123",
       password: "abc",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.flatten().fieldErrors.password).toBeDefined();
+  });
+
+  it("rechaza contraseña vacía en reset", () => {
+    const result = resetUserPasswordSchema.safeParse({
+      userId: "clabcdef123",
+      password: "",
     });
     expect(result.success).toBe(false);
     expect(result.error?.flatten().fieldErrors.password).toBeDefined();

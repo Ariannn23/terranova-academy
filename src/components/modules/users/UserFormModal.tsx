@@ -47,9 +47,14 @@ const ROLE_LABELS: Record<UserRole, string> = {
 interface CreateFormProps {
   onSuccess: () => void;
   onClose: () => void;
+  defaultNewUserPassword: string;
 }
 
-function CreateUserForm({ onSuccess, onClose }: CreateFormProps) {
+function CreateUserForm({
+  onSuccess,
+  onClose,
+  defaultNewUserPassword,
+}: CreateFormProps) {
   const {
     register,
     handleSubmit,
@@ -58,7 +63,7 @@ function CreateUserForm({ onSuccess, onClose }: CreateFormProps) {
     formState: { errors, isSubmitting },
   } = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
-    defaultValues: { role: "DOCENTE" },
+    defaultValues: { role: "DOCENTE", password: defaultNewUserPassword },
   });
 
   const selectedRole = watch("role");
@@ -67,7 +72,10 @@ function CreateUserForm({ onSuccess, onClose }: CreateFormProps) {
     const toastId = toast.loading("Creando usuario...");
     const result = await createUser(data);
     if (result.success) {
-      toast.success("Usuario creado exitosamente", { id: toastId });
+      toast.success(
+        `Usuario creado correctamente (${result.data.email}). Contraseña temporal: ${result.temporaryPassword}`,
+        { id: toastId },
+      );
       onSuccess();
     } else {
       const msg =
@@ -138,6 +146,9 @@ function CreateUserForm({ onSuccess, onClose }: CreateFormProps) {
         {errors.password && (
           <p className="text-xs text-red-500">{errors.password.message}</p>
         )}
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
+          Contraseña temporal inicial. El usuario debera cambiarla posteriormente.
+        </p>
       </div>
 
       <DialogFooter className="pt-2">
@@ -233,6 +244,7 @@ interface UserFormModalProps {
   onClose: () => void;
   onSuccess: () => void;
   editUser?: SafeUser | null;
+  defaultNewUserPassword: string;
 }
 
 export function UserFormModal({
@@ -240,6 +252,7 @@ export function UserFormModal({
   onClose,
   onSuccess,
   editUser,
+  defaultNewUserPassword,
 }: UserFormModalProps) {
   const isEditing = !!editUser;
 
@@ -264,7 +277,11 @@ export function UserFormModal({
             onClose={onClose}
           />
         ) : (
-          <CreateUserForm onSuccess={handleSuccess} onClose={onClose} />
+          <CreateUserForm
+            onSuccess={handleSuccess}
+            onClose={onClose}
+            defaultNewUserPassword={defaultNewUserPassword}
+          />
         )}
       </DialogContent>
     </Dialog>

@@ -18,6 +18,9 @@ import {
 } from "@/lib/validations/user.schema";
 import type { SafeUser } from "@/types/user";
 
+const DEFAULT_NEW_USER_PASSWORD =
+  process.env.DEFAULT_NEW_USER_PASSWORD?.trim() || "Terranova2026!";
+
 // ─── Selector seguro (sin passwordHash) ──────────────────────────────────────
 const SAFE_USER_SELECT = {
   id: true,
@@ -66,7 +69,7 @@ export async function getUsers(): Promise<
  * El usuario se crea con active: true por defecto.
  */
 export async function createUser(data: unknown): Promise<
-  | { success: true; data: SafeUser }
+  | { success: true; data: SafeUser; temporaryPassword: string }
   | { success: false; error: string | object }
 > {
   try {
@@ -77,7 +80,8 @@ export async function createUser(data: unknown): Promise<
       return { success: false, error: parsed.error.flatten() };
     }
 
-    const { name, email, role, password } = parsed.data;
+    const { name, email, role } = parsed.data;
+    const password = parsed.data.password.trim() || DEFAULT_NEW_USER_PASSWORD;
 
     // Verificar email único
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -105,7 +109,11 @@ export async function createUser(data: unknown): Promise<
       metadata: { module: "users", reason: "Nuevo usuario creado por ADMIN" },
     });
 
-    return { success: true, data: user as SafeUser };
+    return {
+      success: true,
+      data: user as SafeUser,
+      temporaryPassword: password,
+    };
   } catch (error) {
     const err = error as Error;
     if (

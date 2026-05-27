@@ -7,7 +7,8 @@ import bcrypt from "bcryptjs";
 
 const connectionString = process.env.DATABASE_URL;
 const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
-const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+const fallbackPassword = process.env.DEFAULT_NEW_USER_PASSWORD?.trim();
+const password = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? fallbackPassword;
 const name = process.env.BOOTSTRAP_ADMIN_NAME;
 const confirm = process.env.BOOTSTRAP_CONFIRM;
 
@@ -21,9 +22,9 @@ if (confirm !== "true") {
   );
 }
 
-if (!email || !password || !name) {
+if (!email || !name || !password) {
   throw new Error(
-    "BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD y BOOTSTRAP_ADMIN_NAME son requeridas.",
+    "BOOTSTRAP_ADMIN_EMAIL y BOOTSTRAP_ADMIN_NAME son requeridas. Define BOOTSTRAP_ADMIN_PASSWORD o DEFAULT_NEW_USER_PASSWORD.",
   );
 }
 
@@ -42,6 +43,12 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  if (!process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+    console.warn(
+      "[BOOTSTRAP] BOOTSTRAP_ADMIN_PASSWORD no fue provista. Se usara DEFAULT_NEW_USER_PASSWORD como contraseña temporal.",
+    );
+  }
+
   const passwordHash = await bcrypt.hash(bootstrapAdmin.password, 12);
 
   const admin = await prisma.user.upsert({

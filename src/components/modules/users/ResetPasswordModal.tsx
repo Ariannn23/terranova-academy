@@ -4,6 +4,7 @@
 // Modal para que el ADMIN resetee la contraseña de un usuario
 
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -40,29 +41,38 @@ export function ResetPasswordModal({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<ResetUserPasswordInput>({
-    resolver: zodResolver(resetUserPasswordSchema),
-    defaultValues: { userId: user?.id ?? "", password: "" },
+  } = useForm<Pick<ResetUserPasswordInput, "password">>({
+    resolver: zodResolver(resetUserPasswordSchema.pick({ password: true })),
+    defaultValues: { password: "" },
   });
 
-  async function onSubmit(data: ResetUserPasswordInput) {
-    const toastId = toast.loading("Reseteando contraseña...");
-    const result = await resetUserPassword({ ...data, userId: user?.id ?? "" });
+  useEffect(() => {
+    if (isOpen) {
+      reset({ password: "" });
+    }
+  }, [isOpen, user?.id, reset]);
+
+  async function onSubmit(data: Pick<ResetUserPasswordInput, "password">) {
+    const toastId = toast.loading("Actualizando contraseña...");
+    const result = await resetUserPassword({
+      userId: user?.id ?? "",
+      password: data.password,
+    });
     if (result.success) {
-      toast.success("Contraseña reseteada exitosamente", { id: toastId });
-      reset();
+      toast.success("Contraseña actualizada correctamente.", { id: toastId });
+      reset({ password: "" });
       onClose();
     } else {
       const msg =
         typeof result.error === "string"
           ? result.error
-          : "Error de validación";
+          : "No se pudo actualizar la contraseña.";
       toast.error(msg, { id: toastId });
     }
   }
 
   function handleClose() {
-    reset();
+    reset({ password: "" });
     onClose();
   }
 
@@ -81,8 +91,6 @@ export function ResetPasswordModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <input type="hidden" {...register("userId")} value={user?.id ?? ""} />
-
           <div className="space-y-1">
             <Label htmlFor="reset-password">Nueva contraseña</Label>
             <Input

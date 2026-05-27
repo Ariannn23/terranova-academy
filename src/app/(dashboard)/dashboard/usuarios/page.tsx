@@ -11,6 +11,8 @@ export const metadata = {
 
 export default async function UsersPage() {
   const result = await getUsers();
+  const defaultNewUserPassword =
+    process.env.DEFAULT_NEW_USER_PASSWORD?.trim() || "Terranova2026!";
 
   if (!result.success) {
     return (
@@ -20,5 +22,10 @@ export default async function UsersPage() {
     );
   }
 
-  return <UsersClient users={result.data} />;
+  return (
+    <UsersClient
+      users={result.data}
+      defaultNewUserPassword={defaultNewUserPassword}
+    />
+  );
 }

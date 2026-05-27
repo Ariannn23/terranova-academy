@@ -55,9 +55,13 @@ type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 interface UsersClientProps {
   users: SafeUser[];
+  defaultNewUserPassword: string;
 }
 
-export function UsersClient({ users: initialUsers }: UsersClientProps) {
+export function UsersClient({
+  users: initialUsers,
+  defaultNewUserPassword,
+}: UsersClientProps) {
   const [users, setUsers] = useState<SafeUser[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "ALL">("ALL");
@@ -454,6 +458,7 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
         onClose={() => setIsFormOpen(false)}
         onSuccess={handleSuccess}
         editUser={editingUser}
+        defaultNewUserPassword={defaultNewUserPassword}
       />
 
       <ResetPasswordModal
