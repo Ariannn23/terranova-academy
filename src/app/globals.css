@@ -8,6 +8,12 @@
   }
 }
 
+/* Suppress focus ring on mouse clicks — keeps keyboard accessibility intact */
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
 @media print {
   .print-hidden {
     display: none !important;

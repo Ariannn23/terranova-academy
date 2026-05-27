@@ -7,7 +7,6 @@ import {
   Download,
   GraduationCap,
   Laptop,
-  LockKeyhole,
   Mail,
   MapPin,
   MessageSquare,
@@ -18,12 +17,8 @@ import {
   UsersRound,
 } from "lucide-react";
 
-const navItems = [
-  { label: "Inicio", href: "#inicio" },
-  { label: "Nuestra Propuesta", href: "#propuesta" },
-  { label: "Admisiónes", href: "#admisiónes" },
-  { label: "Contacto", href: "#contacto" },
-];
+import { PublicHeader } from "@/app/_components/public/PublicHeader";
+import { navItems } from "@/app/_components/public/nav-items";
 
 const benefits = [
   {
@@ -127,63 +122,7 @@ const footerLinks = [
   "Preguntas Frecuentes",
 ];
 
-function PublicHeader() {
-  return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 lg:px-8">
-        <a href="#inicio" className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 ring-1 ring-emerald-100">
-            <Image
-              src="/terranova-icono.png"
-              alt="TerraNova Academy"
-              width={26}
-              height={26}
-              className="object-contain"
-              priority
-            />
-          </span>
-          <span className="text-xl font-bold tracking-tight text-slate-950">
-            TerraNova Academy
-          </span>
-        </a>
 
-        <nav
-          aria-label="Navegación principal"
-          className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex"
-        >
-          {navItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="border-b-2 border-transparent py-2 transition hover:border-emerald-700 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-4"
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-4"
-        >
-          <LockKeyhole className="h-4 w-4" />
-          Intranet
-        </Link>
-      </div>
-
-      <nav
-        aria-label="Navegación movil"
-        className="flex gap-4 overflow-x-auto border-t border-slate-100 px-5 py-3 text-sm font-medium text-slate-700 md:hidden"
-      >
-        {navItems.map((item) => (
-          <a key={item.href} href={item.href} className="whitespace-nowrap">
-            {item.label}
-          </a>
-        ))}
-      </nav>
-    </header>
-  );
-}
 
 function PortalMockup() {
   const rows = [
@@ -299,14 +238,14 @@ function HeroSection() {
         <div className="mt-8 flex flex-wrap gap-4">
           <a
             href="#admisiónes"
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-4"
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-sm outline-none transition hover:bg-emerald-800"
           >
             Conocer Admisiónes
             <ArrowRight className="h-4 w-4" />
           </a>
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-950 transition hover:border-emerald-700 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-4"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-950 outline-none transition hover:border-emerald-700 hover:text-emerald-800"
           >
             Acceso Portal
           </Link>
@@ -852,7 +791,7 @@ function PublicFooter() {
             <ul className="mt-4 space-y-3">
               {footerLinks.slice(0, 4).map((link, index) => (
                 <li key={link}>
-                  <a href={navItems[index]?.href ?? "#inicio"}>{link}</a>
+                  <a href={`#${navItems[index]?.href ?? "inicio"}`}>{link}</a>
                 </li>
               ))}
             </ul>
