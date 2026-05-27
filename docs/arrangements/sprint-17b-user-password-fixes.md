@@ -34,6 +34,10 @@ Aplicaciones:
 - Se agrega nota visible: contraseña temporal inicial y recomendacion de cambio posterior.
 - `createUser()` mantiene hashing con bcrypt y devuelve `temporaryPassword` para feedback de UI.
 - Toast de exito ahora muestra email y contraseña temporal usada.
+- El correo institucional queda bloqueado por UI con sufijo fijo `@terranova.edu.pe`.
+- Si se pega un correo externo, se limpia el dominio y se muestra error de validacion.
+- Se agrega boton mostrar/ocultar contraseña inicial con iconos `Eye/EyeOff`.
+- `name` ahora valida sin numeros (letras, espacios y caracteres validos en español).
 
 ## Cambios en reset de contraseña
 
@@ -54,8 +58,11 @@ Aplicaciones:
 
 - `src/lib/actions/__tests__/user.actions.test.ts`
   - `createUser` usa password enviada (`Terranova2026!`) y no fuerza `Credenciales por defecto en seed`.
+  - `createUser` acepta correo institucional y rechaza correos externos.
   - `resetUserPassword` actualiza `passwordHash` en `User`.
 - `src/lib/validations/__tests__/user.schema.test.ts`
+  - acepta nombre sin numeros y rechaza nombre con numeros;
+  - acepta correo institucional y rechaza externo;
   - acepta `Terranova2026!` en create/reset;
   - rechaza contraseña vacia;
   - mantiene rechazo de contraseña corta.
@@ -69,6 +76,13 @@ Pendiente de ejecucion operativa completa con doble sesion para validar:
 3. Reset a `NuevaCaja2026!`.
 4. Rechazo con contraseña anterior y acceso con contraseña nueva.
 5. Bloqueo por desactivacion y recuperacion tras reactivacion.
+
+Checklist UX/formulario adicional:
+
+1. En "Nuevo usuario", el correo se captura como local-part + sufijo fijo `@terranova.edu.pe`.
+2. El nombre rechaza valores con numeros (ejemplo: `Arian123`).
+3. La contraseña inicia oculta y puede alternarse con el boton de ojo.
+4. El valor temporal por defecto se mantiene en `Terranova2026!`.
 
 ## Pendientes
 

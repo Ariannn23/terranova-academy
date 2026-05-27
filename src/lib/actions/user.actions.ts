@@ -11,6 +11,7 @@ import { requireRole } from "@/lib/auth";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 import {
   createUserSchema,
+  INSTITUTIONAL_EMAIL_DOMAIN,
   updateUserSchema,
   changeUserRoleSchema,
   resetUserPasswordSchema,
@@ -82,6 +83,13 @@ export async function createUser(data: unknown): Promise<
 
     const { name, email, role } = parsed.data;
     const password = parsed.data.password.trim() || DEFAULT_NEW_USER_PASSWORD;
+
+    if (!email.endsWith(INSTITUTIONAL_EMAIL_DOMAIN)) {
+      return {
+        success: false,
+        error: `El correo debe terminar en ${INSTITUTIONAL_EMAIL_DOMAIN}`,
+      };
+    }
 
     // Verificar email único
     const existing = await prisma.user.findUnique({ where: { email } });

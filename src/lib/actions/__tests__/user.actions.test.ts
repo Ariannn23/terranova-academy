@@ -111,7 +111,7 @@ describe("createUser", () => {
 
     await createUser({
       name: "Test User",
-      email: "test@test.com",
+      email: "test@terranova.edu.pe",
       role: "DOCENTE",
       password: "SecurePass123",
     });
@@ -127,7 +127,7 @@ describe("createUser", () => {
 
     await createUser({
       name: "Test User",
-      email: "test@test.com",
+      email: "test@terranova.edu.pe",
       role: "DOCENTE",
       password: "SecurePass123",
     });
@@ -154,7 +154,7 @@ describe("createUser", () => {
 
     await createUser({
       name: "Caja Test",
-      email: "caja@test.com",
+      email: "caja@terranova.edu.pe",
       role: "CAJA",
       password: "Terranova2026!",
     });
@@ -166,11 +166,14 @@ describe("createUser", () => {
   it("rechaza email duplicado", async () => {
     const { createUser } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
-    prismaMock.user.findUnique.mockResolvedValue({ id: "existing", email: "test@test.com" });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "existing",
+      email: "test@terranova.edu.pe",
+    });
 
     const result = await createUser({
       name: "Test User",
-      email: "test@test.com",
+      email: "test@terranova.edu.pe",
       role: "DOCENTE",
       password: "SecurePass123",
     });
@@ -189,6 +192,40 @@ describe("createUser", () => {
     const result = await createUser({ name: "", email: "no-email", role: "INVALID", password: "abc" });
 
     expect(result.success).toBe(false);
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
+  it("acepta correo institucional", async () => {
+    const { createUser } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    prismaMock.user.create.mockResolvedValue(
+      makeSafeUser({ email: "caja@terranova.edu.pe" }),
+    );
+
+    const result = await createUser({
+      name: "Caja Operativa",
+      email: "caja@terranova.edu.pe",
+      role: "CAJA",
+      password: "Terranova2026!",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza correo externo", async () => {
+    const { createUser } = await import("@/lib/actions/user.actions");
+    allowRole(requireRoleMock, "ADMIN");
+
+    const result = await createUser({
+      name: "Caja Externa",
+      email: "caja@gmail.com",
+      role: "CAJA",
+      password: "Terranova2026!",
+    });
+
+    expect(result.success).toBe(false);
+    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
 });

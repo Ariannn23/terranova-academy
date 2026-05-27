@@ -4,14 +4,28 @@
 import { z } from "zod";
 import { ROLES } from "@/lib/rbac";
 
+export const INSTITUTIONAL_EMAIL_DOMAIN = "@terranova.edu.pe";
+export const NAME_WITHOUT_NUMBERS_REGEX =
+  /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s'.-]+$/;
+
 export const userRoleEnum = z.enum(ROLES, {
   errorMap: () => ({ message: "Rol inválido" }),
 });
 
 /** Crear un nuevo usuario del sistema */
 export const createUserSchema = z.object({
-  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  email: z.string().email("Correo electrónico inválido"),
+  name: z
+    .string()
+    .min(2, "El nombre debe tener al menos 2 caracteres")
+    .regex(NAME_WITHOUT_NUMBERS_REGEX, "El nombre solo debe contener letras y espacios."),
+  email: z
+    .string()
+    .email("Correo electrónico inválido")
+    .toLowerCase()
+    .refine(
+      (email) => email.endsWith(INSTITUTIONAL_EMAIL_DOMAIN),
+      `El correo debe terminar en ${INSTITUTIONAL_EMAIL_DOMAIN}`,
+    ),
   role: userRoleEnum,
   password: z
     .string()
@@ -24,8 +38,17 @@ export const updateUserSchema = z.object({
   name: z
     .string()
     .min(2, "El nombre debe tener al menos 2 caracteres")
+    .regex(NAME_WITHOUT_NUMBERS_REGEX, "El nombre solo debe contener letras y espacios.")
     .optional(),
-  email: z.string().email("Correo electrónico inválido").optional(),
+  email: z
+    .string()
+    .email("Correo electrónico inválido")
+    .toLowerCase()
+    .refine(
+      (email) => email.endsWith(INSTITUTIONAL_EMAIL_DOMAIN),
+      `El correo debe terminar en ${INSTITUTIONAL_EMAIL_DOMAIN}`,
+    )
+    .optional(),
 });
 
 /** Cambiar el rol de un usuario */

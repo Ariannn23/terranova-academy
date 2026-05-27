@@ -29,6 +29,48 @@ describe("createUserSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("acepta nombre sin números", () => {
+    const result = createUserSchema.safeParse({
+      name: "Arian Bautista Quezada",
+      email: "arian@terranova.edu.pe",
+      role: "ADMIN",
+      password: "Terranova2026!",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza nombre con números", () => {
+    const result = createUserSchema.safeParse({
+      name: "Arian123",
+      email: "arian@terranova.edu.pe",
+      role: "ADMIN",
+      password: "Terranova2026!",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.flatten().fieldErrors.name).toBeDefined();
+  });
+
+  it("acepta email institucional", () => {
+    const result = createUserSchema.safeParse({
+      name: "Caja Terranova",
+      email: "caja@terranova.edu.pe",
+      role: "CAJA",
+      password: "Terranova2026!",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza email externo", () => {
+    const result = createUserSchema.safeParse({
+      name: "Caja Externa",
+      email: "caja@gmail.com",
+      role: "CAJA",
+      password: "Terranova2026!",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.flatten().fieldErrors.email).toBeDefined();
+  });
+
   it("rechaza nombre vacío", () => {
     const result = createUserSchema.safeParse({
       name: "A",
@@ -96,7 +138,7 @@ describe("createUserSchema", () => {
     for (const role of roles) {
       const result = createUserSchema.safeParse({
         name: "Usuario Test",
-        email: `${role.toLowerCase()}@test.com`,
+        email: `${role.toLowerCase()}@terranova.edu.pe`,
         role,
         password: "SecurePass123",
       });
