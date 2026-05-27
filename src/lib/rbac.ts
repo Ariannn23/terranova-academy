@@ -21,6 +21,7 @@ export const ROLE_GROUPS = {
 };
 
 export const ROUTE_ROLE_RULES: { prefix: string; roles: AppRole[] }[] = [
+  { prefix: "/dashboard/usuarios", roles: ["ADMIN"] as AppRole[] },
   { prefix: "/dashboard/configuracion", roles: ROLE_GROUPS.ADMINISTRATION },
   { prefix: "/dashboard/docentes", roles: ROLE_GROUPS.ADMINISTRATION },
   { prefix: "/dashboard/cursos", roles: ROLE_GROUPS.ACADEMIC },

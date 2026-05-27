@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Megaphone,
   Settings,
+  UserCog,
 } from "lucide-react";
 import { getAllowedRolesForPath, hasAllowedRole, type AppRole } from "@/lib/rbac";
 
@@ -39,6 +40,12 @@ export const navItems: NavigationItem[] = [
   { name: "Incidencias", href: "/dashboard/incidencias", icon: AlertTriangle },
   { name: "Reportes", href: "/dashboard/reportes", icon: FileText },
   { name: "Configuración", href: "/dashboard/configuracion", icon: Settings },
+  {
+    name: "Usuarios",
+    href: "/dashboard/usuarios",
+    icon: UserCog,
+    allowedRoles: ["ADMIN"] as AppRole[],
+  },
 ];
 
 /**
