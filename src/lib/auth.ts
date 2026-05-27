@@ -81,7 +81,23 @@ export async function getCurrentUser() {
 }
 
 export async function requireAuth() {
-  const user = await getCurrentUser();
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    throw new AuthenticationError();
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      active: true,
+    },
+  });
 
   if (!user) {
     throw new AuthenticationError();
