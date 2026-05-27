@@ -19,6 +19,7 @@
     "test:e2e:report": "playwright show-report",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "seed": "tsx prisma/seed.ts",
     "seed:e2e": "tsx scripts/seed-e2e.ts",
     "db:studio": "prisma studio"
