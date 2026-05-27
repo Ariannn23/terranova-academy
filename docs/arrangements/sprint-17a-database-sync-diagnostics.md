@@ -1,49 +1,156 @@
-# Sprint 17A — Sincronización y Diagnóstico de Base de Datos Local
+# Sprint 17A — Sincronizacion y diagnostico de base de datos
 
-## Objetivo del Sprint
-Resolver los errores detectados tras la implementación del Sprint 17, donde múltiples módulos del dashboard (Finanzas, Incidencias, Inhabilitaciones, Comunicados, Calendario y Reportes) fallaban debido a desincronizaciones entre el esquema de Prisma, las migraciones locales y la base de datos de desarrollo. El objetivo principal fue realizar un diagnóstico completo de conectividad y estructura, asegurando la existencia de la columna `User.active` y la tabla `PaymentTransaction` en el entorno actual.
+## 1) Problema detectado
 
-## Rama Git
-`feature/sprint-17a-database-sync-diagnostics`
+Despues de avanzar en los sprints funcionales, el codigo esperaba estructuras de base de datos que no estaban sincronizadas en Supabase. Esto genero fallos en rutas del dashboard y modulos criticos.
 
-## Diagnóstico y Estado de la Base de Datos
+## 2) Evidencia de errores originales
 
-### 1. Variables de Entorno y Conectividad
-* **DATABASE_URL**: Apunta al Transaction Pooler de Supabase (`aws-0-us-west-2.pooler.supabase.com:6543`) configurado para runtime (Next.js Server Actions).
-* **DIRECT_URL**: Apunta a la dirección directa original (`db.abncreomloyjmeusvjdy.supabase.co:5432`). 
-* **Diagnóstico de Conectividad**:
-  - Se detectó que el host directo de Supabase (`db.abncreomloyjmeusvjdy.supabase.co`) no resuelve localmente debido a restricciones de resolución de red (`getaddrinfo ENOTFOUND`).
-  - Para solventar esto y ejecutar tareas administrativas DDL/Migraciones seguras, se validó con éxito el uso del Session Pooler de Supabase en el puerto `5432` (`aws-0-us-west-2.pooler.supabase.com:5432`), el cual permitió una comunicación directa sin bloqueos ni pool de transacciones.
+Errores observados antes de la correccion:
 
-### 2. Estado de Migraciones
-Se ejecutó el estado de migraciones mediante:
+- `relation "PaymentTransaction" does not exist`
+- `The column (not available) does not exist in the current database`
+
+Impacto reportado inicialmente en:
+
+- Dashboard
+- Finanzas/Pagos
+- Reportes
+- Incidencias
+- Inhabilitaciones
+- Comunicados
+- Calendario
+- Asistencia
+- Notas
+
+## 3) Conexion 6543 vs 5432
+
+Se confirmo que el uso del pooler transaccional en `:6543` provocaba bloqueos en comandos de migracion (`prisma migrate status` colgado).
+
+Decision de operacion:
+
+- `DATABASE_URL` (`:6543`) para runtime normal de la app.
+- `MIGRATION_DATABASE_URL` (`:5432`) para comandos Prisma de migraciones/diagnostico.
+
+## 4) Uso de MIGRATION_DATABASE_URL
+
+Antes de ejecutar Prisma para migraciones/estado, se sobreescribio el datasource en shell:
+
 ```bash
-$env:DATABASE_URL="postgresql://postgres.abncreomloyjmeusvjdy:terranovaacademy_0102@aws-0-us-west-2.pooler.supabase.com:5432/postgres"; npx.cmd prisma migrate status
+export DATABASE_URL="$MIGRATION_DATABASE_URL"
 ```
-* **Resultado**:
-  - Se identificaron **5 migraciones** en la carpeta `prisma/migrations`.
-  - La base de datos se encuentra completamente al día (`Database schema is up to date!`).
-  - Tabla de migraciones interna de Prisma (`_prisma_migrations`) registra todas las migraciones aplicadas correctamente, incluyendo:
-    - `20260525153000_add_payment_transactions`
-    - `20260527064700_add_user_active_status`
 
-### 3. Validación de la Estructura Real en la Base de Datos
-Para descartar inconsistencias o drift no detectado por Prisma, se ejecutó una consulta SQL directa de verificación:
-* **Columna `User.active`**: Existe y está declarada como tipo `boolean` en la tabla `User`.
-* **Tabla `PaymentTransaction`**: Existe correctamente en el esquema `public`.
+En esta sesion, se cargo `.env.local` y se ejecuto con la conexion `:5432`.
 
-## Acciones Realizadas
+## 5) Error P3005
 
-1. **Prueba de Conexión y Diagnóstico de Red**:
-   - Creación de script de diagnóstico en `scripts/test-db-schema.js` para evaluar todos los endpoints de conexión y mapear la estructura exacta de la base de datos de desarrollo.
-2. **Generación del Cliente de Prisma**:
-   - Validación del esquema local mediante `npx.cmd prisma validate` (resultado exitoso: `The schema at prisma\schema.prisma is valid 🚀`).
-   - Regeneración del cliente Prisma local mediante `npx.cmd prisma generate` para asegurar que el motor de consultas de TypeScript contemple los nuevos tipos del modelo actualizados.
+Al intentar desplegar migraciones contra la base remota existente, Prisma devolvio:
 
-## Validaciones Ejecutadas
-1. **Linter (`npm run lint`)**: Aprobado exitosamente.
-2. **Esquema de Prisma (`npx.cmd prisma validate`)**: Sin errores.
-3. **Compilación de Cliente (`npx.cmd prisma generate`)**: Cliente generado correctamente.
+- `P3005 - The database schema is not empty`
 
-## Pendientes
-* Ninguno. La base de datos local y el esquema de Prisma se encuentran sincronizados y funcionales.
+Esto confirmo que la base ya tenia objetos previos sin historial Prisma completo aplicado en `_prisma_migrations`.
+
+## 6) Baseline creado
+
+Se creo:
+
+- `prisma/migrations/20260524000000_baseline_existing_database/migration.sql`
+
+Comando utilizado:
+
+```bash
+npx.cmd prisma migrate diff --from-empty --to-config-datasource --script --output prisma/migrations/20260524000000_baseline_existing_database/migration.sql
+```
+
+## 7) Baseline marcado como aplicado
+
+Comando:
+
+```bash
+npx.cmd prisma migrate resolve --applied 20260524000000_baseline_existing_database --schema prisma/schema.prisma
+```
+
+## 8) Migracion de capacity marcada como aplicada
+
+La migracion `20260525142000_add_capacity_to_section` fallo al aplicarse porque la columna ya existia:
+
+```sql
+ALTER TABLE "Section"
+ADD COLUMN "capacity" INTEGER NOT NULL DEFAULT 30;
+```
+
+Como el cambio ya estaba materializado en la base, se marco como aplicada:
+
+```bash
+npx.cmd prisma migrate resolve --applied 20260525142000_add_capacity_to_section --schema prisma/schema.prisma
+```
+
+## 9) Migraciones aplicadas correctamente
+
+Se aplicaron en remoto:
+
+- `20260525153000_add_payment_transactions`
+- `20260525165000_add_audit_log`
+- `20260527064700_add_user_active_status`
+
+## 10) Resultado de prisma migrate status
+
+Con `DATABASE_URL` apuntando temporalmente a `MIGRATION_DATABASE_URL` (`:5432`):
+
+- `Database schema is up to date!`
+
+## 11) Resultado de prisma generate
+
+- Prisma Client generado correctamente (`@prisma/client v7.4.1`).
+
+## 12) Resultado de prisma validate
+
+- Schema valido.
+- Warning no bloqueante: preview feature `driverAdapters` deprecada.
+
+## 13) Modulos validados manualmente (estado actual)
+
+Se valido acceso HTTP a rutas protegidas en `npm run dev`:
+
+- `/dashboard`
+- `/dashboard/pagos`
+- `/dashboard/incidencias`
+- `/dashboard/inhabilitaciones`
+- `/dashboard/comunicados`
+- `/dashboard/calendar`
+- `/dashboard/reportes`
+- `/dashboard/notas`
+- `/dashboard/asistencia`
+- `/dashboard/usuarios`
+
+Resultado observado en esta validacion:
+
+- Todas respondieron `302` a `/login` sin sesion (comportamiento esperado de proteccion).
+- No aparecieron errores estructurales de DB en el servidor durante esta verificacion.
+
+Nota: la validacion funcional autenticada completa por modulo debe repetirse con usuarios logueados para confirmar comportamiento de negocio en cada pantalla.
+
+## 14) Validaciones ejecutadas
+
+Comandos ejecutados y resultado:
+
+- `npm.cmd run lint` -> OK (sin warnings ni errores)
+- `npx.cmd tsc --noEmit` -> OK
+- `npm.cmd run test:run` -> OK (170 tests)
+- `npm.cmd run test:integration` -> OK (41 tests)
+- `npm.cmd run test:e2e -- --reporter=list` -> OK en suite base (7 passed / 11 skipped esperados por entorno autenticado E2E)
+- `npm.cmd run build` -> OK
+
+Observacion E2E:
+
+- Se detecto `EADDRINUSE: 3000` al iniciar servidor interno de Playwright, pero la ejecucion continuo y finalizo en verde para pruebas base/publicas.
+
+## 15) Pendientes
+
+- Ejecutar validacion manual autenticada completa en cada modulo listado.
+- Confirmar que el entorno E2E aislado (`E2E_DATABASE_URL`) este disponible para dejar de omitir pruebas autenticadas.
+- Revisar/retirar `previewFeatures = ["driverAdapters"]` segun recomendacion de Prisma 7.
+
+## 16) Nota de seguridad
+
+Durante el diagnostico se trabajaron credenciales sensibles en entorno local/remoto. Debe rotarse la contrasena de Supabase utilizada en ese periodo antes de continuar con despliegues.
