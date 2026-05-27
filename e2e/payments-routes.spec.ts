@@ -34,10 +34,19 @@ test.describe("rutas basicas de pagos", () => {
 
     await page.goto("/dashboard/matriculas");
     await expect(page.getByText(/e2e/i).first()).toBeVisible();
-    await page.getByTitle(/ver detalle/i).first().click();
+    await page.getByTitle(/ver detalle de matr/i).first().click();
 
     await expect(page).toHaveURL(/\/dashboard\/matriculas\/.+/);
-    await page.getByRole("link", { name: /historial de pagos/i }).click();
+    await expect(
+      page.getByRole("heading", { name: /detalle de matr[ií]cula/i }),
+    ).toBeVisible();
+
+    const paymentHistoryLink = page
+      .getByRole("link", { name: /historial de pagos/i })
+      .first();
+    await expect(paymentHistoryLink).toBeVisible();
+    await paymentHistoryLink.click();
+
     await expect(page).toHaveURL(/\/dashboard\/pagos\/.+/);
     await expect(page.getByText(/cronograma|historial|pagos/i).first()).toBeVisible();
   });

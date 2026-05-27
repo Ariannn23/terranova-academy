@@ -62,7 +62,7 @@ export function PageHeader({
       </div>
 
       {/* Action Area (e.g. Buttons) */}
-      {action && <div className="flex shrink-0">{action}</div>}
+      {action && <div className="flex shrink-0 flex-wrap">{action}</div>}
     </div>
   );
 }

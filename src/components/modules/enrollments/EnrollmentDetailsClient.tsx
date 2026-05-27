@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, GraduationCap, CalendarCheck, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { EnrollmentData } from "./types";
 import { EnrollmentHeroCard } from "./_components/EnrollmentHeroCard";
@@ -32,25 +33,34 @@ export function EnrollmentDetailsClient({
         title="Detalle de Matrícula"
         description="Información académica y estado de cuenta del estudiante."
         action={
-          <div className="flex gap-2">
-            <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
-              <Link href={`/dashboard/notas/${enrollment.id}`}>
-                <GraduationCap className="h-4 w-4 mr-2" />
-                Ver Libreta de Notas
-              </Link>
-            </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700" asChild>
-              <Link href={`/dashboard/asistencia/${enrollment.id}`}>
-                <CalendarCheck className="h-4 w-4 mr-2" />
-                Ver Asistencias
-              </Link>
-            </Button>
-            <Button variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50" asChild>
-              <Link href={`/dashboard/pagos/${enrollment.id}`}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Historial de Pagos
-              </Link>
-            </Button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/dashboard/notas/${enrollment.id}`}
+              className={cn(
+                buttonVariants(),
+                "bg-emerald-600 hover:bg-emerald-700",
+              )}
+            >
+              <GraduationCap className="h-4 w-4" />
+              Ver Libreta de Notas
+            </Link>
+            <Link
+              href={`/dashboard/asistencia/${enrollment.id}`}
+              className={cn(buttonVariants(), "bg-blue-600 hover:bg-blue-700")}
+            >
+              <CalendarCheck className="h-4 w-4" />
+              Ver Asistencias
+            </Link>
+            <Link
+              href={`/dashboard/pagos/${enrollment.id}`}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "border-emerald-200 text-emerald-700 hover:bg-emerald-50",
+              )}
+            >
+              <CreditCard className="h-4 w-4" />
+              Historial de pagos
+            </Link>
           </div>
         }
       />

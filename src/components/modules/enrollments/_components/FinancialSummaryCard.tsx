@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,11 +73,17 @@ export function FinancialSummaryCard({ enrollment }: { enrollment: EnrollmentDat
 
   return (
     <Card className="border-slate-200 shadow-sm md:col-span-2">
-      <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+      <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between gap-3">
         <CardTitle className="text-lg font-medium flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-emerald-600" />
           Estado de Cuenta
         </CardTitle>
+        <Link
+          href={`/dashboard/pagos/${enrollment.id}`}
+          className="text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline shrink-0"
+        >
+          Historial de pagos
+        </Link>
       </CardHeader>
       <CardContent className="pt-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
