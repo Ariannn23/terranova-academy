@@ -7,6 +7,8 @@ import {
   getUpcomingPayments,
 } from "@/lib/actions/dashboard.actions";
 import { getFinancialReport } from "@/lib/actions/payment.actions";
+import { REPORT_PERMISSIONS } from "@/lib/report-permissions";
+import { hasAllowedRole } from "@/lib/rbac";
 
 import { auth } from "@/lib/auth";
 import { KPICard } from "@/components/modules/dashboard/KPICard";
@@ -26,6 +28,10 @@ export default async function DashboardPage() {
   const session = await auth();
   const userRole = (session?.user as { role?: string })?.role;
   const currentYear = new Date().getFullYear();
+  const canViewFinancialReport = hasAllowedRole(
+    userRole,
+    REPORT_PERMISSIONS.financial,
+  );
 
   const [
     financialRes,
@@ -40,7 +46,9 @@ export default async function DashboardPage() {
     getCriticalAttendance(),
     getPriorityAlerts(),
     getUpcomingPayments(),
-    getFinancialReport(currentYear),
+    canViewFinancialReport
+      ? getFinancialReport(currentYear)
+      : Promise.resolve({ success: true as const, data: [] }),
   ]);
 
   const financials =

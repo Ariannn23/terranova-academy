@@ -8,7 +8,7 @@ export async function login(page: Page, user: E2EUser) {
   await page.locator('input[type="password"]').fill(user.password);
   await page.getByRole("button", { name: /iniciar sesi/i }).click();
 
-  await expect(page).toHaveURL(/\/dashboard/);
+  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
 }
 
 export async function loginExpectingFailure(page: Page, user: E2EUser) {

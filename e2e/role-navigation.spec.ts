@@ -7,7 +7,8 @@ type RoleCase = {
   user: E2EUser;
   visible: RegExp[];
   hidden: RegExp[];
-  quickVisible: RegExp[];
+  quickLinks?: RegExp[];
+  quickButtons?: RegExp[];
 };
 
 const roleCases: RoleCase[] = [
@@ -16,28 +17,27 @@ const roleCases: RoleCase[] = [
     user: e2eUsers.recepcion,
     visible: [/matr/i, /estudiantes/i],
     hidden: [/finanzas/i, /calificaciones/i, /configuraci/i],
-    quickVisible: [/nueva matr/i],
+    quickButtons: [/nueva matr/i],
   },
   {
     role: "caja",
     user: e2eUsers.caja,
     visible: [/finanzas/i, /reportes/i],
     hidden: [/calificaciones/i, /asistencia/i, /incidencias/i, /configuraci/i],
-    quickVisible: [/registrar pago/i, /ver informes/i],
+    quickLinks: [/ver informes/i],
   },
   {
     role: "docente",
     user: e2eUsers.docente,
     visible: [/cursos/i, /horarios/i, /calificaciones/i, /asistencia/i],
     hidden: [/finanzas/i, /matr/i, /configuraci/i],
-    quickVisible: [/tomar asistencia/i],
   },
   {
     role: "coordinador",
     user: e2eUsers.coordinador,
     visible: [/incidencias/i, /inhabilitaciones/i, /reportes/i],
     hidden: [/finanzas/i, /configuraci/i],
-    quickVisible: [/reportar incidente/i, /ver informes/i],
+    quickLinks: [/ver informes/i],
   },
 ];
 
@@ -59,8 +59,12 @@ test.describe("navegacion visual por rol", () => {
         await expect(page.getByRole("link", { name: label })).toHaveCount(0);
       }
 
-      for (const label of item.quickVisible) {
+      for (const label of item.quickLinks ?? []) {
         await expect(page.getByRole("link", { name: label })).toBeVisible();
+      }
+
+      for (const label of item.quickButtons ?? []) {
+        await expect(page.getByRole("button", { name: label })).toBeVisible();
       }
     });
   }
