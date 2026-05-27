@@ -9,7 +9,6 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   Clock,
-  MapPin,
 } from "lucide-react";
 import { CalendarModal } from "./CalendarModal";
 import { format, isSameDay } from "date-fns";
@@ -18,24 +17,27 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { deleteCalendarEvent } from "@/lib/actions/calendar.actions";
 import { useRouter } from "next/navigation";
+import type { CalendarEventView, CalendarEventsByMonth } from "@/types/calendar";
 
 export function CalendarClient({
   initialData,
   academicYearId,
 }: {
-  initialData: any[];
+  initialData: CalendarEventView[];
   academicYearId: string;
 }) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [eventToEdit, setEventToEdit] = useState<any>(null);
+  const [eventToEdit, setEventToEdit] = useState<CalendarEventView | null>(
+    null,
+  );
 
   const openNewEventModal = () => {
     setEventToEdit(null);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (event: any) => {
+  const openEditModal = (event: CalendarEventView) => {
     setEventToEdit(event);
     setIsModalOpen(true);
   };
@@ -87,14 +89,17 @@ export function CalendarClient({
   };
 
   // Agrupar eventos por Mes
-  const groupedEvents = initialData.reduce((acc: any, event) => {
+  const groupedEvents = initialData.reduce<CalendarEventsByMonth>((acc, event) => {
     const monthYear = format(new Date(event.date), "MMMM yyyy", { locale: es });
     if (!acc[monthYear]) acc[monthYear] = [];
     acc[monthYear].push(event);
     return acc;
   }, {});
 
-  const formatEventDate = (dateStr: string, endDateStr?: string | null) => {
+  const formatEventDate = (
+    dateStr: Date | string,
+    endDateStr?: Date | string | null,
+  ) => {
     const start = new Date(dateStr);
     if (!endDateStr) return format(start, "d 'de' MMMM", { locale: es });
 
@@ -136,7 +141,7 @@ export function CalendarClient({
       ) : (
         <div className="space-y-8">
           {Object.entries(groupedEvents).map(
-            ([month, events]: [string, any]) => (
+            ([month, events]) => (
               <div key={month} className="space-y-4">
                 <h3 className="text-xl font-bold text-slate-800 capitalize border-b pb-2 flex items-center gap-2">
                   <CalendarIcon className="w-5 h-5 text-slate-400" />
@@ -144,7 +149,7 @@ export function CalendarClient({
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {events.map((event: any) => {
+                  {events.map((event) => {
                     const style = getEventStyle(event.type);
                     return (
                       <div

@@ -5,10 +5,19 @@ import {
   Text,
   View,
   StyleSheet,
-  Font,
 } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
+import type { PdfAcademicYear, PdfSection, PdfStudent } from "@/types/pdf";
+
+type GradeReportRow = {
+  courseName: string;
+  p1?: number | null;
+  p2?: number | null;
+  p3?: number | null;
+  p4?: number | null;
+  final?: number | null;
+};
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
@@ -74,10 +83,10 @@ export const GradeReportPDF = ({
   academicYear,
   grades,
 }: {
-  student: any;
-  section: any;
-  academicYear: any;
-  grades: any[];
+  student: PdfStudent;
+  section: PdfSection;
+  academicYear: PdfAcademicYear;
+  grades: GradeReportRow[];
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>

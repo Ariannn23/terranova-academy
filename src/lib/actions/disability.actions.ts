@@ -6,10 +6,23 @@ import {
   DisabilitySchema,
   ResolveDisabilitySchema,
 } from "@/lib/validations/incident.schema";
-import { StudentStatus } from "@prisma/client";
+import { Prisma, StudentStatus } from "@prisma/client";
 import { calculateStudentStatus } from "@/lib/utils/student-status";
 import { getStudentGrades } from "@/lib/actions/grade.actions";
 import { getAttendanceStats } from "@/lib/actions/attendance.actions";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
+
+type DisabilityGradeRecord = {
+  courseId: string;
+  period: string;
+  score: number | null;
+};
+
+function getDisabilityErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 // ==========================================
 // ACCIONES DE INHABILITACIONES / SUSPENSIONES
@@ -17,7 +30,9 @@ import { getAttendanceStats } from "@/lib/actions/attendance.actions";
 
 export async function getActiveDisabilities(sectionId?: string) {
   try {
-    const whereClause: any = { active: true };
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
+    const whereClause: Prisma.DisabilityRecordWhereInput = { active: true };
     if (sectionId) {
       whereClause.enrollment = { sectionId };
     }
@@ -52,6 +67,8 @@ export async function getActiveDisabilities(sectionId?: string) {
 
 export async function getDisabilitiesByEnrollment(enrollmentId: string) {
   try {
+    await requireAuth();
+
     const disabilities = await prisma.disabilityRecord.findMany({
       where: { enrollmentId },
       orderBy: { startDate: "desc" },
@@ -67,10 +84,22 @@ export async function getDisabilitiesByEnrollment(enrollmentId: string) {
 }
 
 export async function createDisability(data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = DisabilitySchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
+    const targetEnrollment = await prisma.enrollment.findUnique({
+      where: { id: parsed.data.enrollmentId },
+      select: {
+        id: true,
+        active: true,
+        studentId: true,
+        student: { select: { status: true } },
+      },
+    });
+
     const result = await prisma.$transaction(async (tx) => {
       // 1. Verificar si ya hay una activa
       const current = await tx.disabilityRecord.findFirst({
@@ -112,17 +141,42 @@ export async function createDisability(data: unknown) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${result.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.DISABILITY,
+      entityId: result.id,
+      oldValue: {
+        enrollmentActive: targetEnrollment?.active,
+        studentStatus: targetEnrollment?.student.status,
+      },
+      newValue: {
+        enrollmentId: result.enrollmentId,
+        studentId: result.enrollment.studentId,
+        reason: result.reason,
+        active: result.active,
+        studentStatus: result.enrollment.student.status,
+      },
+      metadata: {
+        module: "disabilities",
+        operation: "create_disability",
+      },
+    });
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in createDisability:", error);
     return {
       success: false,
-      error: error.message || "Error al inhabilitar estudiante",
+      error: getDisabilityErrorMessage(
+        error,
+        "Error al inhabilitar estudiante",
+      ),
     };
   }
 }
 
 export async function resolveDisability(data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = ResolveDisabilitySchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
@@ -132,7 +186,7 @@ export async function resolveDisability(data: unknown) {
     // 1. Obtener la inhabilitación para saber el enrollmentId
     const currentDisability = await prisma.disabilityRecord.findUnique({
       where: { id },
-      include: { enrollment: true },
+      include: { enrollment: { include: { student: true } } },
     });
 
     if (!currentDisability) {
@@ -146,10 +200,12 @@ export async function resolveDisability(data: unknown) {
     ]);
 
     // 3. Calcular estatus
+    const gradeRecords: DisabilityGradeRecord[] =
+      gradesRes.success && gradesRes.data ? gradesRes.data : [];
+
     const failingCoursesCount = gradesRes.success
-      ? (gradesRes.data || []).filter(
-          (g: any) => g.period === "FINAL" && (g.score || 0) < 11,
-        ).length
+      ? gradeRecords.filter((g) => g.period === "FINAL" && (g.score || 0) < 11)
+          .length
       : 0;
 
     const attendancePercentage = attendanceRes.success
@@ -157,21 +213,19 @@ export async function resolveDisability(data: unknown) {
       : 100;
 
     const totalCoursesCount = gradesRes.success
-      ? new Set((gradesRes.data || []).map((g: any) => g.courseId)).size || 1
+      ? new Set(gradeRecords.map((g) => g.courseId)).size || 1
       : 1;
 
     const finalGrades = gradesRes.success
-      ? (gradesRes.data || []).filter(
-          (g: any) => g.period === "FINAL" && typeof g.score === "number",
+      ? gradeRecords.filter(
+          (g) => g.period === "FINAL" && typeof g.score === "number",
         )
       : [];
 
     const averageScore =
       finalGrades.length > 0
-        ? finalGrades.reduce(
-            (acc: number, curr: any) => acc + (curr.score || 0),
-            0,
-          ) / finalGrades.length
+        ? finalGrades.reduce((acc, curr) => acc + (curr.score || 0), 0) /
+          finalGrades.length
         : 20;
 
     const newStatus = calculateStudentStatus(
@@ -214,12 +268,38 @@ export async function resolveDisability(data: unknown) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${result.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.DISABILITY,
+      entityId: result.id,
+      oldValue: {
+        active: currentDisability.active,
+        studentStatus: currentDisability.enrollment.student.status,
+        enrollmentActive: currentDisability.enrollment.active,
+      },
+      newValue: {
+        active: result.active,
+        resolvedAt: result.resolvedAt,
+        studentStatus: result.enrollment.student.status,
+        enrollmentActive: result.enrollment.active,
+      },
+      metadata: {
+        module: "disabilities",
+        operation: "resolve_disability",
+        enrollmentId: result.enrollmentId,
+        studentId: result.enrollment.studentId,
+        reason: result.reason,
+      },
+    });
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in resolveDisability:", error);
     return {
       success: false,
-      error: error.message || "Error al resolver la inhabilitación",
+      error: getDisabilityErrorMessage(
+        error,
+        "Error al resolver la inhabilitación",
+      ),
     };
   }
 }

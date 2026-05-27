@@ -3,7 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { IncidentSchema } from "@/lib/validations/incident.schema";
-import { IncidentSeverity } from "@prisma/client";
+import { IncidentSeverity, Prisma } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 // ==========================================
 // ACCIONES DE INCIDENCIAS (Comportamiento)
@@ -11,6 +14,8 @@ import { IncidentSeverity } from "@prisma/client";
 
 export async function getIncidentById(id: string) {
   try {
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
     const incident = await prisma.incident.findUnique({
       where: { id },
       include: {
@@ -28,7 +33,7 @@ export async function getIncidentById(id: string) {
     if (!incident) return { success: false, error: "Incidencia no encontrada" };
 
     return { success: true, data: incident };
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: "Error al obtener el detalle de la incidencia",
@@ -43,17 +48,22 @@ export async function getIncidents(filters?: {
   endDate?: Date;
 }) {
   try {
-    const whereClause: any = {};
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
+    const whereClause: Prisma.IncidentWhereInput = {};
+
+    const enrollmentWhere: Prisma.EnrollmentWhereInput = {};
 
     if (filters?.sectionId) {
-      whereClause.enrollment = { sectionId: filters.sectionId };
+      enrollmentWhere.sectionId = filters.sectionId;
     }
 
     if (filters?.studentDni) {
-      whereClause.enrollment = {
-        ...whereClause.enrollment,
-        student: { dni: { contains: filters.studentDni } },
-      };
+      enrollmentWhere.student = { dni: { contains: filters.studentDni } };
+    }
+
+    if (filters?.sectionId || filters?.studentDni) {
+      whereClause.enrollment = enrollmentWhere;
     }
 
     if (filters?.severity) {
@@ -93,6 +103,8 @@ export async function getIncidents(filters?: {
 
 export async function getIncidentsByEnrollment(enrollmentId: string) {
   try {
+    await requireAuth();
+
     const incidents = await prisma.incident.findMany({
       where: { enrollmentId },
       orderBy: { date: "desc" },
@@ -108,6 +120,8 @@ export async function getIncidentsByEnrollment(enrollmentId: string) {
 }
 
 export async function createIncident(data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = IncidentSchema.safeParse(data);
   if (!parsed.success) {
     const messages = parsed.error.errors.map((e) => e.message).join(", ");
@@ -135,6 +149,22 @@ export async function createIncident(data: unknown) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.INCIDENT,
+      entityId: incident.id,
+      newValue: {
+        enrollmentId: incident.enrollmentId,
+        date: incident.date,
+        severity: incident.severity,
+        description: incident.description,
+        action: incident.action,
+      },
+      metadata: {
+        module: "incidents",
+        severity: incident.severity,
+      },
+    });
     return { success: true, data: incident };
   } catch (error) {
     console.error("Error in createIncident:", error);
@@ -143,10 +173,24 @@ export async function createIncident(data: unknown) {
 }
 
 export async function updateIncident(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.DISCIPLINE);
+
   const parsed = IncidentSchema.partial().safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
+    const oldIncident = await prisma.incident.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        enrollmentId: true,
+        date: true,
+        severity: true,
+        description: true,
+        action: true,
+      },
+    });
+
     const incident = await prisma.incident.update({
       where: { id },
       data: parsed.data,
@@ -158,8 +202,24 @@ export async function updateIncident(id: string, data: unknown) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.INCIDENT,
+      entityId: incident.id,
+      oldValue: oldIncident,
+      newValue: {
+        enrollmentId: incident.enrollmentId,
+        date: incident.date,
+        severity: incident.severity,
+        description: incident.description,
+        action: incident.action,
+      },
+      metadata: {
+        module: "incidents",
+      },
+    });
     return { success: true, data: incident };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in updateIncident:", error);
     return { success: false, error: "Error al actualizar la incidencia" };
   }
@@ -167,6 +227,8 @@ export async function updateIncident(id: string, data: unknown) {
 
 export async function deleteIncident(id: string) {
   try {
+    await requireRole(ROLE_GROUPS.DISCIPLINE);
+
     const incident = await prisma.incident.delete({
       where: { id },
       include: {
@@ -177,6 +239,21 @@ export async function deleteIncident(id: string) {
     });
 
     revalidatePath(`/dashboard/estudiantes/${incident.enrollment.student.dni}`);
+    await createAuditLog({
+      action: AuditAction.DELETE,
+      entity: AuditEntity.INCIDENT,
+      entityId: incident.id,
+      oldValue: {
+        enrollmentId: incident.enrollmentId,
+        date: incident.date,
+        severity: incident.severity,
+        description: incident.description,
+        action: incident.action,
+      },
+      metadata: {
+        module: "incidents",
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in deleteIncident:", error);

@@ -9,8 +9,13 @@ import { useEnrollmentWizard } from "./hooks/useEnrollmentWizard";
 import { WizardStudentStep } from "./_components/WizardStudentStep";
 import { WizardSectionStep } from "./_components/WizardSectionStep";
 import { WizardConfirmationStep } from "./_components/WizardConfirmationStep";
+import type { EnrollmentWizardInitialData } from "@/types/enrollment";
 
-export function EnrollmentWizard({ initialData }: { initialData: any }) {
+export function EnrollmentWizard({
+  initialData,
+}: {
+  initialData: EnrollmentWizardInitialData;
+}) {
   const {
     step,
     isPending,
@@ -76,6 +81,7 @@ export function EnrollmentWizard({ initialData }: { initialData: any }) {
             sections={sections}
             selectedSection={selectedSection}
             setSelectedSection={setSelectedSection}
+            errorMessage={step === 2 ? errorProp : undefined}
           />
         )}
 
@@ -103,7 +109,8 @@ export function EnrollmentWizard({ initialData }: { initialData: any }) {
             onClick={handleNext}
             disabled={
               (step === 1 && !selectedStudent) ||
-              (step === 2 && !selectedSection)
+              (step === 2 &&
+                (!selectedSection || selectedSection.available <= 0))
             }
           >
             Continuar <ChevronRight className="ml-2 w-4 h-4" />

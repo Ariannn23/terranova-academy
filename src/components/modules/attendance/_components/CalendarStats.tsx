@@ -8,7 +8,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AttendanceStats } from "../types";
 
-export function CalendarStats({ stats }: { stats: AttendanceStats | any }) {
+export function CalendarStats({ stats }: { stats: AttendanceStats | null }) {
   return (
     <Card>
       <CardHeader className="bg-slate-50 border-b pb-4">
@@ -39,20 +39,24 @@ export function CalendarStats({ stats }: { stats: AttendanceStats | any }) {
 
               <div className="flex flex-col items-center justify-center p-4 bg-emerald-50 rounded-lg text-emerald-700 border border-emerald-100">
                 <CheckCircle2 className="w-6 h-6 mb-2 text-emerald-600" />
-                <span className="text-2xl font-bold">{stats.present}</span>
+                <span className="text-2xl font-bold">
+                  {stats.present ?? stats.presente ?? 0}
+                </span>
                 <span className="text-xs uppercase font-semibold">Presente</span>
               </div>
 
               <div className="flex flex-col items-center justify-center p-4 bg-amber-50 rounded-lg text-amber-700 border border-amber-100">
                 <Clock className="w-6 h-6 mb-2 text-amber-500" />
-                <span className="text-2xl font-bold">{stats.late}</span>
+                <span className="text-2xl font-bold">
+                  {stats.late ?? stats.tardanza ?? 0}
+                </span>
                 <span className="text-xs uppercase font-semibold">Tardanza</span>
               </div>
 
               <div className="flex flex-col items-center justify-center p-4 bg-red-50 rounded-lg text-red-700 border border-red-100">
                 <XCircle className="w-6 h-6 mb-2 text-red-500" />
                 <span className="text-2xl font-bold">
-                  {stats.unjustifiedAbsences}
+                  {stats.unjustifiedAbsences ?? stats.injustificada ?? 0}
                 </span>
                 <span className="text-xs uppercase font-semibold text-center">
                   Injustificada
@@ -62,7 +66,7 @@ export function CalendarStats({ stats }: { stats: AttendanceStats | any }) {
               <div className="flex flex-col items-center justify-center p-4 bg-blue-50 rounded-lg text-blue-700 border border-blue-100">
                 <FileText className="w-6 h-6 mb-2 text-blue-500" />
                 <span className="text-2xl font-bold">
-                  {stats.justifiedAbsences}
+                  {stats.justifiedAbsences ?? stats.justificada ?? 0}
                 </span>
                 <span className="text-xs uppercase font-semibold text-center">
                   Justificada

@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { TeacherSchema } from "@/lib/validations/teacher.schema";
 import { Prisma } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 /**
  * Obtener lista de docentes con filtros
@@ -13,6 +16,8 @@ export async function getTeachers(params?: {
   specialty?: string;
   active?: boolean;
 }) {
+  await requireAuth();
+
   const search = params?.search;
   const specialty = params?.specialty;
   const active = params?.active;
@@ -66,6 +71,8 @@ export async function getTeachers(params?: {
  */
 export async function getTeacherById(id: string) {
   try {
+    await requireAuth();
+
     const teacher = await prisma.teacher.findUnique({
       where: { id },
       include: {
@@ -101,6 +108,8 @@ export async function getTeacherById(id: string) {
  * Crear un nuevo docente
  */
 export async function createTeacher(data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = TeacherSchema.safeParse(data);
 
   if (!parsed.success) {
@@ -117,6 +126,19 @@ export async function createTeacher(data: unknown) {
     });
 
     revalidatePath("/dashboard/docentes");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.TEACHER,
+      entityId: teacher.id,
+      newValue: {
+        dni: teacher.dni,
+        firstName: teacher.firstName,
+        lastName: teacher.lastName,
+        email: teacher.email,
+        active: teacher.active,
+      },
+      metadata: { module: "teachers" },
+    });
     return { success: true, data: teacher };
   } catch (error) {
     console.error("Error in createTeacher:", error);
@@ -136,6 +158,8 @@ export async function createTeacher(data: unknown) {
  * Actualizar datos de un docente
  */
 export async function updateTeacher(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = TeacherSchema.partial().safeParse(data);
 
   if (!parsed.success) {
@@ -147,6 +171,19 @@ export async function updateTeacher(id: string, data: unknown) {
   }
 
   try {
+    const oldTeacher = await prisma.teacher.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        dni: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        specialty: true,
+        active: true,
+      },
+    });
+
     const teacher = await prisma.teacher.update({
       where: { id },
       data: parsed.data,
@@ -154,6 +191,21 @@ export async function updateTeacher(id: string, data: unknown) {
 
     revalidatePath("/dashboard/docentes");
     revalidatePath(`/dashboard/docentes/${id}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.TEACHER,
+      entityId: teacher.id,
+      oldValue: oldTeacher,
+      newValue: {
+        dni: teacher.dni,
+        firstName: teacher.firstName,
+        lastName: teacher.lastName,
+        email: teacher.email,
+        specialty: teacher.specialty,
+        active: teacher.active,
+      },
+      metadata: { module: "teachers" },
+    });
     return { success: true, data: teacher };
   } catch (error) {
     console.error("Error in updateTeacher:", error);
@@ -166,12 +218,24 @@ export async function updateTeacher(id: string, data: unknown) {
  */
 export async function toggleTeacherStatus(id: string, active: boolean) {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     const teacher = await prisma.teacher.update({
       where: { id },
       data: { active },
     });
 
     revalidatePath("/dashboard/docentes");
+    await createAuditLog({
+      action: AuditAction.CHANGE_STATUS,
+      entity: AuditEntity.TEACHER,
+      entityId: teacher.id,
+      newValue: { active: teacher.active },
+      metadata: {
+        module: "teachers",
+        operation: "toggle_teacher_status",
+      },
+    });
     return { success: true, data: teacher };
   } catch (error) {
     console.error("Error in toggleTeacherStatus:", error);

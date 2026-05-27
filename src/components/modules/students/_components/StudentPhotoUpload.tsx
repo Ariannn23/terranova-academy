@@ -1,6 +1,7 @@
 "use client";
 
 import { Camera, X } from "lucide-react";
+import Image from "next/image";
 
 interface StudentPhotoUploadProps {
   fileInputRef: React.RefObject<HTMLInputElement>;
@@ -41,9 +42,11 @@ export function StudentPhotoUpload({
       >
         {previewUrl ? (
           <div className="relative w-32 h-32 mb-2">
-            <img
+            <Image
               src={previewUrl}
               alt="Preview"
+              fill
+              unoptimized
               className="w-full h-full rounded-full object-cover border-4 border-white shadow-sm"
             />
           </div>

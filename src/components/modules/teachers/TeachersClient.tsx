@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,29 +13,39 @@ import {
 } from "@/components/ui/card";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
 import { Badge } from "@/components/ui/badge";
-import { updateTeacher } from "@/lib/actions/teacher.actions";
-import { toast } from "sonner";
+import { useTeachersDirectory } from "./hooks/useTeachersDirectory";
 
-export function TeachersClient({ initialData }: { initialData: any[] }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
-
-  const filteredTeachers = initialData.filter((t) =>
-    `${t.firstName} ${t.lastName} ${t.dni} ${t.specialty || ""}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase()),
-  );
-
-  const handleEdit = (teacher: any) => {
-    setSelectedTeacher(teacher);
-    setIsFormOpen(true);
+type TeacherRow = {
+  id: string;
+  dni: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  specialty?: string | null;
+  photoUrl?: string | null;
+  active: boolean;
+  _count?: {
+    sections?: number;
+    schedules?: number;
   };
+};
 
-  const handleCreate = () => {
-    setSelectedTeacher(null);
-    setIsFormOpen(true);
-  };
+export function TeachersClient({
+  initialData,
+}: {
+  initialData: TeacherRow[];
+}) {
+  const {
+    searchTerm,
+    setSearchTerm,
+    filteredTeachers,
+    isFormOpen,
+    setIsFormOpen,
+    selectedTeacher,
+    handleEdit,
+    handleCreate,
+  } = useTeachersDirectory(initialData);
 
   return (
     <div className="space-y-6">

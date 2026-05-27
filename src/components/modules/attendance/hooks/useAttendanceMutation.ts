@@ -54,7 +54,7 @@ export function useAttendanceMutation(
       } else {
         toast.error("Error al guardar asistencia", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Ocurrió un error inesperado", { id: toastId });
     } finally {
       setIsSaving(false);

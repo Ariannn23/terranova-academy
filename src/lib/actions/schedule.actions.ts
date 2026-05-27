@@ -2,9 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
 
 export async function getSectionSchedule(sectionId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // Fetch section and active teachers in parallel.
     // ⚠️ include: { teacher: true } inside schedules causes Prisma to generate
     //    SELECT FROM "Teacher" WHERE id IN (...) — which returns null entries when
@@ -36,7 +40,7 @@ export async function getSectionSchedule(sectionId: string) {
     const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
     // Attach teacher to each schedule block (null-safe)
-    const schedulesWithTeacher = section.schedules.map((s: any) => ({
+    const schedulesWithTeacher = section.schedules.map((s) => ({
       ...s,
       teacher: s.teacherId ? (teacherMap.get(s.teacherId) ?? null) : null,
     }));
@@ -67,6 +71,8 @@ export async function checkTeacherConflict(
   endTime: string,
   currentScheduleId?: string,
 ) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parseTime = (timeStr: string) => {
     const [h, m] = timeStr.split(":").map(Number);
     return h * 60 + m;
@@ -112,6 +118,8 @@ export async function saveScheduleBlock(data: {
   endTime: string;
 }) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // 1. Conflict Check
     const conflict = await checkTeacherConflict(
       data.teacherId,
@@ -164,6 +172,8 @@ export async function saveScheduleBlock(data: {
 
 export async function deleteScheduleBlock(id: string, sectionId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     await prisma.schedule.delete({ where: { id } });
     revalidatePath(`/dashboard/horarios/${sectionId}/editar`);
     return { success: true };
@@ -175,6 +185,8 @@ export async function deleteScheduleBlock(id: string, sectionId: string) {
 
 export async function getActiveSectionsForSchedules() {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const activeYear = await prisma.academicYear.findFirst({
       where: { active: true },
       select: { id: true },

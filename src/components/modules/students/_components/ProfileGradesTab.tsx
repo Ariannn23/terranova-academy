@@ -1,10 +1,20 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { PERIOD_LABELS } from "@/lib/utils/student.utils";
+import type { StudentCourseGradesView, StudentGradeView } from "@/types/student";
 
 interface ProfileGradesTabProps {
-  gradesByCourse: Record<string, { courseName: string; grades: any[] }>;
+  gradesByCourse: Record<
+    string,
+    {
+      courseName: string;
+      grades: Array<{
+        period: string;
+        score: number | null;
+        isConfigured?: boolean;
+      }>;
+    }
+  >;
 }
 
 export function ProfileGradesTab({ gradesByCourse }: ProfileGradesTabProps) {
@@ -36,13 +46,14 @@ export function ProfileGradesTab({ gradesByCourse }: ProfileGradesTabProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {courses.map((c: any) => {
+              {courses.map((c: StudentCourseGradesView) => {
                 const getGrade = (period: string) =>
-                  c.grades.find((g: any) => g.period === period);
+                  c.grades.find((g: StudentGradeView) => g.period === period);
 
                 const finalGrade = getGrade("FINAL");
-                const hasFinal = finalGrade && finalGrade.score !== null;
-                const isFinalFailed = hasFinal && finalGrade.score < 11;
+                const finalScore = finalGrade?.score;
+                const hasFinal = finalScore !== null && finalScore !== undefined;
+                const isFinalFailed = hasFinal && finalScore < 11;
 
                 return (
                   <tr key={c.courseName} className="hover:bg-slate-50">
@@ -54,16 +65,18 @@ export function ProfileGradesTab({ gradesByCourse }: ProfileGradesTabProps) {
                     </td>
                     {["P1", "P2", "P3", "P4"].map((p) => {
                       const grade = getGrade(p);
-                      const isFailed = grade?.score !== null && grade?.score < 11;
+                      const score = grade?.score;
+                      const isFailed =
+                        score !== null && score !== undefined && score < 11;
                       return (
                         <td key={p} className="px-4 py-3 text-center">
-                          {grade?.score !== null && grade?.score !== undefined ? (
+                          {score !== null && score !== undefined ? (
                             <span
                               className={`font-mono text-sm ${
                                 isFailed ? "text-red-600 font-bold" : "text-slate-700 font-medium"
                               }`}
                             >
-                              {grade.score.toString().padStart(2, "0")}
+                              {score.toString().padStart(2, "0")}
                             </span>
                           ) : (
                             <span className="text-slate-300">-</span>
@@ -82,7 +95,7 @@ export function ProfileGradesTab({ gradesByCourse }: ProfileGradesTabProps) {
                               : "bg-emerald-50 text-emerald-700 border-emerald-200"
                           }`}
                         >
-                          {finalGrade.score.toString().padStart(2, "0")}
+                          {finalScore.toString().padStart(2, "0")}
                         </Badge>
                       ) : (
                         <span className="text-slate-400 font-normal">-</span>

@@ -2,9 +2,13 @@ import { StudentProfileResult } from "@/lib/actions/student.actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, Calendar } from "lucide-react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 export function ProfilePersonalTab({ student }: { student: StudentProfileResult }) {
+  const medicalInfo =
+    "medicalInfo" in student && typeof student.medicalInfo === "string"
+      ? student.medicalInfo
+      : null;
+
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
@@ -55,7 +59,7 @@ export function ProfilePersonalTab({ student }: { student: StudentProfileResult 
           <div>
             <p className="text-xs text-slate-400 mb-1">Dato Médico / Alergias</p>
             <p className="font-medium text-slate-900">
-              {(student as any).medicalInfo || "Ninguno"}
+              {medicalInfo || "Ninguno"}
             </p>
           </div>
         </div>

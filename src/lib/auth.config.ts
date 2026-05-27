@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { normalizeRole } from "@/lib/rbac";
 
 // auth.config.ts — Configuración base compatible con Edge Runtime
 // No importar prisma ni bcrypt aquí.
@@ -9,7 +10,7 @@ export const authConfig = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as { role?: string }).role;
+        token.role = normalizeRole((user as { role?: string }).role) ?? undefined;
       }
       return token;
     },

@@ -1,5 +1,6 @@
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
+import type { PdfEnrollment, PdfScheduleRecord } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: {
@@ -141,7 +142,13 @@ const styles = StyleSheet.create({
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
-export const ScheduleReportPDF = ({ enrollment, schedules }: { enrollment: any; schedules: any[] }) => {
+export const ScheduleReportPDF = ({
+  enrollment,
+  schedules,
+}: {
+  enrollment: PdfEnrollment;
+  schedules: PdfScheduleRecord[];
+}) => {
   // Extract unique time slots
   const timeSlotsSet = new Set<string>();
   schedules.forEach((s) => {
@@ -161,7 +168,7 @@ export const ScheduleReportPDF = ({ enrollment, schedules }: { enrollment: any; 
           <View>
             <Text style={styles.headerTitle}>Horario de Clases Semanal</Text>
             <Text style={styles.headerSubtitle}>
-              Año Académico {enrollment.section.academicYear.year}
+              Año Académico {enrollment.section.academicYear?.year}
             </Text>
           </View>
           <View>
@@ -180,7 +187,7 @@ export const ScheduleReportPDF = ({ enrollment, schedules }: { enrollment: any; 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Grado y Sección:</Text>
             <Text style={styles.infoValue}>
-              {enrollment.section.gradeLevel.name} - Sección "{enrollment.section.name}" ({enrollment.section.gradeLevel.level})
+              {enrollment.section.gradeLevel.name} - Sección &quot;{enrollment.section.name}&quot; ({enrollment.section.gradeLevel.level})
             </Text>
           </View>
         </View>

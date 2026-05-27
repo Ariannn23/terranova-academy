@@ -14,7 +14,7 @@ export function ProfileGuardiansTab({ student }: { student: StudentProfileResult
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {student.guardians.map((guard: any) => {
+      {student.guardians.map((guard) => {
         return (
           <Card key={guard.id}>
             <CardContent className="pt-6">

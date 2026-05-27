@@ -1,11 +1,16 @@
 "use client";
 
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function Header({ user }: { user?: any }) {
+type HeaderUser = {
+  name?: string | null;
+  role?: string | null;
+};
+
+export default function Header({ user }: { user?: HeaderUser | null }) {
   const initials = user?.name
     ? user.name
         .split(" ")

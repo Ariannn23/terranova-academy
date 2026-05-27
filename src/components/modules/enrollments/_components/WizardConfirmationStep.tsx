@@ -7,11 +7,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StudentAvatar } from "@/components/shared/StudentAvatar";
+import type {
+  EnrollmentAcademicYearOption,
+  EnrollmentSectionOption,
+  EnrollmentStudentOption,
+} from "@/types/enrollment";
 
 interface WizardConfirmationStepProps {
-  selectedStudent: any;
-  selectedSection: any;
-  currentYear: any;
+  selectedStudent: EnrollmentStudentOption;
+  selectedSection: EnrollmentSectionOption;
+  currentYear?: EnrollmentAcademicYearOption;
   errorProp: string;
 }
 
@@ -56,7 +61,7 @@ export function WizardConfirmationStep({
                   Grado y Sección
                 </p>
                 <p className="font-medium text-slate-900">
-                  {selectedSection.grade} "{selectedSection.name}"
+                  {selectedSection.grade} &quot;{selectedSection.name}&quot;
                 </p>
               </div>
               <div>

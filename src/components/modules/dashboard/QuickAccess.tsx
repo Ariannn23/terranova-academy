@@ -10,14 +10,14 @@ import {
   FileSearch,
   Settings,
 } from "lucide-react";
+import { canAccessNavigationItem } from "@/lib/navigation";
 
-export function QuickAccess() {
-
+export function QuickAccess({ userRole }: { userRole?: string }) {
   const actions = [
     {
       title: "Nueva Matrícula",
       icon: UserPlus,
-      href: "/dashboard/matriculas/registrar",
+      href: "/dashboard/matriculas/nueva",
       color: "text-emerald-600 bg-emerald-50",
     },
     {
@@ -52,6 +52,12 @@ export function QuickAccess() {
     },
   ];
 
+  // NOTA DE SEGURIDAD: Este filtrado visual mejora la UX ocultando acciones rápidas no permitidas,
+  // pero el control de accesos real se realiza a nivel de servidor.
+  const visibleActions = actions.filter((action) =>
+    canAccessNavigationItem(userRole, action)
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -59,7 +65,7 @@ export function QuickAccess() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-          {actions.map((action) => (
+          {visibleActions.map((action) => (
             <Link
               key={action.title}
               href={action.href}

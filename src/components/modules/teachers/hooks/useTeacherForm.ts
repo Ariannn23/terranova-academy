@@ -1,33 +1,71 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { TeacherSchema, TeacherSchemaType } from "@/lib/validations/teacher.schema";
 import { createTeacher, updateTeacher } from "@/lib/actions/teacher.actions";
 import { uploadTeacherPhoto } from "@/lib/actions/upload.actions";
 import { TeacherFormStatus } from "../types";
 
-export function useTeacherForm(initialData: any) {
+export type TeacherInitialData = Omit<
+  TeacherSchemaType,
+  "phone" | "specialty" | "photoUrl"
+> & {
+  id: string;
+  phone?: string | null;
+  specialty?: string | null;
+  photoUrl?: string | null;
+};
+
+type UseTeacherFormOptions = {
+  initialData?: TeacherInitialData;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+};
+
+export function useTeacherForm({
+  initialData,
+  open,
+  onOpenChange,
+  onSuccess,
+}: UseTeacherFormOptions) {
   const [status, setStatus] = useState<TeacherFormStatus>({ state: "idle", isUpdate: !!initialData });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const toastIdRef = useRef<string | number | undefined>(undefined);
 
-  const form = useForm<TeacherSchemaType>({
+  const defaultValues: TeacherSchemaType = initialData
+    ? {
+        ...initialData,
+        phone: initialData.phone ?? "",
+        specialty: initialData.specialty ?? "",
+        photoUrl: initialData.photoUrl ?? "",
+      }
+    : {
+        dni: "",
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        specialty: "",
+        photoUrl: "",
+        active: true,
+      };
+
+  const form = useForm<TeacherSchemaType, unknown, TeacherSchemaType>({
     resolver: zodResolver(TeacherSchema),
-    defaultValues: initialData || {
-      dni: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      specialty: "",
-      photoUrl: "",
-      active: true,
-    },
+    defaultValues,
   });
 
   useEffect(() => {
     if (initialData) {
-      form.reset(initialData);
+      form.reset({
+        ...initialData,
+        phone: initialData.phone ?? "",
+        specialty: initialData.specialty ?? "",
+        photoUrl: initialData.photoUrl ?? "",
+      });
       setPreviewUrl(initialData.photoUrl || null);
       setStatus({ state: "idle", isUpdate: true });
     } else {
@@ -86,10 +124,46 @@ export function useTeacherForm(initialData: any) {
       } else {
         setStatus({ state: "error", message: result.error || "Error al guardar", isUpdate: !!initialData });
       }
-    } catch (error) {
+    } catch {
       setStatus({ state: "error", message: "Error de conexión o servidor", isUpdate: !!initialData });
     }
   }, [initialData, selectedFile]);
 
-  return { form, status, previewUrl, submitForm, handleFileChange, removePhoto, setStatus };
+  useEffect(() => {
+    if (!open) return;
+
+    if (status.state === "loading") {
+      toastIdRef.current = toast.loading(
+        initialData ? "Actualizando docente..." : "Registrando docente...",
+      );
+    } else if (status.state === "success") {
+      if (toastIdRef.current) toast.dismiss(toastIdRef.current);
+      toast.success(status.message);
+      setStatus((prev) => ({ ...prev, state: "idle" }));
+      onSuccess?.();
+      onOpenChange(false);
+    } else if (status.state === "error") {
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+        toast.error(status.message);
+      } else {
+        toast.error(status.message);
+      }
+      setStatus((prev) => ({ ...prev, state: "idle" }));
+    }
+  }, [initialData, onOpenChange, onSuccess, open, status]);
+
+  const handleCancelClick = () => {
+    onOpenChange(false);
+  };
+
+  return {
+    form,
+    loading: status.state === "loading",
+    previewUrl,
+    submitForm,
+    handleFileChange,
+    removePhoto,
+    handleCancelClick,
+  };
 }

@@ -4,9 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ATTENDANCE_LABELS } from "@/lib/utils/student.utils";
+import type { StudentAttendanceView } from "@/types/student";
 
 interface ProfileAttendanceTabProps {
-  attendances: any[];
+  attendances: StudentAttendanceView[];
   attendanceStats: Record<string, number>;
 }
 
@@ -57,8 +58,8 @@ export function ProfileAttendanceTab({
           ) : (
             <div className="space-y-4">
               {sortedAttendances
-                .filter((a: any) => a.status !== "PRESENTE")
-                .map((a: any) => {
+                .filter((a) => a.status !== "PRESENTE")
+                .map((a) => {
                   const labelCfg = ATTENDANCE_LABELS[a.status];
                   return (
                     <div
@@ -89,10 +90,10 @@ export function ProfileAttendanceTab({
                     </div>
                   );
                 })}
-              {sortedAttendances.filter((a: any) => a.status !== "PRESENTE")
+              {sortedAttendances.filter((a) => a.status !== "PRESENTE")
                 .length === 0 && (
                 <p className="text-slate-500 text-sm text-center italic py-4">
-                  Excelente asistencia. Solo existen registros de "Presente".
+                  Excelente asistencia. Solo existen registros de &quot;Presente&quot;.
                 </p>
               )}
             </div>

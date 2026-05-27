@@ -1,10 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -30,17 +25,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarEventSchema } from "@/lib/validations/incident.schema";
-import {
-  createCalendarEvent,
-  updateCalendarEvent,
-} from "@/lib/actions/calendar.actions";
-import { useRouter } from "next/navigation";
+import { useCalendarForm } from "./hooks/useCalendarForm";
+import type { CalendarEventView } from "@/types/calendar";
 
 interface CalendarModalProps {
   isOpen: boolean;
   onClose: () => void;
-  eventToEdit?: any;
+  eventToEdit?: CalendarEventView | null;
   academicYearId: string;
 }
 
@@ -50,51 +41,11 @@ export function CalendarModal({
   eventToEdit,
   academicYearId,
 }: CalendarModalProps) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Extend schema to include academicYearId for internal use in the form if needed
-  const form = useForm<z.infer<typeof CalendarEventSchema>>({
-    resolver: zodResolver(CalendarEventSchema),
-    defaultValues: {
-      title: eventToEdit?.title || "",
-      description: eventToEdit?.description || "",
-      date: eventToEdit ? new Date(eventToEdit.date) : new Date(),
-      endDate: eventToEdit?.endDate ? new Date(eventToEdit.endDate) : undefined,
-      type: eventToEdit?.type || "ACTIVIDAD",
-      academicYearId: academicYearId,
-    },
+  const { form, isSubmitting, onSubmit } = useCalendarForm({
+    eventToEdit: eventToEdit ?? undefined,
+    academicYearId,
+    onClose,
   });
-
-  const onSubmit = async (values: z.infer<typeof CalendarEventSchema>) => {
-    setIsSubmitting(true);
-    toast.loading(
-      eventToEdit ? "Actualizando evento..." : "Registrando evento...",
-      { id: "save-evt" },
-    );
-
-    try {
-      const res = eventToEdit
-        ? await updateCalendarEvent(eventToEdit.id, values)
-        : await createCalendarEvent(values);
-
-      if (res.success) {
-        toast.success(
-          eventToEdit ? "Evento actualizado." : "Evento registrado.",
-          { id: "save-evt" },
-        );
-        form.reset();
-        onClose();
-        router.refresh();
-      } else {
-        toast.error(res.error as string, { id: "save-evt" });
-      }
-    } catch (error) {
-      toast.error("Error al guardar el evento.", { id: "save-evt" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

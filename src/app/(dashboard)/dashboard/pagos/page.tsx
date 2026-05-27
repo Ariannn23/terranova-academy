@@ -10,10 +10,11 @@ export default async function PaymentsPage() {
   const statsRes = await getPaymentDashboardStats();
   // Se obtiene el mes y año actual por defecto. Luego el cliente puede refetchear filtrando.
 
-  if (!statsRes.success) {
+  if (!statsRes.success || !statsRes.data) {
     return (
       <div className="p-6 text-red-500">
-        Error al cargar los datos financieros: {statsRes.error}
+        Error al cargar los datos financieros:{" "}
+        {statsRes.success ? "No se encontraron datos" : statsRes.error}
       </div>
     );
   }

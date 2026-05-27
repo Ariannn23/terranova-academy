@@ -3,10 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type {
+  StudentDisabilityView,
+  StudentIncidentView,
+} from "@/types/student";
 
 interface ProfileIncidentsTabProps {
-  disqualifications: any[];
-  incidents: any[];
+  disqualifications: StudentDisabilityView[];
+  incidents: StudentIncidentView[];
 }
 
 export function ProfileIncidentsTab({
@@ -40,7 +44,7 @@ export function ProfileIncidentsTab({
             </p>
           ) : (
             <div className="space-y-4">
-              {disqualifications?.map((d: any) => (
+              {disqualifications?.map((d) => (
                 <div
                   key={d.id}
                   className="bg-white p-4 rounded-lg border border-red-100 shadow-sm"
@@ -80,7 +84,7 @@ export function ProfileIncidentsTab({
             </p>
           ) : (
             <div className="space-y-4">
-              {incidents?.map((inc: any) => (
+              {incidents?.map((inc) => (
                 <div
                   key={inc.id}
                   className="bg-slate-50 p-4 rounded-lg border border-slate-200"

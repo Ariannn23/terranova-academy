@@ -9,13 +9,17 @@ import {
   ScheduleSchema,
   ScheduleSchemaType,
 } from "@/lib/validations/academic.schema";
-import { Prisma } from "@prisma/client";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 /**
  * Obtener la estructura académica jerárquica
  */
 export async function getAcademicStructure() {
   try {
+    await requireAuth();
+
     // ⚠️ ANTES: sections: { include: { teacher: { select: {...} } } }
     // Prisma genera SELECT FROM "Teacher" WHERE id IN (null, null, ...) cuando
     // teacherId = null — incluso con `select` en vez de `include: true`.
@@ -114,12 +118,14 @@ export async function getAcademicStructure() {
  */
 export async function getCoursesByGradeLevel(gradeLevelId: string) {
   try {
+    await requireAuth();
+
     const courses = await prisma.course.findMany({
       where: { gradeLevelId, active: true },
       orderBy: { name: "asc" },
     });
     return { success: true, data: courses };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener los cursos" };
   }
 }
@@ -128,30 +134,50 @@ export async function getCoursesByGradeLevel(gradeLevelId: string) {
  * CRUD de Cursos
  */
 export async function createCourse(data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = CourseSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
     const course = await prisma.course.create({ data: parsed.data });
     revalidatePath("/dashboard/cursos");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.COURSE,
+      entityId: course.id,
+      newValue: course,
+      metadata: { module: "academic", operation: "create_course" },
+    });
     return { success: true, data: course };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al crear el curso" };
   }
 }
 
 export async function updateCourse(id: string, data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = CourseSchema.partial().safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
+    const oldCourse = await prisma.course.findUnique({ where: { id } });
     const course = await prisma.course.update({
       where: { id },
       data: parsed.data,
     });
     revalidatePath("/dashboard/cursos");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.COURSE,
+      entityId: course.id,
+      oldValue: oldCourse,
+      newValue: course,
+      metadata: { module: "academic", operation: "update_course" },
+    });
     return { success: true, data: course };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al actualizar el curso" };
   }
 }
@@ -160,14 +186,23 @@ export async function updateCourse(id: string, data: unknown) {
  * CRUD de Secciones
  */
 export async function createSection(data: unknown) {
+  await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
   const parsed = SectionSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   try {
     const section = await prisma.section.create({ data: parsed.data });
     revalidatePath("/dashboard/secciones");
+    await createAuditLog({
+      action: AuditAction.CREATE,
+      entity: AuditEntity.SECTION,
+      entityId: section.id,
+      newValue: section,
+      metadata: { module: "academic", operation: "create_section" },
+    });
     return { success: true, data: section };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al crear la sección" };
   }
 }
@@ -180,13 +215,27 @@ export async function assignTeacherToSection(
   teacherId: string | null,
 ) {
   try {
-    await prisma.section.update({
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
+    const oldSection = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { id: true, teacherId: true },
+    });
+    const section = await prisma.section.update({
       where: { id: sectionId },
       data: { teacherId },
     });
     revalidatePath("/dashboard/secciones");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.SECTION,
+      entityId: sectionId,
+      oldValue: oldSection,
+      newValue: { teacherId: section.teacherId },
+      metadata: { module: "academic", operation: "assign_teacher_to_section" },
+    });
     return { success: true };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al asignar el docente" };
   }
 }
@@ -211,6 +260,8 @@ export async function validateScheduleConflicts(
   newSchedules: ScheduleSchemaType[],
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // Obtener horarios existentes del docente en el año académico activo
     const existingSchedules = await prisma.schedule.findMany({
       where: {
@@ -245,7 +296,7 @@ export async function validateScheduleConflicts(
     }
 
     return { success: true, conflicts };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al validar conflictos de horario" };
   }
 }
@@ -253,14 +304,31 @@ export async function validateScheduleConflicts(
 /**
  * Guardar Horario de una Sección (Bulk)
  */
-export async function saveSchedule(sectionId: string, scheduleData: any[]) {
+export async function saveSchedule(
+  sectionId: string,
+  scheduleData: ScheduleSchemaType[],
+) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // Validar cada item
     const parsedData = z.array(ScheduleSchema).safeParse(scheduleData);
     if (!parsedData.success)
       return { success: false, error: "Datos de horario inválidos" };
 
     // Usar transacción para limpiar y guardar
+    const previousSchedules = await prisma.schedule.findMany({
+      where: { sectionId },
+      select: {
+        id: true,
+        courseId: true,
+        teacherId: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+
     await prisma.$transaction([
       prisma.schedule.deleteMany({ where: { sectionId } }),
       prisma.schedule.createMany({
@@ -269,6 +337,18 @@ export async function saveSchedule(sectionId: string, scheduleData: any[]) {
     ]);
 
     revalidatePath(`/dashboard/horarios/${sectionId}`);
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.SECTION,
+      entityId: sectionId,
+      oldValue: { schedules: previousSchedules },
+      newValue: { schedules: parsedData.data },
+      metadata: {
+        module: "academic",
+        operation: "save_schedule",
+        scheduleCount: parsedData.data.length,
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in saveSchedule:", error);
@@ -281,6 +361,8 @@ export async function saveSchedule(sectionId: string, scheduleData: any[]) {
  */
 export async function getScheduleBySection(sectionId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     // ⚠️ include: { teacher: true } genera un sub-SELECT adicional de Prisma.
     // Usamos selects explícitos + join en memoria para evitar queries inválidas.
     const [schedules, teachers] = await Promise.all([
@@ -302,7 +384,7 @@ export async function getScheduleBySection(sectionId: string) {
     }));
 
     return { success: true, data: schedulesWithTeacher };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener el horario" };
   }
 }
@@ -310,6 +392,8 @@ export async function getScheduleBySection(sectionId: string) {
 
 export async function getScheduleByTeacher(teacherId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const schedules = await prisma.schedule.findMany({
       where: {
         teacherId,
@@ -319,7 +403,7 @@ export async function getScheduleByTeacher(teacherId: string) {
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
     return { success: true, data: schedules };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Error al obtener el horario del docente" };
   }
 }
@@ -329,6 +413,8 @@ export async function getScheduleByTeacher(teacherId: string) {
  */
 export async function createAcademicYear(year: number, startDate: Date, endDate: Date, setActive: boolean = false) {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     if (year < 2000 || year > 2100) {
       return { success: false, error: "Año inválido" };
     }
@@ -405,6 +491,8 @@ export async function createAcademicYear(year: number, startDate: Date, endDate:
  */
 export async function debugActiveYear() {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     const activeYear = await prisma.academicYear.findFirst({
       where: { active: true },
     });
@@ -434,6 +522,8 @@ export async function debugActiveYear() {
 }
 export async function deleteAcademicYear2026() {
   try {
+    await requireRole(ROLE_GROUPS.ADMINISTRATION);
+
     // Primero eliminar todas las secciones del 2026
     const year2026 = await prisma.academicYear.findUnique({
       where: { year: 2026 },

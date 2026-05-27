@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { PDFFooter } from "./Footer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { PdfIncidentReport } from "@/types/pdf";
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", color: "#334155" },
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export const IncidentReportPDF = ({ incident }: { incident: any }) => {
+export const IncidentReportPDF = ({ incident }: { incident: PdfIncidentReport }) => {
   const { enrollment, severity, date, description, action, createdAt } =
     incident;
   const { student, section } = enrollment;
@@ -152,10 +153,14 @@ export const IncidentReportPDF = ({ incident }: { incident: any }) => {
         {/* ACCIÓN */}
         {action && (
           <>
-            <Text style={styles.sectionTitle}>Medidas Tomadas / Resolución</Text>
+            <Text style={styles.sectionTitle}>
+              Medidas Tomadas / Resolución
+            </Text>
             <View style={styles.actionBox}>
-              <Text style={{ fontSize: 10, color: "#1e3a8a", fontStyle: "italic" }}>
-                "{action}"
+              <Text
+                style={{ fontSize: 10, color: "#1e3a8a", fontStyle: "italic" }}
+              >
+                &quot;{action}&quot;
               </Text>
             </View>
           </>

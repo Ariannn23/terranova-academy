@@ -11,13 +11,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, Clock } from "lucide-react";
-import Link from "next/link";
+import { Edit, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DataTable } from "@/components/shared/DataTable";
 
-export function SchedulesListClient({ initialData }: { initialData: any[] }) {
+type ScheduleListRow = {
+  id: string;
+  name: string;
+  gradeLevel: {
+    name: string;
+    level: string;
+  };
+  teacher?: {
+    firstName: string;
+    lastName: string;
+  } | null;
+  _count: {
+    schedules: number;
+  };
+};
+
+export function SchedulesListClient({
+  initialData,
+}: {
+  initialData: ScheduleListRow[];
+}) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("ALL");
@@ -37,10 +56,10 @@ export function SchedulesListClient({ initialData }: { initialData: any[] }) {
     {
       header: "Grado y Sección",
       accessorKey: "grade",
-      cell: (row: any) => (
+      cell: (row: ScheduleListRow) => (
         <div>
           <p className="font-semibold text-slate-800">
-            {row.gradeLevel.name} "{row.name}"
+            {row.gradeLevel.name} &quot;{row.name}&quot;
           </p>
           <p className="text-xs text-slate-500">{row.gradeLevel.level}</p>
         </div>
@@ -49,7 +68,7 @@ export function SchedulesListClient({ initialData }: { initialData: any[] }) {
     {
       header: "Tutor Asignado",
       accessorKey: "teacher",
-      cell: (row: any) => (
+      cell: (row: ScheduleListRow) => (
         <div className="text-sm text-slate-600">
           {row.teacher
             ? `${row.teacher.firstName} ${row.teacher.lastName}`
@@ -60,7 +79,7 @@ export function SchedulesListClient({ initialData }: { initialData: any[] }) {
     {
       header: "Bloques Horarios",
       accessorKey: "schedulesCount",
-      cell: (row: any) => (
+      cell: (row: ScheduleListRow) => (
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-emerald-600" />
           <span className="font-medium text-slate-700">
@@ -72,7 +91,7 @@ export function SchedulesListClient({ initialData }: { initialData: any[] }) {
     {
       header: "Acciones",
       accessorKey: "actions",
-      cell: (row: any) => (
+      cell: (row: ScheduleListRow) => (
         <div className="flex justify-center gap-2">
           <Button
             variant="ghost"

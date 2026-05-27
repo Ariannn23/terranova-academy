@@ -2,11 +2,19 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { GradePeriod, StudentStatus } from "@prisma/client";
+import { GradePeriod, Prisma } from "@prisma/client";
 import { BatchGradeSchema } from "@/lib/validations/grade.schema";
 import { calculateFinalScore, isPassing } from "@/lib/utils/grade-calculator";
 import { calculateStudentStatus } from "@/lib/utils/student-status";
-import { MIN_PASSING_SCORE } from "@/lib/constants";
+import { requireAuth, requireRole } from "@/lib/auth";
+import { ROLE_GROUPS } from "@/lib/rbac";
+import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
+
+type PrismaGradeClient = typeof prisma | Prisma.TransactionClient;
+
+function getGradeErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * Obtiene las notas de una sección para un curso y periodo específico.
@@ -18,6 +26,8 @@ export async function getGradesBySection(
   period: GradePeriod,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const grades = await prisma.enrollment.findMany({
       where: {
         sectionId,
@@ -64,12 +74,29 @@ export async function getGradesBySection(
  * Realiza un upsert (crea si no existe, actualiza si existe).
  */
 export async function saveGrades(data: unknown) {
+  await requireRole(ROLE_GROUPS.ACADEMIC);
+
   const parsed = BatchGradeSchema.safeParse(data);
   if (!parsed.success) return { success: false, error: parsed.error.flatten() };
 
   const { courseId, period, grades } = parsed.data;
 
   try {
+    const oldGrades = await prisma.gradeRecord.findMany({
+      where: {
+        courseId,
+        period,
+        enrollmentId: { in: grades.map((grade) => grade.enrollmentId) },
+      },
+      select: {
+        id: true,
+        enrollmentId: true,
+        courseId: true,
+        period: true,
+        score: true,
+      },
+    });
+
     // ── TRANSACCIÓN REDUCIDA: solo escrituras atómicas ─────────────────────
     // syncStudentStatus se movió FUERA (ver abajo). Esto reduce el tiempo que
     // la transacción mantiene abierta la conexión (y el COMMIT costoso).
@@ -151,6 +178,23 @@ export async function saveGrades(data: unknown) {
     }
 
     revalidatePath("/dashboard/notas");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.GRADE,
+      oldValue: oldGrades,
+      newValue: grades.map((grade) => ({
+        enrollmentId: grade.enrollmentId,
+        courseId,
+        period,
+        score: grade.score,
+      })),
+      metadata: {
+        module: "grades",
+        courseId,
+        period,
+        affectedCount: result.count,
+      },
+    });
     return { success: true, data: result };
   } catch (error) {
     console.error("Error in saveGrades:", error);
@@ -158,7 +202,7 @@ export async function saveGrades(data: unknown) {
       success: false,
       error:
         "Error al guardar las notas: " +
-        String((error as any)?.message || error),
+        getGradeErrorMessage(error),
     };
   }
 }
@@ -169,6 +213,8 @@ export async function saveGrades(data: unknown) {
  */
 export async function getStudentGrades(enrollmentId: string) {
   try {
+    await requireAuth();
+
     const records = await prisma.gradeRecord.findMany({
       where: { enrollmentId },
       include: { course: true },
@@ -190,8 +236,25 @@ export async function calculateFinalGrade(
   courseId: string,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const result = await prisma.$transaction(async (tx) => {
       return await internalCalculateFinalGrade(tx, enrollmentId, courseId);
+    });
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.GRADE,
+      entityId: result.id,
+      newValue: {
+        enrollmentId,
+        courseId,
+        period: result.period,
+        score: result.score,
+      },
+      metadata: {
+        module: "grades",
+        operation: "calculate_final_grade",
+      },
     });
     return { success: true, data: result };
   } catch (error) {
@@ -206,7 +269,7 @@ export async function calculateFinalGrade(
  * en lugar de releer el registro que acabamos de guardar (ahorra 1 query por alumno).
  */
 async function internalCalculateFinalGrade(
-  tx: any,
+  tx: Prisma.TransactionClient,
   enrollmentId: string,
   courseId: string,
   currentPeriod?: GradePeriod,
@@ -231,7 +294,7 @@ async function internalCalculateFinalGrade(
 
   // Construir mapa de scores: periodos de DB + el actual ya conocido
   const scoreMap = new Map<GradePeriod, number | null>(
-    records.map((r: any) => [r.period, r.score]),
+    records.map((r) => [r.period, r.score]),
   );
   if (currentPeriod !== undefined) {
     scoreMap.set(currentPeriod, currentScore ?? null);
@@ -268,7 +331,10 @@ async function internalCalculateFinalGrade(
  * Sincroniza el estado (ACTIVO, OBSERVADO, etc.) de un estudiante basado en sus notas actuales.
  * Acepta tanto un cliente de transacción (tx) como el cliente global de Prisma.
  */
-async function syncStudentStatus(client: any, enrollmentId: string) {
+async function syncStudentStatus(
+  client: PrismaGradeClient,
+  enrollmentId: string,
+) {
   const enrollment = await client.enrollment.findUnique({
     where: { id: enrollmentId },
     include: {
@@ -288,12 +354,12 @@ async function syncStudentStatus(client: any, enrollmentId: string) {
 
   const totalCourses = enrollment.section.gradeLevel.courses.length;
   const failingCourses = enrollment.gradeRecords.filter(
-    (r: any) => !isPassing(r.score),
+    (r) => !isPassing(r.score),
   ).length;
 
   const scores = enrollment.gradeRecords
-    .map((r: any) => r.score)
-    .filter((s: any) => s !== null);
+    .map((r) => r.score)
+    .filter((s): s is number => s !== null);
   const average =
     scores.length > 0
       ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length
@@ -322,6 +388,8 @@ async function syncStudentStatus(client: any, enrollmentId: string) {
  */
 export async function getStudentsAtRisk(sectionId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const enrollments = await prisma.enrollment.findMany({
       where: {
         sectionId,
@@ -356,6 +424,8 @@ export async function getSectionGradeReport(
   period: GradePeriod,
 ) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     const enrollments = await prisma.enrollment.findMany({
       where: { sectionId, active: true },
       include: {
@@ -407,6 +477,8 @@ export async function getSectionGradeReport(
  */
 export async function calculateAllFinalGrades(enrollmentId: string) {
   try {
+    await requireRole(ROLE_GROUPS.ACADEMIC);
+
     await prisma.$transaction(async (tx) => {
       const enrollment = await tx.enrollment.findUnique({
         where: { id: enrollmentId },
@@ -425,6 +497,16 @@ export async function calculateAllFinalGrades(enrollmentId: string) {
     });
 
     revalidatePath("/dashboard/notas");
+    await createAuditLog({
+      action: AuditAction.UPDATE,
+      entity: AuditEntity.GRADE,
+      entityId: enrollmentId,
+      newValue: { enrollmentId },
+      metadata: {
+        module: "grades",
+        operation: "calculate_all_final_grades",
+      },
+    });
     return { success: true };
   } catch (error) {
     console.error("Error in calculateAllFinalGrades:", error);
