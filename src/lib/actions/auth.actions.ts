@@ -28,6 +28,7 @@ export type LoginActionFailure = {
   error: string;
   remainingAttempts?: number;
   lockedUntil?: string;
+  requiresCaptcha?: boolean;
 };
 
 export async function loginAction(
@@ -49,6 +50,7 @@ export async function loginAction(
       error: loginResult.message,
       remainingAttempts: loginResult.remainingAttempts,
       lockedUntil: loginResult.lockedUntil?.toISOString(),
+      requiresCaptcha: loginResult.requiresCaptcha,
     };
   }
 

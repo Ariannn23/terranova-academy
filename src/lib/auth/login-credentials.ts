@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 import { LoginSchema } from "@/lib/validations/auth.schema";
+import { verifyTurnstileToken } from "@/lib/auth/turnstile";
 
 export const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 export const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
@@ -11,6 +12,11 @@ export const GENERIC_LOGIN_ERROR =
 
 export const LOCKED_LOGIN_MESSAGE =
   "Cuenta bloqueada temporalmente por seguridad. Inténtalo nuevamente en 15 minutos.";
+
+export const CAPTCHA_REQUIRED_AFTER_ATTEMPTS = 3;
+
+export const CAPTCHA_REQUIRED_MESSAGE =
+  "Completa la verificación de seguridad para continuar.";
 
 export type CredentialLoginSuccess = {
   success: true;
@@ -27,6 +33,7 @@ export type CredentialLoginFailure = {
   message: string;
   remainingAttempts?: number;
   lockedUntil?: Date;
+  requiresCaptcha?: boolean;
 };
 
 export type CredentialLoginResult =
@@ -57,7 +64,10 @@ const userLockoutSelect = {
   lastFailedLoginAt: true,
 } as const;
 
-export function isAccountLocked(lockedUntil: Date | null | undefined, now = new Date()) {
+export function isAccountLocked(
+  lockedUntil: Date | null | undefined,
+  now = new Date(),
+) {
   return lockedUntil != null && lockedUntil > now;
 }
 
@@ -89,7 +99,9 @@ async function auditLoginAttempt(
   });
 }
 
-async function clearExpiredLockout(user: UserLockoutRecord): Promise<UserLockoutRecord> {
+async function clearExpiredLockout(
+  user: UserLockoutRecord,
+): Promise<UserLockoutRecord> {
   if (!user.lockedUntil || user.lockedUntil > new Date()) {
     return user;
   }
@@ -158,6 +170,8 @@ async function registerFailedAttempt(user: UserLockoutRecord) {
     success: false as const,
     message: buildInvalidPasswordMessage(remainingAttempts),
     remainingAttempts,
+    requiresCaptcha:
+      updated.failedLoginAttempts >= CAPTCHA_REQUIRED_AFTER_ATTEMPTS,
   };
 }
 
@@ -194,6 +208,7 @@ export async function processCredentialLogin(
       message: LOCKED_LOGIN_MESSAGE,
       remainingAttempts: 0,
       lockedUntil: activeUser.lockedUntil ?? undefined,
+      requiresCaptcha: true,
     };
   }
 
@@ -213,7 +228,27 @@ export async function processCredentialLogin(
     }
     return registerFailedAttempt(activeUser);
   }
+  const requiresCaptcha =
+    activeUser.failedLoginAttempts >= CAPTCHA_REQUIRED_AFTER_ATTEMPTS;
 
+  if (!options?.sessionBootstrap && requiresCaptcha) {
+    const captchaOk = await verifyTurnstileToken(parsed.data.captchaToken);
+
+    if (!captchaOk) {
+      await auditLoginAttempt(activeUser, "failed", {
+        failedLoginAttempts: activeUser.failedLoginAttempts,
+        requiresCaptcha: true,
+        reason: "captcha_required_or_invalid",
+      });
+
+      return {
+        success: false,
+        message: CAPTCHA_REQUIRED_MESSAGE,
+        remainingAttempts: getRemainingAttempts(activeUser.failedLoginAttempts),
+        requiresCaptcha: true,
+      };
+    }
+  }
   if (!options?.sessionBootstrap) {
     await resetLoginAttempts(activeUser.id);
     await auditLoginAttempt(activeUser, "success");

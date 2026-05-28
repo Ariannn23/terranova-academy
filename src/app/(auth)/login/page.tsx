@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function LoginPage() {
   const [errorProp, setErrorProp] = useState<string | undefined>("");
@@ -33,12 +34,16 @@ export default function LoginPage() {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [isPending, startTransition] = useTransition();
 
+  const [requiresCaptcha, setRequiresCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
       email: "",
       password: "",
       rememberDevice: false,
+      captchaToken: undefined,
     },
   });
 
@@ -47,10 +52,12 @@ export default function LoginPage() {
 
   const lockoutSecondsRemaining = useMemo(() => {
     if (!lockedUntilMs) return 0;
+
     return Math.max(0, Math.ceil((lockedUntilMs - nowMs) / 1000));
   }, [lockedUntilMs, nowMs]);
 
   const isLocked = lockoutAppliesToCurrentEmail && lockoutSecondsRemaining > 0;
+
   const lockoutCountdown = formatCountdown(lockoutSecondsRemaining);
 
   useEffect(() => {
@@ -81,9 +88,14 @@ export default function LoginPage() {
     if (isLocked) return;
 
     setErrorProp("");
+
     const toastId = toast.loading("Verificando credenciales...");
+
     startTransition(() => {
-      loginAction(values).then((res) => {
+      loginAction({
+        ...values,
+        captchaToken: captchaToken ?? undefined,
+      }).then((res) => {
         if (res && "success" in res && res.success === false) {
           if (res.lockedUntil) {
             setLockedUntilMs(new Date(res.lockedUntil).getTime());
@@ -92,6 +104,13 @@ export default function LoginPage() {
           } else {
             setLockedUntilMs(null);
             setLockedEmail(null);
+          }
+
+          setRequiresCaptcha(Boolean(res.requiresCaptcha));
+
+          if (!res.requiresCaptcha) {
+            setCaptchaToken(null);
+            form.setValue("captchaToken", undefined);
           }
 
           const description =
@@ -106,11 +125,20 @@ export default function LoginPage() {
             description,
             duration: res.lockedUntil ? 10_000 : 6_000,
           });
+
           setErrorProp(res.error);
         } else {
           setLockedUntilMs(null);
           setLockedEmail(null);
-          toast.success("¡Bienvenido al sistema!", { id: toastId });
+
+          setRequiresCaptcha(false);
+          setCaptchaToken(null);
+
+          form.setValue("captchaToken", undefined);
+
+          toast.success("¡Bienvenido al sistema!", {
+            id: toastId,
+          });
         }
       });
     });
@@ -119,12 +147,16 @@ export default function LoginPage() {
   const useAnotherAccount = () => {
     form.setValue("email", "");
     form.setValue("password", "");
+    form.setValue("captchaToken", undefined);
+
+    setRequiresCaptcha(false);
+    setCaptchaToken(null);
+
     setErrorProp("");
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
-      {/* Lado Izquierdo: Formulario */}
       <div className="flex-1 flex flex-col justify-center items-center p-8 md:p-12 lg:p-24 bg-white relative z-10 shadow-2xl">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center md:text-left space-y-2">
@@ -138,13 +170,16 @@ export default function LoginPage() {
                   className="object-contain"
                 />
               </div>
+
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 TerraNova <span className="text-emerald-700">Academy</span>
               </h1>
             </div>
+
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">
               Bienvenido de nuevo
             </h2>
+
             <p className="text-slate-500 text-sm">
               Ingresa tus credenciales para acceder al panel de control.
             </p>
@@ -165,9 +200,11 @@ export default function LoginPage() {
                       <FormLabel className="text-slate-700">
                         Correo Electrónico
                       </FormLabel>
+
                       <FormControl>
                         <div className="relative">
                           <Mail className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+
                           <Input
                             placeholder="director@terranova.edu.pe"
                             type="email"
@@ -177,6 +214,7 @@ export default function LoginPage() {
                           />
                         </div>
                       </FormControl>
+
                       <FormMessage />
                     </FormItem>
                   )}
@@ -190,9 +228,11 @@ export default function LoginPage() {
                       <FormLabel className="text-slate-700">
                         Contraseña
                       </FormLabel>
+
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+
                           <Input
                             placeholder="Mínimo 10 caracteres"
                             type={showPassword ? "text" : "password"}
@@ -201,6 +241,7 @@ export default function LoginPage() {
                             autoComplete="current-password"
                             {...field}
                           />
+
                           <Button
                             type="button"
                             variant="ghost"
@@ -222,6 +263,7 @@ export default function LoginPage() {
                           </Button>
                         </div>
                       </FormControl>
+
                       <FormMessage />
                     </FormItem>
                   )}
@@ -246,6 +288,7 @@ export default function LoginPage() {
                           }
                         />
                       </FormControl>
+
                       <div className="space-y-1">
                         <Label
                           htmlFor="remember-device"
@@ -253,6 +296,7 @@ export default function LoginPage() {
                         >
                           Recordar este equipo
                         </Label>
+
                         <p className="text-xs leading-5 text-slate-500">
                           Usalo solo en dispositivos personales. Guardaremos una
                           cookie segura por 30 dias.
@@ -263,12 +307,42 @@ export default function LoginPage() {
                 )}
               />
 
+              {requiresCaptcha && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <p className="mb-3 text-center text-sm text-amber-800">
+                    Por seguridad, completa la verificación para continuar.
+                  </p>
+
+                  <div className="flex justify-center">
+                    <Turnstile
+                      siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                      options={{
+                        theme: "light",
+                      }}
+                      onSuccess={(token) => {
+                        setCaptchaToken(token);
+                        form.setValue("captchaToken", token);
+                      }}
+                      onExpire={() => {
+                        setCaptchaToken(null);
+                        form.setValue("captchaToken", undefined);
+                      }}
+                      onError={() => {
+                        setCaptchaToken(null);
+                        form.setValue("captchaToken", undefined);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {errorProp && (
                 <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 shrink-0 rounded-full bg-red-600" />
                     <span>{errorProp}</span>
                   </div>
+
                   {isLocked && (
                     <button
                       type="button"
@@ -284,7 +358,9 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full h-11 bg-emerald-700 hover:bg-emerald-800 text-white font-medium transition-colors shadow-lg shadow-emerald-700/20 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
-                disabled={isPending || isLocked}
+                disabled={
+                  isPending || isLocked || (requiresCaptcha && !captchaToken)
+                }
               >
                 {isPending ? (
                   <>
@@ -300,26 +376,21 @@ export default function LoginPage() {
             </form>
           </Form>
 
-          <p className="text-center text-sm text-transparent mt-8">
+          <p className="text-center text-sm text-slate-500 mt-8">
+            ¿Olvidaste tu contraseña?{" "}
             <Link
               href="/forgot-password"
               className="font-medium text-emerald-700 transition hover:text-emerald-800 hover:underline"
             >
-              Recuperar Contraseña
+              Recuperar contraseña
             </Link>
-            <span className="sr-only"> </span>
-            ¿Olvidaste tu contraseña?{" "}
-            <span title="Próximamente" className="hidden">
-              Recupérala aquí
-            </span>
           </p>
         </div>
       </div>
 
-      {/* Lado Derecho: Imagen y Decoración */}
       <div className="hidden md:flex flex-1 relative bg-slate-900 overflow-hidden">
-        {/* Usamos una imagen genérica premium de un campus con overlay para el panel derecho */}
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 to-slate-900/90 mix-blend-multiply z-10" />
+
         <div
           className="absolute inset-0 bg-cover bg-center z-0"
           style={{
@@ -328,7 +399,6 @@ export default function LoginPage() {
           }}
         />
 
-        {/* Contenido en el lado derecho */}
         <div className="relative z-20 flex flex-col justify-end p-12 lg:p-24 w-full h-full text-white">
           <div className="space-y-6 max-w-lg">
             <div className="inline-block px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 backdrop-blur-md">
@@ -336,9 +406,11 @@ export default function LoginPage() {
                 Sistema de Gestión Escolar
               </p>
             </div>
+
             <h2 className="text-4xl lg:text-5xl font-bold leading-tight">
               Excelencia educativa al alcance de un clic.
             </h2>
+
             <p className="text-emerald-50/80 text-lg">
               Administra matrículas, monitorea el rendimiento y gestiona los
               pagos de forma centralizada con la plataforma líder en innovación
