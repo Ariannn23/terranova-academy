@@ -4,7 +4,8 @@
 // Modal para que el ADMIN resetee la contraseña de un usuario
 
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -36,6 +37,8 @@ export function ResetPasswordModal({
   onClose,
   user,
 }: ResetPasswordModalProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -49,6 +52,7 @@ export function ResetPasswordModal({
   useEffect(() => {
     if (isOpen) {
       reset({ password: "" });
+      setShowPassword(false);
     }
   }, [isOpen, user?.id, reset]);
 
@@ -73,6 +77,7 @@ export function ResetPasswordModal({
 
   function handleClose() {
     reset({ password: "" });
+    setShowPassword(false);
     onClose();
   }
 
@@ -93,13 +98,34 @@ export function ResetPasswordModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="reset-password">Nueva contraseña</Label>
-            <Input
-              id="reset-password"
-              type="password"
-              placeholder="Mínimo 8 caracteres"
-              {...register("password")}
-              autoComplete="new-password"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="reset-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Mínimo 10 caracteres"
+                className="flex-1"
+                {...register("password")}
+                autoComplete="new-password"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                aria-label={
+                  showPassword
+                    ? "Ocultar contraseña"
+                    : "Mostrar contraseña"
+                }
+                onClick={() => setShowPassword((prev) => !prev)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             {errors.password && (
               <p className="text-xs text-red-500">{errors.password.message}</p>
             )}

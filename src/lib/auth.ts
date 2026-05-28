@@ -3,14 +3,9 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { authConfig } from "./auth.config";
+import { LoginSchema } from "@/lib/validations/auth.schema";
 import { type AppRole, hasAllowedRole, normalizeRole } from "@/lib/rbac";
-
-const LoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,

@@ -313,7 +313,7 @@ describe("resetUserPassword", () => {
     });
   });
 
-  it("rechaza contraseña menor a 8 caracteres", async () => {
+  it("rechaza contraseña menor a 10 caracteres", async () => {
     const { resetUserPassword } = await import("@/lib/actions/user.actions");
     allowRole(requireRoleMock, "ADMIN");
 

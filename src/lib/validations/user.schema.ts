@@ -4,6 +4,9 @@
 import { z } from "zod";
 import { ROLES } from "@/lib/rbac";
 
+export const MIN_PASSWORD_LENGTH = 10;
+export const MIN_PASSWORD_MESSAGE = `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`;
+
 export const INSTITUTIONAL_EMAIL_DOMAIN = "@terranova.edu.pe";
 export const NAME_WITHOUT_NUMBERS_REGEX =
   /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s'.-]+$/;
@@ -29,7 +32,7 @@ export const createUserSchema = z.object({
   role: userRoleEnum,
   password: z
     .string()
-    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    .min(MIN_PASSWORD_LENGTH, MIN_PASSWORD_MESSAGE)
     .max(100, "La contraseña es demasiado larga"),
 });
 
@@ -62,7 +65,7 @@ export const resetUserPasswordSchema = z.object({
   userId: z.string().min(1, "El ID de usuario es obligatorio"),
   password: z
     .string()
-    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    .min(MIN_PASSWORD_LENGTH, MIN_PASSWORD_MESSAGE)
     .max(100, "La contraseña es demasiado larga"),
 });
 

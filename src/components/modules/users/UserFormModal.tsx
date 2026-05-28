@@ -194,7 +194,7 @@ function CreateUserForm({
           <Input
             id="create-password"
             type={showPassword ? "text" : "password"}
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Mínimo 10 caracteres"
             {...register("password")}
           />
           <Button

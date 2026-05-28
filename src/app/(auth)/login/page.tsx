@@ -18,10 +18,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
   const [errorProp, setErrorProp] = useState<string | undefined>("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<LoginFormValues>({
@@ -119,12 +120,32 @@ export default function LoginPage() {
                         <div className="relative">
                           <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
                           <Input
-                            placeholder="••••••••"
-                            type="password"
-                            className="pl-10 h-11 bg-slate-50 border-slate-200 focus-visible:ring-emerald-700"
+                            placeholder="Mínimo 10 caracteres"
+                            type={showPassword ? "text" : "password"}
+                            className="pl-10 pr-10 h-11 bg-slate-50 border-slate-200 focus-visible:ring-emerald-700"
                             disabled={isPending}
+                            autoComplete="current-password"
                             {...field}
                           />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1 h-9 w-9 text-slate-400 hover:text-slate-600"
+                            aria-label={
+                              showPassword
+                                ? "Ocultar contraseña"
+                                : "Mostrar contraseña"
+                            }
+                            disabled={isPending}
+                            onClick={() => setShowPassword((prev) => !prev)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
                       </FormControl>
                       <FormMessage />

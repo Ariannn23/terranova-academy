@@ -93,12 +93,23 @@ describe("createUserSchema", () => {
     expect(result.error?.flatten().fieldErrors.email).toBeDefined();
   });
 
-  it("rechaza contraseña menor a 8 caracteres", () => {
+  it("rechaza contraseña menor a 10 caracteres", () => {
     const result = createUserSchema.safeParse({
       name: "Ana García",
       email: "ana@terranova.edu.pe",
       role: "DOCENTE",
       password: "corta",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.flatten().fieldErrors.password).toBeDefined();
+  });
+
+  it("rechaza contraseña de 9 caracteres", () => {
+    const result = createUserSchema.safeParse({
+      name: "Ana García",
+      email: "ana@terranova.edu.pe",
+      role: "DOCENTE",
+      password: "123456789",
     });
     expect(result.success).toBe(false);
     expect(result.error?.flatten().fieldErrors.password).toBeDefined();
@@ -216,7 +227,7 @@ describe("resetUserPasswordSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rechaza contraseña menor a 8 caracteres en reset", () => {
+  it("rechaza contraseña menor a 10 caracteres en reset", () => {
     const result = resetUserPasswordSchema.safeParse({
       userId: "clabcdef123",
       password: "abc",
