@@ -13,6 +13,7 @@ import { loginAction } from "@/lib/actions/auth.actions";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -37,6 +38,7 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
+      rememberDevice: false,
     },
   });
 
@@ -225,6 +227,41 @@ export default function LoginPage() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="rememberDevice"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                      <FormControl>
+                        <input
+                          id="remember-device"
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-700"
+                          checked={Boolean(field.value)}
+                          disabled={isPending}
+                          onChange={(event) =>
+                            field.onChange(event.target.checked)
+                          }
+                        />
+                      </FormControl>
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor="remember-device"
+                          className="cursor-pointer text-sm font-medium text-slate-700"
+                        >
+                          Recordar este equipo
+                        </Label>
+                        <p className="text-xs leading-5 text-slate-500">
+                          Usalo solo en dispositivos personales. Guardaremos una
+                          cookie segura por 30 dias.
+                        </p>
+                      </div>
+                    </div>
+                  </FormItem>
+                )}
+              />
 
               {errorProp && (
                 <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md">

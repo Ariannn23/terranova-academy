@@ -20,6 +20,7 @@ import {
   PASSWORD_REUSE_ERROR,
   recordPasswordHistory,
 } from "@/lib/auth/password-history";
+import { rememberTrustedDevice } from "@/lib/auth/trusted-device";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 
 export type LoginActionFailure = {
@@ -30,7 +31,7 @@ export type LoginActionFailure = {
 };
 
 export async function loginAction(
-  data: Record<string, string>,
+  data: unknown,
 ): Promise<LoginActionFailure | void> {
   const parsed = LoginSchema.safeParse(data);
   if (!parsed.success) {
@@ -49,6 +50,10 @@ export async function loginAction(
       remainingAttempts: loginResult.remainingAttempts,
       lockedUntil: loginResult.lockedUntil?.toISOString(),
     };
+  }
+
+  if (parsed.data.rememberDevice) {
+    await rememberTrustedDevice(loginResult.user.id);
   }
 
   try {

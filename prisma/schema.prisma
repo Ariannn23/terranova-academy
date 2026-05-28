@@ -96,6 +96,7 @@ model User {
 
   passwordResetTokens PasswordResetToken[]
   passwordHistory     PasswordHistory[]
+  trustedDeviceTokens TrustedDeviceToken[]
 }
 
 model PasswordResetToken {
@@ -121,6 +122,23 @@ model PasswordHistory {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+model TrustedDeviceToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  userAgent  String?
+  ip         String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model AuditLog {

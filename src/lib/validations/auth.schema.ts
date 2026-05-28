@@ -4,6 +4,7 @@ import { MIN_PASSWORD_LENGTH, MIN_PASSWORD_MESSAGE } from "./user.schema";
 export const LoginSchema = z.object({
   email: z.string().email("Correo electronico invalido"),
   password: z.string().min(MIN_PASSWORD_LENGTH, MIN_PASSWORD_MESSAGE),
+  rememberDevice: z.coerce.boolean().optional(),
 });
 
 export type LoginFormValues = z.infer<typeof LoginSchema>;
