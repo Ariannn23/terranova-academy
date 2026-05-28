@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoginSchema, type LoginFormValues } from "@/lib/validations/auth.schema";
+import {
+  LoginSchema,
+  type LoginFormValues,
+} from "@/lib/validations/auth.schema";
 import { loginAction } from "@/lib/actions/auth.actions";
 import { toast } from "sonner";
 
@@ -23,6 +27,9 @@ import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 export default function LoginPage() {
   const [errorProp, setErrorProp] = useState<string | undefined>("");
   const [showPassword, setShowPassword] = useState(false);
+  const [lockedUntilMs, setLockedUntilMs] = useState<number | null>(null);
+  const [lockedEmail, setLockedEmail] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<LoginFormValues>({
@@ -33,19 +40,84 @@ export default function LoginPage() {
     },
   });
 
+  const currentEmail = form.watch("email").trim().toLowerCase();
+  const lockoutAppliesToCurrentEmail = lockedEmail === currentEmail;
+
+  const lockoutSecondsRemaining = useMemo(() => {
+    if (!lockedUntilMs) return 0;
+    return Math.max(0, Math.ceil((lockedUntilMs - nowMs) / 1000));
+  }, [lockedUntilMs, nowMs]);
+
+  const isLocked = lockoutAppliesToCurrentEmail && lockoutSecondsRemaining > 0;
+  const lockoutCountdown = formatCountdown(lockoutSecondsRemaining);
+
+  useEffect(() => {
+    if (!lockedUntilMs) return;
+
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [lockedUntilMs]);
+
+  useEffect(() => {
+    if (lockedUntilMs && lockoutSecondsRemaining <= 0) {
+      setLockedUntilMs(null);
+      setLockedEmail(null);
+      setErrorProp("");
+    }
+  }, [lockedUntilMs, lockoutSecondsRemaining]);
+
+  useEffect(() => {
+    if (!lockoutAppliesToCurrentEmail && errorProp?.includes("bloqueada")) {
+      setErrorProp("");
+    }
+  }, [errorProp, lockoutAppliesToCurrentEmail]);
+
   const onSubmit = (values: LoginFormValues) => {
+    if (isLocked) return;
+
     setErrorProp("");
     const toastId = toast.loading("Verificando credenciales...");
     startTransition(() => {
       loginAction(values).then((res) => {
-        if (res?.error) {
-          toast.error(res.error, { id: toastId });
+        if (res && "success" in res && res.success === false) {
+          if (res.lockedUntil) {
+            setLockedUntilMs(new Date(res.lockedUntil).getTime());
+            setLockedEmail(values.email.trim().toLowerCase());
+            setNowMs(Date.now());
+          } else {
+            setLockedUntilMs(null);
+            setLockedEmail(null);
+          }
+
+          const description =
+            res.remainingAttempts !== undefined && res.remainingAttempts > 0
+              ? `Te quedan ${res.remainingAttempts} intentos antes del bloqueo temporal.`
+              : res.lockedUntil
+                ? "Tu cuenta está bloqueada temporalmente por seguridad."
+                : undefined;
+
+          toast.error(res.error, {
+            id: toastId,
+            description,
+            duration: res.lockedUntil ? 10_000 : 6_000,
+          });
           setErrorProp(res.error);
         } else {
+          setLockedUntilMs(null);
+          setLockedEmail(null);
           toast.success("¡Bienvenido al sistema!", { id: toastId });
         }
       });
     });
+  };
+
+  const useAnotherAccount = () => {
+    form.setValue("email", "");
+    form.setValue("password", "");
+    setErrorProp("");
   };
 
   return (
@@ -155,22 +227,35 @@ export default function LoginPage() {
               </div>
 
               {errorProp && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md flex items-center gap-2">
-                  <div className="h-2 w-2 bg-red-600 rounded-full" />
-                  {errorProp}
+                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 shrink-0 rounded-full bg-red-600" />
+                    <span>{errorProp}</span>
+                  </div>
+                  {isLocked && (
+                    <button
+                      type="button"
+                      className="mt-3 text-sm font-semibold text-red-700 underline-offset-4 hover:underline"
+                      onClick={useAnotherAccount}
+                    >
+                      Ingresar con otra cuenta
+                    </button>
+                  )}
                 </div>
               )}
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-emerald-700 hover:bg-emerald-800 text-white font-medium transition-colors shadow-lg shadow-emerald-700/20"
-                disabled={isPending}
+                className="w-full h-11 bg-emerald-700 hover:bg-emerald-800 text-white font-medium transition-colors shadow-lg shadow-emerald-700/20 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+                disabled={isPending || isLocked}
               >
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Iniciando sesión...
                   </>
+                ) : isLocked ? (
+                  `Reintentar en ${lockoutCountdown}`
                 ) : (
                   "Iniciar Sesión"
                 )}
@@ -178,12 +263,16 @@ export default function LoginPage() {
             </form>
           </Form>
 
-          <p className="text-center text-sm text-slate-500 mt-8">
-            ¿Olvidaste tu contraseña?{" "}
-            <span
-              title="Próximamente"
-              className="font-medium text-slate-400 cursor-not-allowed select-none"
+          <p className="text-center text-sm text-transparent mt-8">
+            <Link
+              href="/forgot-password"
+              className="font-medium text-emerald-700 transition hover:text-emerald-800 hover:underline"
             >
+              Recuperar Contraseña
+            </Link>
+            <span className="sr-only"> </span>
+            ¿Olvidaste tu contraseña?{" "}
+            <span title="Próximamente" className="hidden">
               Recupérala aquí
             </span>
           </p>
@@ -223,4 +312,11 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }

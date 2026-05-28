@@ -3,6 +3,7 @@
 
 import { getUsers } from "@/lib/actions/user.actions";
 import { UsersClient } from "@/components/modules/users/UsersClient";
+import { resolveDefaultNewUserPassword } from "@/lib/validations/user.schema";
 
 export const metadata = {
   title: "Gestión de Usuarios | TerraNova Academy",
@@ -11,8 +12,9 @@ export const metadata = {
 
 export default async function UsersPage() {
   const result = await getUsers();
-  const defaultNewUserPassword =
-    process.env.DEFAULT_NEW_USER_PASSWORD?.trim() || "Terranova2026!";
+  const defaultNewUserPassword = resolveDefaultNewUserPassword(
+    process.env.DEFAULT_NEW_USER_PASSWORD,
+  );
 
   if (!result.success) {
     return (

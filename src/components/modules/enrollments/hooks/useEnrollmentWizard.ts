@@ -37,7 +37,7 @@ export function useEnrollmentWizard(initialData: EnrollmentWizardInitialData) {
 
   const handleNext = () => {
     if (step === 2 && (selectedSection?.available ?? 0) <= 0) {
-      const message = "La secciÃ³n seleccionada no tiene vacantes disponibles.";
+      const message = "La sección seleccionada no tiene vacantes disponibles.";
       setErrorProp(message);
       toast.error(message);
       return;
@@ -53,7 +53,7 @@ export function useEnrollmentWizard(initialData: EnrollmentWizardInitialData) {
     setErrorProp("");
 
     if (selectedSection.available <= 0) {
-      const message = "La secciÃ³n seleccionada no tiene vacantes disponibles.";
+      const message = "La sección seleccionada no tiene vacantes disponibles.";
       setErrorProp(message);
       toast.error(message);
       return;

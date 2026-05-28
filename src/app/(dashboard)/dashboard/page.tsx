@@ -99,7 +99,7 @@ export default async function DashboardPage() {
         <KPICard
           title="Pagos Vencidos"
           value={`S/ ${financials.totalOverdue.toLocaleString()}`}
-          description="En estado crÃ­tico"
+          description="En estado crítico"
           icon={CreditCard}
           trend={{ value: "Prioridad alta", isPositive: false }}
           criticality={financials.totalOverdue > 0 ? "high" : "low"}
@@ -107,13 +107,13 @@ export default async function DashboardPage() {
         <KPICard
           title="Alumnos en Riesgo"
           value={studentsAtRisk}
-          description="AcadÃ©mico / Conducta"
+          description="Académico / Conducta"
           icon={Users}
           trend={{ value: "Revisar listas", isPositive: studentsAtRisk === 0 }}
           criticality={studentsAtRisk > 5 ? "medium" : "low"}
         />
         <KPICard
-          title="Asistencia CrÃ­tica"
+          title="Asistencia Crítica"
           value={`${attendance.absencesLastWeek}`}
           description="Inasistencias recientes"
           icon={CalendarCheck}

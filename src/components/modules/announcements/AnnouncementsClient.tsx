@@ -76,7 +76,7 @@ export function AnnouncementsClient({
       <div className="print:hidden">
         <PageHeader
           title="Comunicados y Anuncios"
-          description="GestiÃ³n de comunicaciones oficiales para estudiantes, apoderados y personal."
+          description="Gestión de comunicaciones oficiales para estudiantes, apoderados y personal."
           action={
             <Button
               onClick={openCreateModal}
@@ -90,7 +90,7 @@ export function AnnouncementsClient({
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <Input
-            placeholder="Buscar por tÃ­tulo o contenido..."
+            placeholder="Buscar por título o contenido..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"

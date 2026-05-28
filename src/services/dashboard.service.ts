@@ -167,7 +167,7 @@ export function buildWeeklyAttendanceData(
   return [
     { date: "Lun", porcentaje: average },
     { date: "Mar", porcentaje: average },
-    { date: "MiÃ©", porcentaje: average },
+    { date: "Mié", porcentaje: average },
     { date: "Jue", porcentaje: average },
     { date: "Vie", porcentaje: average },
   ];

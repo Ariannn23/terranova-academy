@@ -81,14 +81,46 @@ enum EventType {
 // ─── MODELOS ──────────────────────────────────────────────────────────────────
 
 model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String
+  name                String
+  role                String    @default("ADMIN")
+  active              Boolean   @default(true)
+  recoveryEmail       String?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastFailedLoginAt   DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  passwordResetTokens PasswordResetToken[]
+  passwordHistory     PasswordHistory[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordHistory {
   id           String   @id @default(cuid())
-  email        String   @unique
+  userId       String
   passwordHash String
-  name         String
-  role         String   @default("ADMIN")
-  active       Boolean  @default(true)
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model AuditLog {

@@ -11,6 +11,7 @@ export type SafeUser = {
   id: string;
   name: string;
   email: string;
+  recoveryEmail?: string | null;
   role: UserRole;
   active: boolean;
   createdAt: Date | string;
@@ -21,6 +22,7 @@ export type SafeUser = {
 export type CreateUserInput = {
   name: string;
   email: string;
+  recoveryEmail?: string | null;
   role: UserRole;
   password: string;
 };
@@ -29,6 +31,7 @@ export type CreateUserInput = {
 export type UpdateUserInput = {
   name?: string;
   email?: string;
+  recoveryEmail?: string | null;
 };
 
 /** Payload para cambiar el rol de un usuario */

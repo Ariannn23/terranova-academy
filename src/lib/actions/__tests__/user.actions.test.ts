@@ -15,12 +15,18 @@ const { prismaMock, requireRoleMock, createAuditLogMock, revalidatePathMock, bcr
         update: vi.fn(),
         count: vi.fn(),
       },
+      passwordHistory: {
+        findMany: vi.fn().mockResolvedValue([]),
+        create: vi.fn(),
+        deleteMany: vi.fn(),
+      },
     },
     requireRoleMock: vi.fn(),
     createAuditLogMock: vi.fn(),
     revalidatePathMock: vi.fn(),
     bcryptMock: {
       hash: vi.fn().mockResolvedValue("hashed_password_value"),
+      compare: vi.fn().mockResolvedValue(false),
     },
   }));
 
@@ -40,7 +46,9 @@ vi.mock("@/lib/audit", () => ({
   createAuditLog: createAuditLogMock,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
-vi.mock("bcryptjs", () => ({ default: { hash: bcryptMock.hash } }));
+vi.mock("bcryptjs", () => ({
+  default: { hash: bcryptMock.hash, compare: bcryptMock.compare },
+}));
 
 // Helpers
 const makeSafeUser = (overrides: Partial<{

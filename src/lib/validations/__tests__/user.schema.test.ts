@@ -6,6 +6,7 @@ import {
   changeUserRoleSchema,
   resetUserPasswordSchema,
   toggleUserStatusSchema,
+  resolveDefaultNewUserPassword,
 } from "@/lib/validations/user.schema";
 
 describe("createUserSchema", () => {
@@ -301,5 +302,17 @@ describe("toggleUserStatusSchema", () => {
       active: "true",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("resolveDefaultNewUserPassword", () => {
+  it("usa el valor de entorno si cumple el minimo", () => {
+    expect(resolveDefaultNewUserPassword("TemporalPass2026!")).toBe(
+      "TemporalPass2026!",
+    );
+  });
+
+  it("usa fallback cuando el valor de entorno no cumple el minimo", () => {
+    expect(resolveDefaultNewUserPassword("corta")).toBe("Terranova2026!");
   });
 });

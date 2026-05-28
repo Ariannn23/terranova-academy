@@ -90,7 +90,11 @@ function CreateUserForm({
     formState: { errors, isSubmitting },
   } = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
-    defaultValues: { role: "DOCENTE", password: defaultNewUserPassword },
+    defaultValues: {
+      role: "DOCENTE",
+      password: defaultNewUserPassword,
+      recoveryEmail: null,
+    },
   });
 
   const selectedRole = watch("role");
@@ -164,6 +168,24 @@ function CreateUserForm({
         {errors.email && (
           <p className="text-xs text-red-500">{errors.email.message}</p>
         )}
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="create-recovery-email">Correo de recuperacion</Label>
+        <Input
+          id="create-recovery-email"
+          type="email"
+          placeholder="correo.personal@gmail.com"
+          {...register("recoveryEmail")}
+        />
+        {errors.recoveryEmail && (
+          <p className="text-xs text-red-500">
+            {errors.recoveryEmail.message}
+          </p>
+        )}
+        <p className="text-xs text-slate-500">
+          Correo externo usado solo para enviar enlaces de recuperacion.
+        </p>
       </div>
 
       <div className="space-y-1">
@@ -258,7 +280,11 @@ function EditUserForm({ user, onSuccess, onClose }: EditFormProps) {
     formState: { errors, isSubmitting },
   } = useForm<UpdateUserInput>({
     resolver: zodResolver(updateUserSchema),
-    defaultValues: { name: user.name, email: user.email },
+    defaultValues: {
+      name: user.name,
+      email: user.email,
+      recoveryEmail: user.recoveryEmail ?? null,
+    },
   });
   const [emailLocalPart, setEmailLocalPart] = useState(
     user.email.replace(INSTITUTIONAL_EMAIL_DOMAIN, ""),
@@ -270,7 +296,11 @@ function EditUserForm({ user, onSuccess, onClose }: EditFormProps) {
       ? user.email.replace(institutionalSuffix, "")
       : user.email.split("@")[0];
     setEmailLocalPart(initialLocalPart);
-    reset({ name: user.name, email: `${initialLocalPart}${institutionalSuffix}` });
+    reset({
+      name: user.name,
+      email: `${initialLocalPart}${institutionalSuffix}`,
+      recoveryEmail: user.recoveryEmail ?? null,
+    });
   }, [user, reset, institutionalSuffix]);
 
   async function onSubmit(data: UpdateUserInput) {
@@ -331,6 +361,24 @@ function EditUserForm({ user, onSuccess, onClose }: EditFormProps) {
         {errors.email && (
           <p className="text-xs text-red-500">{errors.email.message}</p>
         )}
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="edit-recovery-email">Correo de recuperacion</Label>
+        <Input
+          id="edit-recovery-email"
+          type="email"
+          placeholder="correo.personal@gmail.com"
+          {...register("recoveryEmail")}
+        />
+        {errors.recoveryEmail && (
+          <p className="text-xs text-red-500">
+            {errors.recoveryEmail.message}
+          </p>
+        )}
+        <p className="text-xs text-slate-500">
+          Dejalo vacio si el usuario no tiene correo de apoyo.
+        </p>
       </div>
 
       <DialogFooter className="pt-2">

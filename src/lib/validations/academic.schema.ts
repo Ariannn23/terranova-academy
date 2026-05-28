@@ -18,7 +18,7 @@ export const SectionSchema = z.object({
   teacherId: z.string().optional().nullable(),
   capacity: z.coerce
     .number()
-    .int("La capacidad debe ser un nÃºmero entero")
+    .int("La capacidad debe ser un número entero")
     .min(1, "La capacidad debe ser mayor a 0")
     .default(30),
 });

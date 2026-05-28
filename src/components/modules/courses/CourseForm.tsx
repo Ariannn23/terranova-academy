@@ -66,7 +66,7 @@ export function CourseForm({
             {initialData ? "Editar Curso" : "Registrar Nuevo Curso"}
           </DialogTitle>
           <DialogDescription>
-            Define la currÃ­cula y carga horaria para un grado especÃ­fico.
+            Define la currícula  y carga horaria para un grado específico.
           </DialogDescription>
         </DialogHeader>
 
@@ -80,7 +80,7 @@ export function CourseForm({
               <Label htmlFor="name">Nombre del Curso</Label>
               <Input
                 id="name"
-                placeholder="Ej. ComunicaciÃ³n MatemÃ¡tica"
+                placeholder="Ej. Comunicación Matemática"
                 {...register("name")}
               />
               {errors.name && (

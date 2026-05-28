@@ -224,12 +224,12 @@ export async function createEnrollment(data: unknown) {
 
     // 2. Crear la matrícula y los pagos en una transacción
     if (!sectionCapacity)
-      return { success: false, error: "SecciÃ³n no encontrada" };
+      return { success: false, error: "Sección no encontrada" };
 
     if (sectionCapacity._count.enrollments >= sectionCapacity.capacity) {
       return {
         success: false,
-        error: "La secciÃ³n seleccionada no tiene vacantes disponibles.",
+        error: "La sección seleccionada no tiene vacantes disponibles.",
       };
     }
 
@@ -391,13 +391,13 @@ export async function createEnrollment(data: unknown) {
     if (errorMessage === "SECTION_NOT_FOUND") {
       return {
         success: false,
-        error: "SecciÃ³n no encontrada",
+        error: "sección no encontrada",
       };
     }
     if (errorMessage === "SECTION_FULL") {
       return {
         success: false,
-        error: "La secciÃ³n seleccionada no tiene vacantes disponibles.",
+        error: "La sección seleccionada no tiene vacantes disponibles.",
       };
     }
     console.error("Error in createEnrollment:", error);

@@ -38,27 +38,47 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const e2eUsers = [
-  { email: "admin.e2e@terranova.test", name: "E2E Admin", role: "ADMIN" },
+  {
+    email: "admin.e2e@terranova.test",
+    name: "E2E Admin",
+    role: "ADMIN",
+    recoveryEmail: "admin.recovery.e2e@example.com",
+  },
   {
     email: "director.e2e@terranova.test",
     name: "E2E Directora",
     role: "DIRECTOR",
+    recoveryEmail: "director.recovery.e2e@example.com",
   },
   {
     email: "recepcion.e2e@terranova.test",
     name: "E2E Recepcion",
     role: "RECEPCION",
+    recoveryEmail: "recepcion.recovery.e2e@example.com",
   },
-  { email: "caja.e2e@terranova.test", name: "E2E Caja", role: "CAJA" },
+  {
+    email: "caja.e2e@terranova.test",
+    name: "E2E Caja",
+    role: "CAJA",
+    recoveryEmail: "caja.recovery.e2e@example.com",
+  },
   {
     email: "docente.e2e@terranova.test",
     name: "E2E Docente",
     role: "DOCENTE",
+    recoveryEmail: "docente.recovery.e2e@example.com",
   },
   {
     email: "coordinador.e2e@terranova.test",
     name: "E2E Coordinador",
     role: "COORDINADOR",
+    recoveryEmail: "coordinador.recovery.e2e@example.com",
+  },
+  {
+    email: "lockout.e2e@terranova.test",
+    name: "E2E Lockout",
+    role: "DOCENTE",
+    recoveryEmail: "lockout.recovery.e2e@example.com",
   },
 ] as const;
 
@@ -73,13 +93,23 @@ async function main() {
       update: {
         name: user.name,
         role: user.role,
+        recoveryEmail: user.recoveryEmail,
         passwordHash,
+        active: true,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastFailedLoginAt: null,
       },
       create: {
         email: user.email,
         name: user.name,
         role: user.role,
+        recoveryEmail: user.recoveryEmail,
         passwordHash,
+        active: true,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastFailedLoginAt: null,
       },
     });
   }

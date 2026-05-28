@@ -14,7 +14,7 @@ export const courseSchema = z.object({
   hoursPerWeek: z.coerce
     .number()
     .min(1, "Debe tener al menos 1 hora")
-    .max(40, "MÃ¡ximo 40 horas"),
+    .max(40, "Máximo 40 horas"),
   active: z.boolean().default(true),
 });
 
@@ -70,8 +70,8 @@ export function useCourseForm({
       if (result.success) {
         toast.success(
           initialData
-            ? "Curso actualizado con Ã©xito"
-            : "Curso registrado con Ã©xito",
+            ? "Curso actualizado con éxito"
+            : "Curso registrado con éxito",
           { id: toastId },
         );
         onSuccess?.();
@@ -83,7 +83,7 @@ export function useCourseForm({
         });
       }
     } catch {
-      toast.error("Error de conexiÃ³n o servidor", { id: toastId });
+      toast.error("Error de conexión o servidor", { id: toastId });
     } finally {
       setLoading(false);
     }

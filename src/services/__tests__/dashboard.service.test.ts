@@ -86,7 +86,7 @@ describe("dashboard.service", () => {
     expect(buildWeeklyAttendanceData(90)).toEqual([
       { date: "Lun", porcentaje: 90 },
       { date: "Mar", porcentaje: 90 },
-      { date: "MiÃ©", porcentaje: 90 },
+      { date: "Mié", porcentaje: 90 },
       { date: "Jue", porcentaje: 90 },
       { date: "Vie", porcentaje: 90 },
     ]);

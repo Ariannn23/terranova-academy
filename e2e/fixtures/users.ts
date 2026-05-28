@@ -18,6 +18,7 @@ export const e2eUsers = {
   caja: fromEnv("CAJA", "caja.e2e@terranova.test"),
   docente: fromEnv("DOCENTE", "docente.e2e@terranova.test"),
   coordinador: fromEnv("COORDINADOR", "coordinador.e2e@terranova.test"),
+  lockout: fromEnv("LOCKOUT", "lockout.e2e@terranova.test"),
 };
 
 function fromEnv(role: string, fallbackEmail: string): E2EUser {

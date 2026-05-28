@@ -337,6 +337,9 @@ export function UsersClient({
                             <p className="text-xs text-slate-500">
                               {user.email}
                             </p>
+                            <p className="text-xs text-slate-400">
+                              Recuperacion: {user.recoveryEmail ?? "sin configurar"}
+                            </p>
                           </div>
                         </div>
                       </td>

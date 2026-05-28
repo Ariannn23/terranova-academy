@@ -10,8 +10,14 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
 import { AuditAction, AuditEntity, createAuditLog } from "@/lib/audit";
 import {
+  assertPasswordWasNotRecentlyUsed,
+  PASSWORD_REUSE_ERROR,
+  recordPasswordHistory,
+} from "@/lib/auth/password-history";
+import {
   createUserSchema,
   INSTITUTIONAL_EMAIL_DOMAIN,
+  resolveDefaultNewUserPassword,
   updateUserSchema,
   changeUserRoleSchema,
   resetUserPasswordSchema,
@@ -19,14 +25,16 @@ import {
 } from "@/lib/validations/user.schema";
 import type { SafeUser } from "@/types/user";
 
-const DEFAULT_NEW_USER_PASSWORD =
-  process.env.DEFAULT_NEW_USER_PASSWORD?.trim() || "Terranova2026!";
+const DEFAULT_NEW_USER_PASSWORD = resolveDefaultNewUserPassword(
+  process.env.DEFAULT_NEW_USER_PASSWORD,
+);
 
 // ─── Selector seguro (sin passwordHash) ──────────────────────────────────────
 const SAFE_USER_SELECT = {
   id: true,
   name: true,
   email: true,
+  recoveryEmail: true,
   role: true,
   active: true,
   createdAt: true,
@@ -81,7 +89,7 @@ export async function createUser(data: unknown): Promise<
       return { success: false, error: parsed.error.flatten() };
     }
 
-    const { name, email, role } = parsed.data;
+    const { name, email, recoveryEmail, role } = parsed.data;
     const password = parsed.data.password.trim() || DEFAULT_NEW_USER_PASSWORD;
 
     if (!email.endsWith(INSTITUTIONAL_EMAIL_DOMAIN)) {
@@ -103,9 +111,11 @@ export async function createUser(data: unknown): Promise<
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name, email, role, passwordHash, active: true },
+      data: { name, email, recoveryEmail, role, passwordHash, active: true },
       select: SAFE_USER_SELECT,
     });
+
+    await recordPasswordHistory({ userId: user.id, passwordHash });
 
     revalidatePath("/dashboard/usuarios");
 
@@ -113,7 +123,7 @@ export async function createUser(data: unknown): Promise<
       action: AuditAction.CREATE,
       entity: AuditEntity.USER,
       entityId: user.id,
-      newValue: { name, email, role, active: true },
+      newValue: { name, email, recoveryEmail, role, active: true },
       metadata: { module: "users", reason: "Nuevo usuario creado por ADMIN" },
     });
 
@@ -301,12 +311,18 @@ export async function resetUserPassword(data: unknown): Promise<
 
     const target = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true },
+      select: { id: true, email: true, passwordHash: true },
     });
 
     if (!target) {
       return { success: false, error: "Usuario no encontrado" };
     }
+
+    await assertPasswordWasNotRecentlyUsed({
+      userId,
+      newPassword: password,
+      currentPasswordHash: target.passwordHash,
+    });
 
     const passwordHash = await bcrypt.hash(password, 12);
 
@@ -314,6 +330,8 @@ export async function resetUserPassword(data: unknown): Promise<
       where: { id: userId },
       data: { passwordHash },
     });
+
+    await recordPasswordHistory({ userId, passwordHash });
 
     revalidatePath("/dashboard/usuarios");
 
@@ -336,6 +354,9 @@ export async function resetUserPassword(data: unknown): Promise<
       err.name === "AuthorizationError"
     ) {
       return { success: false, error: err.message };
+    }
+    if (err.message === PASSWORD_REUSE_ERROR) {
+      return { success: false, error: PASSWORD_REUSE_ERROR };
     }
     console.error("[user.actions] Error in resetUserPassword:", error);
     return { success: false, error: "Error al resetear la contraseña" };

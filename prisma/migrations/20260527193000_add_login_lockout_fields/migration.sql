@@ -1,0 +1,5 @@
+-- Campos de bloqueo temporal por intentos fallidos de login.
+ALTER TABLE "public"."User"
+ADD COLUMN IF NOT EXISTS "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP(3),
+ADD COLUMN IF NOT EXISTS "lastFailedLoginAt" TIMESTAMP(3);

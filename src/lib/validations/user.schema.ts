@@ -6,10 +6,33 @@ import { ROLES } from "@/lib/rbac";
 
 export const MIN_PASSWORD_LENGTH = 10;
 export const MIN_PASSWORD_MESSAGE = `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`;
+export const DEFAULT_NEW_USER_PASSWORD_FALLBACK = "Terranova2026!";
 
 export const INSTITUTIONAL_EMAIL_DOMAIN = "@terranova.edu.pe";
 export const NAME_WITHOUT_NUMBERS_REGEX =
   /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s'.-]+$/;
+
+export function resolveDefaultNewUserPassword(rawPassword?: string | null) {
+  const normalized = rawPassword?.trim() ?? "";
+  if (normalized.length >= MIN_PASSWORD_LENGTH) {
+    return normalized;
+  }
+  return DEFAULT_NEW_USER_PASSWORD_FALLBACK;
+}
+
+const optionalRecoveryEmailSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+  z
+    .string()
+    .email("Correo de recuperación inválido")
+    .toLowerCase()
+    .refine(
+      (email) => !email.endsWith(INSTITUTIONAL_EMAIL_DOMAIN),
+      "Usa un correo de apoyo externo, no el correo institucional.",
+    )
+    .nullable()
+    .optional(),
+);
 
 export const userRoleEnum = z.enum(ROLES, {
   errorMap: () => ({ message: "Rol inválido" }),
@@ -29,6 +52,7 @@ export const createUserSchema = z.object({
       (email) => email.endsWith(INSTITUTIONAL_EMAIL_DOMAIN),
       `El correo debe terminar en ${INSTITUTIONAL_EMAIL_DOMAIN}`,
     ),
+  recoveryEmail: optionalRecoveryEmailSchema,
   role: userRoleEnum,
   password: z
     .string()
@@ -52,6 +76,7 @@ export const updateUserSchema = z.object({
       `El correo debe terminar en ${INSTITUTIONAL_EMAIL_DOMAIN}`,
     )
     .optional(),
+  recoveryEmail: optionalRecoveryEmailSchema,
 });
 
 /** Cambiar el rol de un usuario */

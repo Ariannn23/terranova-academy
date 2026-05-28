@@ -2,9 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
-import { LoginSchema } from "@/lib/validations/auth.schema";
+import { processCredentialLogin } from "@/lib/auth/login-credentials";
 import { type AppRole, hasAllowedRole, normalizeRole } from "@/lib/rbac";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -13,30 +12,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       async authorize(credentials) {
-        const parsed = LoginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
-
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
+        const result = await processCredentialLogin(credentials, {
+          sessionBootstrap: true,
         });
-        if (!user) return null;
-
-        const valid = await bcrypt.compare(
-          parsed.data.password,
-          user.passwordHash,
-        );
-        if (!valid) return null;
-
-        // Bloquear login de usuarios inactivos.
-        // Devuelve null para dar un mensaje genérico de credenciales inválidas.
-        if (!user.active) return null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
+        if (!result.success) return null;
+        return result.user;
       },
     }),
   ],
