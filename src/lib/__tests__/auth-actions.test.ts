@@ -94,7 +94,7 @@ describe("password reset actions", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.devResetUrl).toContain("/reset-password?token=");
+    expect(result).not.toHaveProperty("devResetUrl");
     expect(prismaMock.passwordResetToken.create).toHaveBeenCalledWith({
       data: {
         userId: "u1",

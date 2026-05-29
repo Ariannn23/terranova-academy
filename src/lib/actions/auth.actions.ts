@@ -97,7 +97,6 @@ function isAuthErrorLike(error: unknown): error is { type: string } {
 export type RequestPasswordResetResult = {
   success: true;
   message: string;
-  devResetUrl?: string;
 };
 
 export type ConfirmPasswordResetResult =
@@ -193,7 +192,6 @@ export async function requestPasswordResetAction(
   return {
     success: true,
     message: PASSWORD_RESET_GENERIC_MESSAGE,
-    devResetUrl: process.env.NODE_ENV === "production" ? undefined : resetUrl,
   };
 }
 

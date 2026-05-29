@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,7 +22,6 @@ import { Loader2, Mail } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [message, setMessage] = useState<string | null>(null);
-  const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<RequestPasswordResetValues>({
@@ -33,12 +31,10 @@ export default function ForgotPasswordPage() {
 
   function onSubmit(values: RequestPasswordResetValues) {
     setMessage(null);
-    setDevResetUrl(null);
 
     startTransition(() => {
       requestPasswordResetAction(values).then((result) => {
         setMessage(result.message);
-        setDevResetUrl(result.devResetUrl ?? null);
       });
     });
   }
@@ -87,15 +83,6 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            {devResetUrl && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                Modo desarrollo:{" "}
-                <Link className="font-semibold underline" href={devResetUrl}>
-                  abrir enlace de recuperacion
-                </Link>
-              </div>
-            )}
-
             <Button
               type="submit"
               disabled={isPending}
@@ -114,12 +101,12 @@ export default function ForgotPasswordPage() {
         </Form>
 
         <div className="mt-6 text-center">
-          <Link
+          <a
             href="/login"
             className="text-sm font-medium text-slate-600 hover:text-slate-900 hover:underline"
           >
             Volver al login
-          </Link>
+          </a>
         </div>
       </div>
     </main>
