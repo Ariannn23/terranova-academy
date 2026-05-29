@@ -16,6 +16,8 @@ Definir los pasos necesarios para subir TerraNova Academy a produccion de forma 
 - Bloqueo temporal por intentos fallidos implementado.
 - Recordar este equipo implementado con cookie httpOnly y token hasheado.
 - `/api/seed` debe permanecer deshabilitado.
+- `.env.example` fue alineado con variables de produccion y E2E.
+- `/api/seed` mantiene respuesta `410 Gone` y no ejecuta ningun seed.
 
 ## Validaciones ejecutadas
 
@@ -27,6 +29,11 @@ Definir los pasos necesarios para subir TerraNova Academy a produccion de forma 
 | `npm.cmd run test:integration` | OK | 45 tests pasaron. |
 | `npm.cmd run build` | OK | Build de Next.js correcto. |
 | `npx.cmd prisma validate` | OK | Schema valido; queda warning no bloqueante de `driverAdapters`. |
+| `npm.cmd run lint` despues de ajustes deploy-readiness | OK | Sin errores ni warnings. |
+| `npx.cmd tsc --noEmit` despues de ajustes deploy-readiness | OK | Tipado correcto. |
+| `npm.cmd run test:run` despues de ajustes deploy-readiness | OK | 209 tests pasaron. |
+| `npm.cmd run test:integration` despues de ajustes deploy-readiness | OK | 45 tests pasaron. |
+| `npm.cmd run build` despues de ajustes deploy-readiness | OK | Build de Next.js correcto. |
 
 ## Paso 1: Cierre limpio de codigo
 
@@ -64,6 +71,7 @@ Configurar en el proveedor de hosting:
 DATABASE_URL=
 MIGRATION_DATABASE_URL=
 NEXTAUTH_SECRET=
+AUTH_SECRET=
 NEXTAUTH_URL=
 NEXT_PUBLIC_APP_URL=
 
@@ -82,6 +90,7 @@ BOOTSTRAP_CONFIRM=true
 Notas:
 
 - `NEXTAUTH_SECRET` debe ser fuerte y distinto al local.
+- `AUTH_SECRET` se puede mantener igual a `NEXTAUTH_SECRET` si el proveedor o NextAuth lo requiere.
 - `NEXTAUTH_URL` debe apuntar al dominio HTTPS final.
 - `NEXT_PUBLIC_APP_URL` debe apuntar al dominio publico final.
 - No subir credenciales reales al repositorio.
