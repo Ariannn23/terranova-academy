@@ -13,15 +13,11 @@
 
 # next.js
 /.next/
+.next/
 /out/
 
 # production
 /build
-
-# Documentación interna (guías públicas versionadas en docs/*.md permitidas abajo)
-/docs/*
-!docs/instalacion-proyecto.md
-!docs/guia-testeos.md
 
 # misc
 .DS_Store
@@ -33,6 +29,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
+.env.local
 .env*.local
 
 # vercel
@@ -41,7 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-.env
 
 # personal tracking
 PROMTS.md

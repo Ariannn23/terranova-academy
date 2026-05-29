@@ -1,37 +1,100 @@
 # TerraNova Academy
 
-Sistema administrativo escolar construido con Next.js App Router, Prisma ORM y PostgreSQL (Supabase), con enfoque en seguridad operativa, control de acceso por roles y trazabilidad completa de acciones.
+Sistema administrativo escolar construido con Next.js App Router, Prisma ORM y PostgreSQL, con enfoque en seguridad operativa, control de acceso por roles, auditoria y pruebas automatizadas.
 
 ---
 
-## Estado actual del proyecto
+## Estado actual
 
-El estado funcional integrado hasta Sprint 17F es estable. Las validaciones recientes confirman:
+El proyecto se encuentra estable despues de la integracion de seguridad de login, recuperacion de contrasena y endurecimiento de pruebas autenticadas.
 
-| Validación         | Resultado                           |
-| ------------------ | ----------------------------------- |
-| `prisma validate`  | ✅ OK                               |
-| `prisma generate`  | ✅ OK                               |
-| `lint`             | ✅ OK                               |
-| `tsc --noEmit`     | ✅ OK                               |
-| `test:run`         | ✅ 188/188                          |
-| `test:integration` | ✅ 45/45                            |
-| `test:e2e base`    | ✅ 7 passed / 11 skipped (esperado) |
-| `build`            | ✅ OK                               |
+Validaciones recientes:
 
-> Los **11 skipped de E2E** son esperados. Los escenarios autenticados requieren configurar `E2E_DATABASE_URL` y ejecutar `npm run seed:e2e` en una base aislada. No se deben considerar como fallo hasta completar ese sprint.
+| Validacion | Resultado |
+|---|---|
+| `npx.cmd prisma validate` | OK |
+| `npm.cmd run lint` | OK, sin warnings |
+| `npx.cmd tsc --noEmit` | OK |
+| `npm.cmd run test:run` | OK, 209 tests |
+| `npm.cmd run test:integration` | OK, 45 tests |
+| `npm.cmd run build` | OK |
+
+Notas:
+
+- Los E2E autenticados requieren `E2E_DATABASE_URL` aislada.
+- No ejecutar E2E autenticados contra produccion.
+- El warning de Prisma sobre `driverAdapters` no bloquea el proyecto y queda como limpieza tecnica futura.
 
 ---
 
-## Stack técnico
+## Stack tecnico
 
-- **Next.js 14** (App Router) + **React 18** + **TypeScript**
-- **Prisma ORM** + **PostgreSQL** (Supabase)
-- **NextAuth v5** (sesión y autenticación, Credentials + Prisma Adapter)
-- **Zod** + **React Hook Form**
-- **Vitest** (unit/integration) + **Playwright** (E2E)
-- **Supabase Storage** (subida de archivos)
-- **Resend** (pendiente para correos transaccionales)
+- Next.js 14 App Router
+- React 18
+- TypeScript
+- Prisma ORM 7
+- PostgreSQL
+- NextAuth v5 con Credentials Provider
+- bcryptjs
+- Zod
+- React Hook Form
+- Vitest
+- Playwright
+- Tailwind CSS
+- Supabase Storage para uploads
+- SMTP con Nodemailer para recuperacion de contrasena
+
+---
+
+## Funcionalidades principales
+
+- Login con NextAuth y credenciales.
+- Control de acceso por roles.
+- Dashboard protegido.
+- Gestion de estudiantes, docentes, cursos, matriculas, asistencia, notas, pagos, reportes, comunicados, incidencias e inhabilitaciones.
+- Pagos parciales con transacciones y saldo.
+- Auditoria de acciones criticas.
+- Seguridad de reportes y uploads.
+- Usuarios administrativos con activacion/desactivacion.
+- Pruebas unitarias, integracion y E2E.
+
+---
+
+## Seguridad de login
+
+El flujo de autenticacion incluye:
+
+- Contrasena minima de 10 caracteres.
+- Boton para ver u ocultar contrasena.
+- Mensaje generico para credenciales invalidas.
+- Bloqueo temporal por 15 minutos despues de 5 intentos fallidos.
+- Contador de intentos restantes.
+- Bloqueo aplicado por cuenta, no por dispositivo completo.
+- Opcion para ingresar con otra cuenta si una cuenta queda bloqueada.
+- Registro de intentos de login en auditoria.
+- Proteccion para usuarios inactivos.
+- Opcion "Recordar este equipo" con cookie httpOnly y token persistente hasheado.
+- Historial de las ultimas 3 contrasenas para impedir reutilizacion.
+
+---
+
+## Recuperacion de contrasena
+
+El flujo profesional de recuperacion esta implementado:
+
+- Pagina publica `/forgot-password`.
+- Pagina publica `/reset-password`.
+- Token temporal de recuperacion.
+- Token almacenado solo como hash.
+- Expiracion del enlace en 30 minutos.
+- Enlace enviado por correo mediante SMTP.
+- No se muestra enlace de desarrollo en UI.
+- No se imprime token en logs.
+- El correo HTML usa branding de TerraNova Academy.
+- Al actualizar la contrasena se muestra confirmacion con redireccion automatica al login.
+- La nueva contrasena no puede coincidir con las ultimas 3 contrasenas usadas.
+
+Para que funcione con correo real, se deben configurar las variables SMTP del entorno.
 
 ---
 
@@ -39,328 +102,300 @@ El estado funcional integrado hasta Sprint 17F es estable. Las validaciones reci
 
 - Node.js 20+
 - npm 10+
-- Base PostgreSQL accesible (Supabase u otro proveedor)
-- Opcional: base aislada exclusiva para E2E autenticado
+- PostgreSQL accesible
+- Base aislada opcional para E2E autenticado
+- Proveedor SMTP real para recuperacion de contrasena
 
 ---
 
 ## Estructura principal
 
-```
+```txt
 terranova-academy/
-├── src/
-│   ├── app/              # Rutas App Router, layouts y páginas
-│   ├── components/       # UI compartida y módulos de negocio
-│   ├── lib/              # Auth, Server Actions, validaciones, utilidades
-│   ├── services/         # Servicios puros de dominio/transformación
-│   └── types/            # Tipos TypeScript del proyecto
-├── prisma/
-│   ├── schema.prisma     # Fuente de verdad del modelo de datos
-│   ├── migrations/       # Migraciones versionadas
-│   ├── seed.ts           # Seed base (sin usuarios reales)
-│   └── seed.sql / init-schema.sql  # Archivos legacy (solo referencia)
-├── scripts/
-│   ├── bootstrap-admin.ts  # Creación segura del primer ADMIN
-│   ├── seed-e2e.ts         # Seed aislado para E2E autenticado
-│   └── run-e2e.mjs         # Runner de pruebas E2E
-├── e2e/                  # Pruebas Playwright
-└── docs/arrangements/    # Bitácora técnica por sprint
+  src/
+    app/                 Rutas App Router
+    components/          UI compartida y modulos
+    lib/                 Auth, acciones, RBAC, auditoria, validaciones
+    services/            Servicios puros reutilizables
+    types/               Tipos compartidos
+  prisma/
+    schema.prisma        Modelo de datos
+    migrations/          Migraciones versionadas
+    seed.ts              Seed base del sistema
+  scripts/
+    bootstrap-admin.ts   Bootstrap seguro del primer ADMIN
+    seed-e2e.ts          Seed aislado para E2E
+    run-e2e.mjs          Runner Playwright
+  e2e/                   Pruebas Playwright
+  docs/arrangements/     Bitacora tecnica por sprint
 ```
 
 ---
 
 ## Variables de entorno
 
-Copiar `.env.example` a `.env.local` y completar los valores:
+Copiar `.env.example` a `.env.local` y completar segun el entorno.
 
-| Variable                     | Descripción                                                    |
-| ---------------------------- | -------------------------------------------------------------- |
-| `DATABASE_URL`               | URL de runtime (puede usar pooler `:6543` en Supabase)         |
-| `MIGRATION_DATABASE_URL`     | URL directa para migraciones Prisma (usar `:5432` en Supabase) |
-| `E2E_DATABASE_URL`           | Base aislada para E2E autenticado (vacío si no aplica)         |
-| `DEFAULT_NEW_USER_PASSWORD`  | Contraseña temporal por defecto al crear usuarios              |
-| `INSTITUTIONAL_EMAIL_DOMAIN` | Dominio institucional permitido (ej: `terranova.edu.pe`)       |
-| `BOOTSTRAP_ADMIN_EMAIL`      | Email del primer ADMIN                                         |
-| `BOOTSTRAP_ADMIN_PASSWORD`   | Contraseña del primer ADMIN                                    |
-| `BOOTSTRAP_ADMIN_NAME`       | Nombre del primer ADMIN                                        |
-| `BOOTSTRAP_CONFIRM`          | Debe ser `true` para ejecutar bootstrap                        |
-| `AUTH_SECRET`                | Secret de NextAuth (genera con `openssl rand -hex 32`)         |
-| `E2E_RUN_AUTHENTICATED`      | `1` para habilitar tests autenticados en E2E                   |
-| `E2E_ADMIN_EMAIL / PASSWORD` | Credenciales de ADMIN para E2E autenticado                     |
+Variables principales:
 
----
+| Variable | Uso |
+|---|---|
+| `DATABASE_URL` | Conexion runtime de la app |
+| `MIGRATION_DATABASE_URL` | Conexion directa para migraciones |
+| `NEXTAUTH_SECRET` o `AUTH_SECRET` | Secreto fuerte de NextAuth |
+| `NEXTAUTH_URL` | URL publica de la app |
+| `NEXT_PUBLIC_APP_URL` | URL publica usada para enlaces |
+| `DEFAULT_NEW_USER_PASSWORD` | Contrasena temporal segura para nuevos usuarios |
+| `INSTITUTIONAL_EMAIL_DOMAIN` | Dominio institucional permitido |
+| `BOOTSTRAP_ADMIN_EMAIL` | Email del primer ADMIN real |
+| `BOOTSTRAP_ADMIN_PASSWORD` | Contrasena del primer ADMIN |
+| `BOOTSTRAP_ADMIN_NAME` | Nombre del primer ADMIN |
+| `BOOTSTRAP_CONFIRM` | Debe ser `true` para bootstrap |
+| `SMTP_HOST` | Host SMTP |
+| `SMTP_PORT` | Puerto SMTP |
+| `SMTP_USER` | Usuario SMTP |
+| `SMTP_PASS` | Password o app password SMTP |
+| `PASSWORD_RESET_FROM_EMAIL` | Remitente de recuperacion |
+| `E2E_DATABASE_URL` | Base aislada para E2E autenticado |
 
-## Ejemplo de .env.local
-
-> **No subir `.env.local` al repositorio. No pegar credenciales reales aquí. Si fueron expuestas, rotarlas de inmediato.**
+Ejemplo:
 
 ```env
-# ─── Base de Datos ────────────────────────────────────────────────────────────
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:6543/postgres?pgbouncer=true"
 MIGRATION_DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
-E2E_DATABASE_URL=""
 
-# ─── Usuarios ─────────────────────────────────────────────────────────────────
+NEXTAUTH_SECRET="genera-un-secreto-fuerte"
+NEXTAUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
 DEFAULT_NEW_USER_PASSWORD="Terranova2026!"
-INSTITUTIONAL_EMAIL_DOMAIN=terranova.edu.pe
+INSTITUTIONAL_EMAIL_DOMAIN="terranova.edu.pe"
 
-# ─── Bootstrap Admin ──────────────────────────────────────────────────────────
+SMTP_HOST=""
+SMTP_PORT="587"
+SMTP_USER=""
+SMTP_PASS=""
+PASSWORD_RESET_FROM_EMAIL="TerraNova Academy <no-reply@terranova.edu.pe>"
+
 BOOTSTRAP_ADMIN_EMAIL="admin@terranova.edu.pe"
 BOOTSTRAP_ADMIN_PASSWORD="CambiarPasswordSeguro2026!"
 BOOTSTRAP_ADMIN_NAME="Administrador TerraNova"
-BOOTSTRAP_CONFIRM=true
+BOOTSTRAP_CONFIRM="true"
 
-# ─── NextAuth ─────────────────────────────────────────────────────────────────
-AUTH_SECRET="<genera con openssl rand -hex 32>"
-NEXTAUTH_URL="http://localhost:3000"
-
-# ─── E2E ──────────────────────────────────────────────────────────────────────
-E2E_RUN_AUTHENTICATED=0
-E2E_ADMIN_EMAIL=
-E2E_ADMIN_PASSWORD=
+E2E_DATABASE_URL=""
+E2E_RUN_AUTHENTICATED="0"
 ```
 
----
-
-## Checklist de primera instalación
-
-- [ ] Clonar el repositorio
-- [ ] Instalar Node.js 20+ y npm 10+
-- [ ] Ejecutar `npm install`
-- [ ] Copiar `.env.example` a `.env.local`
-- [ ] Configurar `DATABASE_URL` (pooler Supabase `:6543`)
-- [ ] Configurar `MIGRATION_DATABASE_URL` (conexión directa Supabase `:5432`)
-- [ ] Configurar `DEFAULT_NEW_USER_PASSWORD`
-- [ ] Configurar `INSTITUTIONAL_EMAIL_DOMAIN`
-- [ ] Ejecutar `npx.cmd prisma validate`
-- [ ] Ejecutar `npx.cmd prisma generate`
-- [ ] Verificar estado de migraciones (ver sección siguiente)
-- [ ] Ejecutar `npm run seed`
-- [ ] Configurar variables `BOOTSTRAP_*` y ejecutar `npm run bootstrap:admin`
-- [ ] Ejecutar `npm run dev`
-- [ ] Iniciar sesión en `/login` con las credenciales del ADMIN
-- [ ] Crear usuarios institucionales desde `/dashboard/usuarios`
+No subir `.env.local` al repositorio.
 
 ---
 
-## Flujo para base Supabase existente
-
-Para proyectos que ya tienen una base de datos en Supabase con el esquema inicializado:
-
-1. Usar `MIGRATION_DATABASE_URL` con puerto `5432` (Session Pooler o conexión directa).
-2. Verificar el estado de migraciones:
-   ```bash
-   npx.cmd prisma migrate status --schema prisma/schema.prisma
-   ```
-3. Si el resultado es `Database schema is up to date!`, no se necesita aplicar nada.
-4. Si hay migraciones pendientes, aplicarlas con:
-   ```bash
-   npx.cmd prisma migrate deploy --schema prisma/schema.prisma
-   ```
-5. **No usar `prisma migrate dev`** contra Supabase remoto.
-6. **No usar `prisma migrate reset`** contra Supabase remoto.
-7. Si aparece el error `P3005: The database schema is not empty`, detenerse y revisar la estrategia baseline documentada en `docs/arrangements/`.
-
----
-
-## Advertencia sobre base nueva desde cero
-
-> ⚠️ **El flujo actual está validado exclusivamente para la base Supabase existente del proyecto.**
-
-El baseline `20260524000000_baseline_existing_database` fue creado para regularizar una base pre-existente, **no** como una migración inicial limpia. Puede existir riesgo de duplicidad con migraciones incrementales (especialmente `Section.capacity`) si se intenta aplicar sobre una base completamente vacía.
-
-La instalación desde cero en una base nueva requiere un sprint futuro dedicado a generar una **migración inicial limpia**. No asumir onboarding 100% determinista en base vacía hasta resolver esa fase.
-
----
-
-## Comandos Prisma por terminal
-
-### Git Bash
+## Instalacion local
 
 ```bash
-# Cargar variables de entorno
-set -a && source .env.local && set +a
-
-# Sustituir DATABASE_URL por la URL de migración directa
-export DATABASE_URL="$MIGRATION_DATABASE_URL"
-
-# Comandos Prisma
-npx.cmd prisma migrate status --schema prisma/schema.prisma
-npx.cmd prisma migrate deploy --schema prisma/schema.prisma
+npm install
+npx.cmd prisma validate
 npx.cmd prisma generate
+npx.cmd prisma migrate status --schema prisma/schema.prisma
+npm.cmd run seed
+npm.cmd run bootstrap:admin
+npm.cmd run dev
 ```
 
-### PowerShell
+Luego abrir:
 
-```powershell
-# Sustituir DATABASE_URL por la URL de migración directa
-$env:DATABASE_URL = $env:MIGRATION_DATABASE_URL
-
-# Comandos Prisma
-npx.cmd prisma migrate status --schema prisma/schema.prisma
-npx.cmd prisma migrate deploy --schema prisma/schema.prisma
-npx.cmd prisma generate
+```txt
+http://localhost:3000
+http://localhost:3000/login
 ```
-
-> **Importante**: Después de ejecutar migraciones, abrir una terminal nueva o restaurar `DATABASE_URL` al valor original del pooler para que el runtime de la app funcione correctamente.
 
 ---
 
 ## Prisma y migraciones
 
-- Migraciones versionadas en `prisma/migrations/`
-- Flujo recomendado para entornos remotos: `migrate status` → `migrate deploy`
-- **No usar `prisma migrate dev` contra Supabase remoto**
-- **No usar `prisma migrate reset` contra Supabase remoto**
+Flujo recomendado:
 
-### Baseline actual
+```bash
+npx.cmd prisma migrate status --schema prisma/schema.prisma
+npx.cmd prisma migrate deploy --schema prisma/schema.prisma
+npx.cmd prisma generate
+```
 
-Existe un baseline (`20260524000000_baseline_existing_database`) creado para compatibilizar con la base Supabase existente. No representa una migración inicial limpia para base nueva. Ver sección de advertencia anterior.
+Reglas:
 
----
+- No usar `prisma migrate reset` contra bases remotas.
+- No usar `prisma migrate dev` contra Supabase o bases compartidas.
+- Usar `MIGRATION_DATABASE_URL` para migraciones.
+- Usar `DATABASE_URL` para runtime de la app.
 
-## Seed base y primer ADMIN
+Migraciones relevantes recientes:
 
-### `npm run seed`
-
-- Crea datos base académicos (año lectivo, niveles, grados, secciones, cursos, conceptos de pago).
-- **No crea usuarios reales**.
-- **No imprime ni registra contraseñas**.
-- Puede ejecutarse varias veces si los datos son idempotentes.
-
-### `npm run bootstrap:admin`
-
-- Crea o actualiza el primer usuario ADMIN del sistema.
-- Requiere `BOOTSTRAP_CONFIRM=true` en `.env.local`.
-- Usa `BOOTSTRAP_ADMIN_PASSWORD` como contraseña principal.
-- Si no se especifica `BOOTSTRAP_ADMIN_PASSWORD`, usa el fallback `DEFAULT_NEW_USER_PASSWORD`.
-- **No imprime la contraseña** en ningún output.
-- **No usar con contraseñas débiles en entornos de producción.**
+- Campos de lockout en `User`.
+- `recoveryEmail` en `User`.
+- Modelo `PasswordResetToken`.
+- Modelo `PasswordHistory`.
+- Modelo `TrustedDeviceToken`.
 
 ---
 
-## Gestión de usuarios
+## Seed y bootstrap
 
-- Solo usuarios con rol `ADMIN` pueden gestionar cuentas desde `/dashboard/usuarios`.
-- Los correos deben ser institucionales con el dominio configurado en `INSTITUTIONAL_EMAIL_DOMAIN` (por defecto: `@terranova.edu.pe`).
-- El campo **Nombre** no acepta dígitos numéricos.
-- La contraseña temporal por defecto al crear un usuario es `DEFAULT_NEW_USER_PASSWORD`.
-- Los usuarios pueden ser **activados o desactivados** sin eliminación física.
-- `User.active` se valida en:
-  - El flujo de login (usuarios inactivos no pueden autenticarse).
-  - El layout protegido `/dashboard/*` (usuarios inactivos son redirigidos a `/login` inmediatamente).
-- El último ADMIN activo no puede ser desactivado para evitar bloqueo total del sistema.
+### Seed base
 
----
+```bash
+npm.cmd run seed
+```
 
-## Tests y calidad
+Crea datos academicos base. No debe crear usuarios reales de produccion.
 
-| Comando                                    | Descripción                                              |
-| ------------------------------------------ | -------------------------------------------------------- |
-| `npm run lint`                             | ESLint sobre el proyecto                                 |
-| `npx.cmd tsc --noEmit`                     | Verificación de tipos TypeScript                         |
-| `npm run test:run`                         | Tests unitarios e integración (Vitest)                   |
-| `npm run test:integration`                 | Solo tests de Server Actions                             |
-| `npm run test:e2e -- --reporter=list`      | E2E base (sin autenticación)                             |
-| `npm run test:e2e:auth -- --reporter=list` | E2E autenticado (requiere `E2E_DATABASE_URL` + seed E2E) |
-| `npm run build`                            | Build de producción                                      |
+### Bootstrap del primer ADMIN
 
-> Algunos tests validan escenarios negativos controlados (errores esperados, rechazos de autorización). Si el output contiene `stderr` pero el resultado final es `passed`, **no es un fallo**.
+```bash
+npm.cmd run bootstrap:admin
+```
 
----
+Requiere:
 
-## Guía de validación post-instalación
+```env
+BOOTSTRAP_CONFIRM=true
+BOOTSTRAP_ADMIN_EMAIL=
+BOOTSTRAP_ADMIN_PASSWORD=
+BOOTSTRAP_ADMIN_NAME=
+```
 
-Después de completar el checklist de instalación, verificar que:
-
-1. `npx.cmd prisma validate` → `The schema is valid 🚀`
-2. `npx.cmd prisma migrate status` → `Database schema is up to date!`
-3. `npm run dev` levanta sin errores en `http://localhost:3000`
-4. `/login` carga correctamente
-5. Las credenciales del ADMIN permiten acceder a `/dashboard`
-6. `/dashboard/usuarios` muestra la lista de usuarios
-7. Los módulos principales responden: `/dashboard/pagos`, `/dashboard/notas`, `/dashboard/asistencia`
+No imprime contrasenas.
 
 ---
 
-## Guía para pruebas E2E autenticadas
+## Usuarios y roles
 
-Los tests E2E autenticados requieren una base de datos aislada:
+- La administracion de usuarios esta en `/dashboard/usuarios`.
+- Solo usuarios con rol autorizado pueden gestionar cuentas.
+- El email es unico.
+- Los correos administrativos deben respetar el dominio institucional configurado.
+- `User.active` permite bloquear usuarios sin borrarlos.
+- El ultimo ADMIN activo no debe desactivarse.
+- La contrasena temporal por defecto se normaliza para cumplir minimo de seguridad.
 
-1. Configurar `E2E_DATABASE_URL` con una base Postgres diferente a la de desarrollo.
-2. Aplicar el schema en esa base:
+Roles principales:
+
+- `ADMIN`
+- `DIRECTOR`
+- `RECEPCION`
+- `CAJA`
+- `DOCENTE`
+- `COORDINADOR`
+
+---
+
+## Pruebas y calidad
+
+| Comando | Descripcion |
+|---|---|
+| `npm.cmd run lint` | ESLint |
+| `npx.cmd tsc --noEmit` | TypeScript |
+| `npm.cmd run test:run` | Tests unitarios |
+| `npm.cmd run test:integration` | Tests de Server Actions |
+| `npm.cmd run test:coverage` | Cobertura |
+| `npm.cmd run test:e2e` | E2E publicos/base |
+| `npm.cmd run test:e2e:auth` | E2E autenticados |
+| `npm.cmd run build` | Build de produccion |
+
+Los E2E autenticados requieren:
+
+1. `E2E_DATABASE_URL` configurada.
+2. Base distinta de `DATABASE_URL`.
+3. Base distinta de `MIGRATION_DATABASE_URL`.
+4. `npm.cmd run seed:e2e`.
+5. Puerto 3000 libre si el runner levanta servidor propio.
+
+---
+
+## Checklist antes de produccion
+
+1. Confirmar `git status --short` limpio.
+2. Ejecutar validaciones:
+
+   ```bash
+   npm.cmd run lint
+   npx.cmd tsc --noEmit
+   npm.cmd run test:run
+   npm.cmd run test:integration
+   npm.cmd run build
+   ```
+
+3. Configurar variables de entorno reales.
+4. Configurar SMTP real.
+5. Aplicar migraciones:
+
    ```bash
    npx.cmd prisma migrate deploy --schema prisma/schema.prisma
-   ```
-3. Ejecutar el seed de E2E:
-   ```bash
-   npm run seed:e2e
-   ```
-4. Configurar las variables `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`, etc.
-5. Habilitar modo autenticado:
-   ```env
-   E2E_RUN_AUTHENTICATED=1
-   ```
-6. Ejecutar:
-   ```bash
-   npm run test:e2e:auth -- --reporter=list
+   npx.cmd prisma generate
    ```
 
-> Hasta completar ese sprint, los 11 tests autenticados aparecen como `skipped`, lo cual es comportamiento esperado y no un error.
+6. Ejecutar `npm.cmd run bootstrap:admin`.
+7. Verificar que `/api/seed` siga deshabilitado.
+8. Probar recuperacion de contrasena con correo real.
+9. Probar login por rol.
+10. Probar usuarios activos e inactivos.
+11. Probar bloqueo por intentos fallidos.
+12. Probar dashboard, pagos y reportes con roles autorizados.
+
+---
+
+## Seguridad operativa
+
+- Nunca subir `.env.local`.
+- Nunca versionar credenciales reales.
+- Nunca imprimir tokens de recuperacion.
+- Nunca guardar contrasenas en texto plano.
+- Nunca enviar contrasenas por correo.
+- Nunca reactivar `/api/seed` en entornos expuestos.
+- No correr seeds E2E en produccion.
+- No correr Playwright autenticado contra produccion.
+- Rotar credenciales si fueron expuestas.
 
 ---
 
 ## Troubleshooting
 
-### Error: `Cannot find module './xxxx.js'` en `.next`
+### Error de columna faltante en login
 
-La caché de compilación está corrompida.
+Si aparece un error de Prisma como columna inexistente durante login, la base no tiene aplicadas las migraciones recientes.
 
-**Git Bash:**
-
-```bash
-rm -rf .next && npm run dev
-```
-
-**PowerShell:**
-
-```powershell
-Remove-Item -Recurse -Force .next
-npm run dev
-```
-
----
-
-### `prisma migrate status` se queda colgado indefinidamente
-
-**Causa probable:** `DATABASE_URL` apunta al Transaction Pooler (puerto `6543`) que no admite conexiones DDL.
-
-**Solución:** Usar `MIGRATION_DATABASE_URL` con puerto `5432`. Ver sección _Comandos Prisma por terminal_.
-
----
-
-### Error `P3005: The database schema is not empty`
-
-No ejecutar `migrate reset`. Revisar la estrategia baseline y la documentación en `docs/arrangements/`.
-
----
-
-### `PaymentTransaction does not exist` / `User.active column missing`
-
-La base de datos está desactualizada respecto a las migraciones locales.
+Ejecutar:
 
 ```bash
 npx.cmd prisma migrate status --schema prisma/schema.prisma
 npx.cmd prisma migrate deploy --schema prisma/schema.prisma
+npx.cmd prisma generate
 ```
 
----
+### El enlace de recuperacion no llega
 
-### `EADDRINUSE: address already in use :::3000` en E2E
+Revisar:
 
-Un servidor local sigue ejecutándose. Cerrar el proceso en el puerto 3000:
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `PASSWORD_RESET_FROM_EMAIL`
+- carpeta spam/promociones
+- restricciones del proveedor SMTP
 
-**PowerShell:**
+### E2E autenticado falla por login
+
+Revisar:
+
+- `E2E_DATABASE_URL` existe.
+- `E2E_DATABASE_URL` no es igual a `DATABASE_URL`.
+- `E2E_DATABASE_URL` no es igual a `MIGRATION_DATABASE_URL`.
+- `npm.cmd run seed:e2e` fue ejecutado.
+- Puerto 3000 esta libre.
+
+### Puerto 3000 ocupado
+
+PowerShell:
 
 ```powershell
 Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess -Force
@@ -368,74 +403,48 @@ Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess -Force
 
 ---
 
-### Tests con `stderr` en output
+## Documentacion interna
 
-Algunos tests validan rechazos de autorización o errores controlados. Si el resultado final es `passed`, el `stderr` es esperado y no representa un problema.
-
----
-
-## Archivos legacy (solo referencia)
-
-- `prisma/seed.sql`: histórico manual, **no usar como flujo operativo**.
-- `prisma/init-schema.sql`: snapshot histórico del schema original, **no usar como flujo principal**.
-
-El flujo oficial de onboarding es: **migraciones Prisma** + `npm run seed` + `npm run bootstrap:admin`.
+- `README.md`: guia principal del proyecto.
+- `docs/arrangements/`: bitacora tecnica por sprint.
+- Crear o actualizar un documento en `docs/arrangements/` al cerrar cada sprint o bloque de trabajo relevante.
+- Si `docs/` esta ignorado por Git, versionar documentos con `git add -f`.
 
 ---
 
-## Reglas de seguridad
+## Pendientes recomendados
 
-- **Nunca subir `.env.local`** al repositorio.
-- **Nunca incluir contraseñas reales** en README, documentación o comentarios de código.
-- **Rotar credenciales** inmediatamente si fueron expuestas en un commit o log.
-- **No reactivar `/api/seed`** en ningún entorno expuesto.
-- **No ejecutar seeds manuales** que contengan credenciales hardcodeadas.
-- **No usar `migrate reset`** contra Supabase remoto.
-- **No usar `migrate dev`** contra Supabase remoto.
-- `User.active` debe validarse en login **y** en cada request protegido.
+- Configurar proveedor SMTP real antes de produccion.
+- Ejecutar E2E autenticados con base aislada.
+- Revisar y limpiar warning de Prisma `driverAdapters`.
+- Agregar rate limiting adicional por IP/email.
+- Configurar CAPTCHA adaptativo con llaves reales si hay abuso.
+- Configurar backups automaticos de PostgreSQL.
+- Configurar monitoreo de errores y logs operativos.
+- Definir politica operativa de alta, baja y recuperacion de usuarios.
 
 ---
 
-## Flujo de trabajo con ramas
+## Flujo de ramas
 
-```
-main                        ← rama estable, solo código validado
-feature/sprint-XX-desc      ← trabajo activo por sprint
+```txt
+main                         rama estable
+feature/<descripcion>         trabajo activo
 ```
 
-**Antes de hacer merge a `main`, validar:**
+Antes de integrar a `main`:
 
 ```bash
-npm run lint
+npm.cmd run lint
 npx.cmd tsc --noEmit
-npm run test:run
-npm run test:integration
-npm run test:e2e -- --reporter=list
-npm run build
+npm.cmd run test:run
+npm.cmd run test:integration
+npm.cmd run build
 ```
 
-**Reglas:**
+Si el cambio toca E2E o autenticacion:
 
-- No mezclar refactor masivo, migraciones y nuevas features en un mismo sprint.
-- No subir `.env.local` bajo ninguna circunstancia.
-- Crear un documento en `docs/arrangements/` por cada sprint con bitácora técnica.
-
----
-
-## Documentación interna
-
-- `README.md` — guía pública principal del proyecto.
-- `docs/arrangements/` — bitácora técnica por sprint (ignorada por git, agregar con `git add -f`).
-- No crear archivos `.md` sueltos en `docs/` sin justificación técnica documentada.
-- Documentos históricos o privados no deben versionarse. Si se conservan localmente, mantenerlos fuera del tracking de Git. `docs/arrangements/` debe usarse solo para bitácoras técnicas que sí puedan compartirse.
-
----
-
-## Que NO hacer
-
-- No reactivar `/api/seed`
-- No usar `migrate reset` contra Supabase remoto
-- No usar `migrate dev` contra Supabase remoto
-- No ejecutar `seed.sql` / `init-schema.sql` como instalación oficial
-- No asumir que el baseline reemplaza una migración inicial limpia
-- No exponer contraseñas o tokens en código, logs o documentación
+```bash
+npm.cmd run test:e2e
+npm.cmd run test:e2e:auth
+```
