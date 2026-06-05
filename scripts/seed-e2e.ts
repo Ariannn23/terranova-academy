@@ -1,9 +1,17 @@
-import "dotenv/config";
+import { config } from "dotenv";
 
-import { PrismaClient, type PaymentConcept, type Payment } from "@prisma/client";
+import {
+  Prisma,
+  PrismaClient,
+  type PaymentConcept,
+  type Payment,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
+
+config({ path: ".env.local", quiet: true });
+config({ path: ".env", quiet: true });
 
 const e2eDatabaseUrl = process.env.E2E_DATABASE_URL;
 const e2ePassword = process.env.E2E_DEFAULT_PASSWORD ?? "E2ePassword123!";
@@ -344,7 +352,7 @@ async function main() {
   });
 
   console.log("[E2E SEED] Datos listos.");
-  console.log("[E2E SEED] Password local:", e2ePassword);
+  console.log("[E2E SEED] Password: no se imprime por seguridad.");
   console.log("[E2E SEED] Matricula:", enrollment.id);
 }
 
@@ -468,6 +476,17 @@ async function upsertPayment(input: {
 
 main()
   .catch((error) => {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "EACCES"
+    ) {
+      console.error(
+        "[E2E SEED] Error de permisos en la base E2E. Revisa que E2E_DATABASE_URL apunte a una base aislada y que el usuario tenga permisos de escritura sobre el schema de Prisma.",
+      );
+      process.exitCode = 1;
+      return;
+    }
+
     console.error("[E2E SEED] Error:", error);
     process.exitCode = 1;
   })

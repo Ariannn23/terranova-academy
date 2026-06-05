@@ -1,9 +1,12 @@
-import "dotenv/config";
+import { config } from "dotenv";
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
+
+config({ path: ".env.local", quiet: true });
+config({ path: ".env", quiet: true });
 
 const connectionString = process.env.DATABASE_URL;
 const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
@@ -45,7 +48,7 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   if (!process.env.BOOTSTRAP_ADMIN_PASSWORD) {
     console.warn(
-      "[BOOTSTRAP] BOOTSTRAP_ADMIN_PASSWORD no fue provista. Se usara DEFAULT_NEW_USER_PASSWORD como contraseña temporal.",
+      "[BOOTSTRAP] BOOTSTRAP_ADMIN_PASSWORD no fue provista. Se usara DEFAULT_NEW_USER_PASSWORD como contrasena temporal.",
     );
   }
 

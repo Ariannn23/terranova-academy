@@ -18,6 +18,7 @@ Definir los pasos necesarios para subir TerraNova Academy a produccion de forma 
 - `/api/seed` debe permanecer deshabilitado.
 - `.env.example` fue alineado con variables de produccion y E2E.
 - `/api/seed` mantiene respuesta `410 Gone` y no ejecuta ningun seed.
+- Scripts CLI de Prisma, seed, bootstrap y E2E cargan `.env.local` y `.env` de forma explicita y silenciosa.
 
 ## Validaciones ejecutadas
 
@@ -33,7 +34,9 @@ Definir los pasos necesarios para subir TerraNova Academy a produccion de forma 
 | `npx.cmd tsc --noEmit` despues de ajustes deploy-readiness | OK | Tipado correcto. |
 | `npm.cmd run test:run` despues de ajustes deploy-readiness | OK | 209 tests pasaron. |
 | `npm.cmd run test:integration` despues de ajustes deploy-readiness | OK | 45 tests pasaron. |
+| `npm.cmd run test:e2e -- --reporter=list` | OK | 7 tests pasaron, 12 autenticados omitidos por configuracion. |
 | `npm.cmd run build` despues de ajustes deploy-readiness | OK | Build de Next.js correcto. |
+| `npm.cmd run seed:e2e` | Bloqueado por entorno | El script carga `.env.local`, pero la base E2E responde `EACCES` al escribir en `User`. |
 
 ## Paso 1: Cierre limpio de codigo
 
@@ -151,6 +154,26 @@ Requisitos:
 - `E2E_DATABASE_URL` debe ser distinta de `DATABASE_URL`.
 - `E2E_DATABASE_URL` debe ser distinta de `MIGRATION_DATABASE_URL`.
 - Puerto 3000 debe estar libre si el runner levanta su propio servidor.
+
+Revision local actual:
+
+- `test:e2e` publico/base paso correctamente.
+- La terminal actual no tenia `E2E_DATABASE_URL`, `DATABASE_URL` ni `MIGRATION_DATABASE_URL` cargadas como variables de proceso.
+- `test:e2e:auth` queda pendiente hasta cargar variables de entorno E2E en la terminal.
+- `.env.local` si contiene `E2E_DATABASE_URL`, pero debe cargarse en la terminal antes de ejecutar scripts CLI.
+- Al cargar `.env.local` y ejecutar `npm.cmd run seed:e2e`, el seed fallo con `EACCES` en `prisma.user.upsert`.
+- El fallo `EACCES` indica que la URL/usuario de la base E2E actual no tiene permisos suficientes o la base aislada no esta preparada para escritura con ese usuario.
+- Se ajusto `scripts/seed-e2e.ts` para no imprimir la contrasena E2E en consola.
+- Se ajusto `scripts/seed-e2e.ts` para mostrar un error claro cuando la base E2E rechaza escrituras por permisos.
+- Se ajustaron `scripts/run-e2e.mjs`, `scripts/bootstrap-admin.ts`, `scripts/seed-e2e.ts`, `prisma/seed.ts` y `prisma.config.ts` para cargar `.env.local` y `.env` sin ruido en consola.
+
+Accion pendiente para E2E autenticado:
+
+1. Confirmar que `E2E_DATABASE_URL` apunte a una base aislada de prueba.
+2. Confirmar que el usuario de esa URL tenga permisos de `SELECT`, `INSERT`, `UPDATE` y `DELETE` sobre el schema usado por Prisma.
+3. Aplicar migraciones en esa base.
+4. Ejecutar `npm.cmd run seed:e2e`.
+5. Ejecutar `npm.cmd run test:e2e:auth -- --reporter=list`.
 
 ## Paso 8: Deploy
 

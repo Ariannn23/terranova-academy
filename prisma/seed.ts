@@ -1,8 +1,11 @@
-import "dotenv/config";
+import { config } from "dotenv";
 
 import { Level, PrismaClient, type PaymentConcept } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+
+config({ path: ".env.local", quiet: true });
+config({ path: ".env", quiet: true });
 
 const connectionString = process.env.DATABASE_URL;
 

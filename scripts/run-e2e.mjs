@@ -1,5 +1,9 @@
 import { spawn } from "node:child_process";
 import http from "node:http";
+import { config } from "dotenv";
+
+config({ path: ".env.local", quiet: true });
+config({ path: ".env", quiet: true });
 
 const port = 3000;
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${port}`;
@@ -34,7 +38,7 @@ function assertE2eDbIsIsolated() {
 }
 
 if (runAuthenticated) {
-  // Fail-fast: evita que la suite autenticada toque la base principal si E2E_DATABASE_URL no está configurada.
+  // Fail-fast: evita que la suite autenticada toque la base principal si E2E_DATABASE_URL no esta configurada.
   assertE2eDbIsIsolated();
 }
 
